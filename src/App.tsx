@@ -11,12 +11,10 @@ function App() {
   const dispatch = useAppDispatch()
 
   useEffect(() => {
-    // Hydrate auth state from localStorage
     dispatch(hydrate())
   }, [dispatch])
 
   useEffect(() => {
-    // Set HTML direction based on language
     document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr'
   }, [i18n.language])
 
