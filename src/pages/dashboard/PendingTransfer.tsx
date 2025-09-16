@@ -339,7 +339,10 @@ const PendingTransferColumns: TableColumn[] = [
        
             <p className="text-sm text-[#282828]"> You're about to approve this budget request. Once approved, the requester will be notified, and the process will move to the next stage. Are you sure you want to continue?</p>
         
-            <div>
+         
+        </div>
+        
+           <div>
           <label className="block text-xs font-bold text-[#282828] mb-2">
            Reason (Optional)
           </label>
@@ -351,8 +354,6 @@ const PendingTransferColumns: TableColumn[] = [
             placeholder="Add any comments or notes (optional)..."
           />
         </div>
-        </div>
-        
      
         
         <div className="flex justify-end gap-3">

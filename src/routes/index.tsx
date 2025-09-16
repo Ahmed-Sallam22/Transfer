@@ -19,8 +19,8 @@ import ProjectsOverview from '@/pages/dashboard/ProjectsOverview';
 import AccountsProjects from '@/pages/dashboard/AccountsProjects';
 import Users from '@/pages/dashboard/Users';
 import Reports from '@/pages/dashboard/Reports';
-import WorkFlow from '@/pages/dashboard/WorkFlow';
 import AddWorkFlow from '@/pages/dashboard/AddWorkFlow';
+import WorkFlow from '@/pages/dashboard/WorkFlow';
 
 const SignIn = lazy(() => import('../pages/auth/SignIn'));
 const SignUp = lazy(() => import('../pages/auth/SignUp'));

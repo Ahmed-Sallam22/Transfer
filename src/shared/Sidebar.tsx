@@ -56,7 +56,8 @@ const sections = [
       { to: '/app/users', label: 'User Management', icon: Users },
       { to: '/app/accounts-projects', label: 'Accounts & Projects', icon: FolderKanban },
       { to: '/app/projects-overview', label: 'Projects Overview', icon: KanbanSquare },
-      { to: '/app/WorkFlow', label: 'WorkFlow', icon: Workflow },
+            { to: '/app/WorkFlow', label: 'WorkFlow', icon: Workflow },
+
     ],
   },
   {

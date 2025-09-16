@@ -26,7 +26,7 @@ interface TransferTableRow {
 
 
 
-export default function PendingAdjustmentsDetails() {
+export default function PendingTransferDetails() {
   const { id } = useParams<{ id: string }>();
   console.log(id);
   
@@ -96,7 +96,7 @@ export default function PendingAdjustmentsDetails() {
   const shouldShowPagination = rows.length > 10;
 
   const handleBack = () => {
-    navigate('/app/FundAdjustments');
+    navigate('/app/PendingTransfer');
   };
 
 

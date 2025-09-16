@@ -125,7 +125,7 @@ export const pendingTransferApi = createApi({
     }),
     bulkApproveRejectTransfer: builder.mutation<BulkApproveRejectResponse, BulkApproveRejectRequest>({
       query: (body) => ({
-        url: `/budget/transfers/adjd-approve-reject/`,
+        url: `/budget/transfers/approve-reject/`,
         method: 'POST',
         body,
       }),

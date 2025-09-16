@@ -40,6 +40,7 @@ export interface SharedSelectProps {
   error?: string;
   required?: boolean;
     clearable?: boolean;
+    size?: 'text-sm' | 'text-md' | 'text-lg'| 'text-xl';
 
 }
 
@@ -55,6 +56,7 @@ export function SharedSelect({
   className = "",
   error,
   required = false,
+  size = 'text-sm',
   clearable = true
 }: SharedSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -116,7 +118,7 @@ export function SharedSelect({
     <div className={cn("relative", className)}>
       {/* Label */}
       {title && (
-        <label className="block text-xs font-bold text-[#282828] mb-2">
+        <label className={`block ${size} font-bold text-[#282828] mb-3`}>
           {title}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -130,7 +132,7 @@ export function SharedSelect({
           onClick={handleToggle}
           disabled={disabled}
           className={cn(
-            "relative w-full px-3 py-3  text-left bg-white border border-[#E2E2E2] rounded-md  cursor-pointer",
+            "relative w-full px-3 py-4  text-left bg-white border border-[#E2E2E2] rounded-md  cursor-pointer",
             "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
             "disabled:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50",
             error ? "border-red-300" : "border-gray-300",

@@ -7,7 +7,7 @@ import { useGetBalanceReportQuery } from '@/api/balanceReport.api';
 import { toast } from 'react-hot-toast';
 import { store } from '@/app/store';
 
-interface TransferTableRow {
+interface FundRequestsTableRow {
   id: string;
   to: number;
   from: number;
@@ -29,8 +29,7 @@ interface TransferTableRow {
   validation_errors?: string[];
 }
 
-
-interface TransferDetailRow {
+interface FundRequestsDetailRow {
   id: string;
   itemId: string;
   itemName: string;
@@ -78,15 +77,11 @@ export default function TransferDetails() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   
-  // Loading states
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
   // Local state for additional rows (new rows added by user)
-  const [localRows, setLocalRows] = useState<TransferTableRow[]>([]);
+  const [localRows, setLocalRows] = useState<FundRequestsTableRow[]>([]);
   
   // State to track all edits locally (both existing and new rows)
-  const [editedRows, setEditedRows] = useState<TransferTableRow[]>([]);
+  const [editedRows, setEditedRows] = useState<FundRequestsTableRow[]>([]);
 
   // Initialize editedRows when API data loads
   useEffect(() => {
@@ -198,7 +193,7 @@ export default function TransferDetails() {
       : [""];
 
   // Create a default row for when there's no data
-  const createDefaultRow = (): TransferTableRow => ({
+  const createDefaultRow = (): FundRequestsTableRow => ({
     id: 'default-1',
     to: 0,
     from: 0,
@@ -232,7 +227,7 @@ export default function TransferDetails() {
   }, [apiData?.status.status, apiData?.summary.status]);
 
   // Sample data for fund requests details
-  const [rowsDetails] = useState<TransferDetailRow[]>([
+  const [rowsDetails] = useState<FundRequestsDetailRow[]>([
     {
       id: '1',
       itemId: '1213322',
@@ -273,11 +268,10 @@ export default function TransferDetails() {
   const shouldShowPagination = rows.length > 10;
 
   const handleBack = () => {
-    navigate('/app/transfer');
+    navigate('/app/fund-requests');
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
     try {
       // Filter out empty rows before saving
       const nonEmptyEditedRows = editedRows.filter(row => 
@@ -332,26 +326,20 @@ export default function TransferDetails() {
       });
       
       // Save to API
-      const result = await createTransfer(transfersToSave).unwrap();
-  console.log('Transfers saved successfully:', transfersToSave);
-  console.log('API Response:', result);
-
-  // Refetch transfer details after save to update the table
-  store.dispatch(transferDetailsApi.util.invalidateTags(['TransferDetails']));
-
-  // Clear localStorage only after successful save
-  localStorage.removeItem(`localRows_${transactionId}`);
-  setLocalRows([]);
-
-  // Show success toast
-  toast.success('Transfers saved successfully!');
+      await createTransfer(transfersToSave).unwrap();
+      console.log('Transfers saved successfully:', transfersToSave);
+      
+      // Clear localStorage after successful save
+      localStorage.removeItem(`localRows_${transactionId}`);
+      setLocalRows([]);
+      
+      // Show success toast
+      toast.success('Transfers saved successfully!');
       
     } catch (error) {
       console.error('Error saving transfers:', error);
       // Show error toast
       toast.error('Error saving transfers. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -382,7 +370,6 @@ export default function TransferDetails() {
 
   const handleSubmit = async () => {
     if (!isSubmitDisabled()) {
-      setIsSubmitting(true);
       try {
         // Call the submit API
         await submitTransfer({ 
@@ -399,9 +386,6 @@ export default function TransferDetails() {
         
       } catch (error) {
         console.error('Error submitting transfer:', error);
-        toast.error('Error submitting transfer. Please try again.');
-      } finally {
-        setIsSubmitting(false);
       }
     }
   };
@@ -455,7 +439,7 @@ export default function TransferDetails() {
   };
 
   const addNewRow = () => {
-    const newRow: TransferTableRow = {
+    const newRow: FundRequestsTableRow = {
       id: `new-${Date.now()}`,
       to: 0,
       from: 0,
@@ -485,10 +469,10 @@ export default function TransferDetails() {
 
 
 
-  const updateRow = async (rowId: string, field: keyof TransferTableRow, value: string | number) => {
+  const updateRow = async (rowId: string, field: keyof FundRequestsTableRow, value: string | number) => {
     // Handle business logic for from/to mutual exclusivity
     const updatedValue = value;
-    const additionalUpdates: Partial<TransferTableRow> = {};
+    const additionalUpdates: Partial<FundRequestsTableRow> = {};
     
     if (field === 'from' && Number(value) > 0) {
       additionalUpdates.to = 0;
@@ -587,7 +571,7 @@ export default function TransferDetails() {
       id: 'itemId',
       header: 'Item ID',
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.itemId}</span>;
       }
     },
@@ -595,7 +579,7 @@ export default function TransferDetails() {
       id: 'itemName',
       header: 'Item Name',
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.itemName}</span>;
       }
     },
@@ -603,7 +587,7 @@ export default function TransferDetails() {
       id: 'accountId',
       header: 'Account ID',
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.accountId}</span>;
       }
     },
@@ -611,7 +595,7 @@ export default function TransferDetails() {
       id: 'accountName',
       header: 'Account Name',
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.accountName}</span>;
       }
     },
@@ -620,7 +604,7 @@ export default function TransferDetails() {
       header: 'From',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.from.toLocaleString()}</span>;
       }
     },
@@ -629,7 +613,7 @@ export default function TransferDetails() {
       header: 'To',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.to.toLocaleString()}</span>;
       }
     },
@@ -638,7 +622,7 @@ export default function TransferDetails() {
       header: 'Approved Budget',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.approvedBudget.toLocaleString()}</span>;
       }
     },
@@ -647,7 +631,7 @@ export default function TransferDetails() {
       header: 'Current',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.current.toLocaleString()}</span>;
       }
     },
@@ -656,7 +640,7 @@ export default function TransferDetails() {
       header: 'Available Budget',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as TransferDetailRow;
+        const detailRow = row as unknown as FundRequestsDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.availableBudget.toLocaleString()}</span>;
       }
     }
@@ -669,7 +653,7 @@ export default function TransferDetails() {
       id: 'validation',
       header: 'Status',
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const hasErrors = transferRow.validation_errors && transferRow.validation_errors.length > 0;
         
         return (
@@ -703,7 +687,7 @@ export default function TransferDetails() {
       showSum: true,
   
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const hasErrors = transferRow.validation_errors && transferRow.validation_errors.length > 0;
         
         return isSubmitted ? (
@@ -731,7 +715,7 @@ export default function TransferDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const hasErrors = transferRow.validation_errors && transferRow.validation_errors.length > 0;
         
         return isSubmitted ? (
@@ -759,7 +743,7 @@ export default function TransferDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const value = transferRow.encumbrance || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -774,7 +758,7 @@ export default function TransferDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const value = transferRow.availableBudget || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -789,7 +773,7 @@ export default function TransferDetails() {
       showSum: true,
      
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const value = transferRow.actual || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -804,7 +788,7 @@ export default function TransferDetails() {
       showSum: true,
      
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const value = transferRow.approvedBudget || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -819,7 +803,7 @@ export default function TransferDetails() {
       showSum: true,
      
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         const value = transferRow.other_ytd || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -833,7 +817,7 @@ export default function TransferDetails() {
       header: 'Period',
      
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         return <span className="text-sm text-gray-900">{transferRow.period }</span>;
       }
     },
@@ -843,7 +827,7 @@ export default function TransferDetails() {
       header: 'Account Name',
  
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         return <span className="text-sm text-gray-900">{transferRow.accountName}</span>;
       }
     },
@@ -852,7 +836,7 @@ export default function TransferDetails() {
       header: 'Project Name',
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         return <span className="text-sm text-gray-900">{transferRow.projectName}</span>;
       }
     },
@@ -861,7 +845,7 @@ export default function TransferDetails() {
       header: 'Cost Center Name',
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         return <span className="text-sm text-gray-900">{transferRow.costCenterName}</span>;
       }
     },
@@ -870,7 +854,7 @@ export default function TransferDetails() {
       header: 'Account Code',
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         return isSubmitted ? (
           <span className="text-sm text-gray-900">{transferRow.accountCode}</span>
         ) : (
@@ -893,7 +877,7 @@ export default function TransferDetails() {
       header: 'Project Code',
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         return isSubmitted ? (
           <span className="text-sm text-gray-900">{transferRow.projectCode}</span>
         ) : (
@@ -915,7 +899,7 @@ export default function TransferDetails() {
       header: 'Cost Center',
 
       render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
+        const transferRow = row as unknown as FundRequestsTableRow;
         return isSubmitted ? (
           <span className="text-sm text-gray-900">{transferRow.costCenterCode}</span>
         ) : (
@@ -1082,7 +1066,7 @@ export default function TransferDetails() {
             onClick={handleBack}
             className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
           >
-          Transfer
+           Fund Requests
           </button>
           <span className='text-[#737373] text-lg'>/</span>
           <h1 className="text-lg  text-[#737373] font-light tracking-wide">Code</h1>
@@ -1113,9 +1097,9 @@ export default function TransferDetails() {
             data={rows as unknown as SharedTableRow[]}
             showFooter={true}
             maxHeight="600px"
-            onSave={isSaving ? undefined : handleSave}
+            onSave={handleSave}
             
-            showSaveButton={!isSubmitted && !isSaving}
+            showSaveButton={!isSubmitted}
             showPagination={shouldShowPagination}
             currentPage={currentPage}
             onPageChange={handlePageChange}
@@ -1125,15 +1109,6 @@ export default function TransferDetails() {
             addRowButtonText="Add New Row"
           />
 
-          {/* Custom Save Section with Loading State */}
-          {!isSubmitted && isSaving && (
-            <div className="flex justify-end mt-4 p-4 bg-white rounded-lg shadow-sm">
-              <div className="flex items-center gap-2 text-blue-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm">Saving transfers...</span>
-              </div>
-            </div>
-          )}
  
         </div>
 
@@ -1155,7 +1130,7 @@ export default function TransferDetails() {
 </defs>
 </svg>
 
-              UploadTransfer File
+              Upload Fund Requests File
             </button>
           
 
@@ -1170,30 +1145,21 @@ export default function TransferDetails() {
           
           <button
             onClick={handleSubmit}
-            disabled={isSubmitDisabled() || isSubmitting}
-            className={`px-6 py-2 text-sm rounded-lg transition-colors inline-flex items-center gap-2 ${
-              isSubmitDisabled() || isSubmitting
+            disabled={isSubmitDisabled()}
+            className={`px-6 py-2 text-sm rounded-lg transition-colors ${
+              isSubmitDisabled()
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
             title={
-              isSubmitting
-                ? 'Submitting transfer...'
-                : isSubmitDisabled()
-                  ? (!apiData?.transfers || apiData.transfers.length === 0) && localRows.length === 0 && editedRows.length === 0
-                    ? 'Cannot submit: No transfers available'
-                    : 'Cannot submit: Please fix validation errors'
-                  : 'Submit transfer request'
+              isSubmitDisabled()
+                ? (!apiData?.transfers || apiData.transfers.length === 0) && localRows.length === 0 && editedRows.length === 0
+                  ? 'Cannot submit: No transfers available'
+                  : 'Cannot submit: Please fix validation errors'
+                : 'Submit transfer request'
             }
           >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Submitting...
-              </>
-            ) : (
-              'Submit'
-            )}
+            Submit
           </button>
         </div>
         
@@ -1242,7 +1208,7 @@ export default function TransferDetails() {
               setIsAttachmentsModalOpen(false);
               setSelectedFile(null);
             }}
-            title="UploadTransfer File"
+            title="Upload Fund Requests File"
             size="lg"
           >
               {/* Upload icon */}
@@ -1334,7 +1300,7 @@ export default function TransferDetails() {
               <SharedModal
                 isOpen={isReportModalOpen}
                 onClose={() => setIsReportModalOpen(false)}
-                title="Fund Adjustments  Report"
+                title="Fund Requests  Report"
                 size="full"
               >
                 <div className="p-4 ">
@@ -1366,7 +1332,7 @@ export default function TransferDetails() {
 
                   {/* Report content goes here */}
                     <SharedTable
-                    title='Fund Adjustments Details'
+                    title='Fund Requests Details'
             columns={columns}
             titleSize='sm'
             showShadow={false}

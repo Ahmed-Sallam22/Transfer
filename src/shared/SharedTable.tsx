@@ -218,6 +218,7 @@ export function SharedTable({
 
   const handleMouseDown = (e: React.MouseEvent, columnId: string) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsResizing(columnId);
     resizeRef.current = {
       startX: e.clientX,
@@ -291,6 +292,7 @@ export function SharedTable({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing || !resizeRef.current) return;
       
+      e.preventDefault();
       const { startX, startWidth, columnId } = resizeRef.current;
       const diff = e.clientX - startX;
       const newWidth = Math.max(startWidth + diff, 50); // Allow both reduction and expansion, minimum 50px
@@ -301,21 +303,28 @@ export function SharedTable({
       }));
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
       setIsResizing(null);
       resizeRef.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
 
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', handleMouseMove, { passive: false });
+      document.addEventListener('mouseup', handleMouseUp, { passive: false });
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
-  }, [isResizing, columnWidths]);
+  }, [isResizing]);
 
   const getCellValue = (row: TableRow, column: TableColumn, index: number): React.ReactNode => {
     if (column.render) {
@@ -440,7 +449,7 @@ export function SharedTable({
               {columns.map((column) => (
                 <th
                   key={column.id}
-                  className="text-left px-4 py-3 text-sm font-[300] text-[#595B5E]   relative select-none"
+                  className="text-left px-4 py-3 text-sm font-[300] text-[#595B5E] relative select-none border-r border-r-transparent hover:border-r-blue-200"
                   style={{ 
                     width: columnWidths[column.id] || column.width || 150,
                     minWidth: column.minWidth || 100
@@ -453,24 +462,25 @@ export function SharedTable({
                   {/* Resize handle - now for all columns */}
                   <div
                     className={cn(
-                      "absolute top-0 right-0 w-2 h-full cursor-col-resize group transition-all duration-200",
-                      "hover:w-3 hover:bg-blue-100",
-                      isResizing === column.id && "w-3 bg-blue-200"
+                      "absolute top-0 right-0 w-3 h-full cursor-col-resize group transition-all duration-200 z-10",
+                      "hover:w-4 hover:bg-blue-100/50",
+                      isResizing === column.id && "w-4 bg-blue-200/50"
                     )}
                     onMouseDown={(e) => handleMouseDown(e, column.id)}
                     onDoubleClick={() => handleDoubleClick(column.id)}
                     title="Drag to resize, double-click to reset"
+                    style={{ userSelect: 'none' }}
                   >
                     {/* Resize bar */}
                     <div className={cn(
-                      "absolute top-1/3 right-0 w-px h-5 bg-gray-300 transition-colors",
-                      "group-hover:bg-blue-400",
-                      isResizing === column.id && "bg-blue-500"
+                      "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
+                      "group-hover:bg-blue-400 group-hover:w-1",
+                      isResizing === column.id && "bg-blue-500 w-1"
                     )} />
                     
                     {/* Resize icon */}
                     <div className={cn(
-                      "absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1/2",
+                      "absolute top-1/2 right-0.5 transform -translate-y-1/2",
                       "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
                       "bg-white border border-gray-300 rounded p-0.5 shadow-sm",
                       "group-hover:border-blue-400",
@@ -485,7 +495,7 @@ export function SharedTable({
               {/* Actions column header */}
               {showActions && (
                 <th 
-                  className="text-left px-4 py-3 text-sm font-[300] text-[#595B5E] relative select-none"
+                  className="text-left px-4 py-3 text-sm font-[300] text-[#595B5E] relative select-none border-r border-r-transparent hover:border-r-blue-200"
                   style={{ 
                     width: columnWidths['actions'] || 120,
                     minWidth: 100
@@ -497,24 +507,25 @@ export function SharedTable({
                   {/* Resize handle for actions column */}
                   <div
                     className={cn(
-                      "absolute top-0 right-0 w-2 h-full cursor-col-resize group transition-all duration-200",
-                      "hover:w-3 hover:bg-blue-100",
-                      isResizing === 'actions' && "w-3 bg-blue-200"
+                      "absolute top-0 right-0 w-3 h-full cursor-col-resize group transition-all duration-200 z-10",
+                      "hover:w-4 hover:bg-blue-100/50",
+                      isResizing === 'actions' && "w-4 bg-blue-200/50"
                     )}
                     onMouseDown={(e) => handleMouseDown(e, 'actions')}
                     onDoubleClick={() => handleDoubleClick('actions')}
                     title="Drag to resize, double-click to reset"
+                    style={{ userSelect: 'none' }}
                   >
                     {/* Resize bar */}
                     <div className={cn(
-                      "absolute top-1/3 right-0 w-px h-5 bg-gray-300 transition-colors",
-                      "group-hover:bg-blue-400",
-                      isResizing === 'actions' && "bg-blue-500"
+                      "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
+                      "group-hover:bg-blue-400 group-hover:w-1",
+                      isResizing === 'actions' && "bg-blue-500 w-1"
                     )} />
                     
                     {/* Resize icon */}
                     <div className={cn(
-                      "absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1/2",
+                      "absolute top-1/2 right-0.5 transform -translate-y-1/2",
                       "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
                       "bg-white border border-gray-300 rounded p-0.5 shadow-sm",
                       "group-hover:border-blue-400",
