@@ -5,344 +5,111 @@ import SharedModal from '@/shared/SharedModal';
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
+import { 
+  useGetPendingTransfersQuery, 
+  useBulkApproveRejectTransferMutation,
+  type PendingTransferData 
+} from '@/api/pendingTransfer.api';
 
 
 
-const PendingAdjustmentsData: TableRow[] = [
-  {
-    id: 'TXN001',
-    date: '2024-01-15',
-    from: 'Ahmed Ali',
-    to: 'Sara Mohamed',
-    amount: 1500,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN002',
-    date: '2024-01-14',
-    from: 'Omar Hassan',
-    to: 'Ahmed Ali',
-    amount: 2500,
-    Attachments: 'Attachments',    currency: 'USD',
-    status: 'Pending',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN003',
-    date: '2024-01-13',
-    from: 'Sara Mohamed',
-    to: 'Omar Hassan',
-    amount: 750,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Rejected',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN004',
-    date: '2024-01-12',
-    from: 'Fatima Al-Zahra',
-    to: 'Mohamed Salah',
-    amount: 3200,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN005',
-    date: '2024-01-11',
-    from: 'Hassan Mahmoud',
-    to: 'Layla Nour',
-    amount: 1800,
-    Attachments: 'Attachments',    currency: 'USD',
-    status: 'Pending',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN006',
-    date: '2024-01-10',
-    from: 'Yasmin Fawzy',
-    to: 'Kareem Adel',
-    amount: 950,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN007',
-    date: '2024-01-09',
-    from: 'Tarek Youssef',
-    to: 'Nada Ibrahim',
-    amount: 4100,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Rejected',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN008',
-    date: '2024-01-08',
-    from: 'Amira Rashad',
-    to: 'Khaled Farouk',
-    amount: 2750,
-    Attachments: 'Attachments',    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN009',
-    date: '2024-01-07',
-    from: 'Mahmoud Gamal',
-    to: 'Rana Sherif',
-    amount: 1200,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Pending',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN010',
-    date: '2024-01-06',
-    from: 'Salma Hassan',
-    to: 'Youssef Omar',
-    amount: 5600,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN011',
-    date: '2024-01-05',
-    from: 'Ali Mostafa',
-    to: 'Mona Sayed',
-    amount: 890,
-    Attachments: 'Attachments',    currency: 'USD',
-    status: 'Rejected',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN012',
-    date: '2024-01-04',
-    from: 'Dina Waleed',
-    to: 'Ahmed Nasser',
-    amount: 3450,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN013',
-    date: '2024-01-03',
-    from: 'Karim Mansour',
-    to: 'Heba Magdy',
-    amount: 1650,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Pending',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN014',
-    date: '2024-01-02',
-    from: 'Noha Abdel Rahman',
-    to: 'Tamer Said',
-    amount: 2200,
-    Attachments: 'Attachments',    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN015',
-    date: '2024-01-01',
-    from: 'Sherif Kamel',
-    to: 'Mariam Fouad',
-    amount: 1750,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Rejected',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN016',
-    date: '2023-12-31',
-    from: 'Reem Ashraf',
-    to: 'Adel Hosny',
-    amount: 4800,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN017',
-    date: '2023-12-30',
-    from: 'Ibrahim Zaki',
-    to: 'Sahar Lotfy',
-    amount: 1350,
-    Attachments: 'Attachments',    currency: 'USD',
-    status: 'Pending',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN018',
-    date: '2023-12-29',
-    from: 'Malak Farid',
-    to: 'Osama Helmy',
-    amount: 2900,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN019',
-    date: '2023-12-28',
-    from: 'Yara Sameh',
-    to: 'Hisham Reda',
-    amount: 3700,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Rejected',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN020',
-    date: '2023-12-27',
-    from: 'Eslam Sabry',
-    to: 'Ghada Emad',
-    amount: 1450,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN021',
-    date: '2023-12-26',
-    from: 'Nour El-Din',
-    to: 'Rahma Khaled',
-    amount: 2600,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Pending',
-    Track: 'Track'
-  },
-  {
-    id: 'TXN022',
-    date: '2023-12-25',
-    from: 'Basma Yousry',
-    to: 'Mostafa Ahmed',
-    amount: 5200,
-    Attachments: 'Attachments',
-    currency: 'USD',
-    status: 'Active',
-    Track: 'Track'
-  }
+const PendingtransferData: TableRow[] = [
+
 ];
 
-export default function PendingAdjustments() {
+export default function PendingTransfer() {
   const navigate = useNavigate();
   const [q, setQ] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  
+  // RTK Query hooks
+  const { 
+    data: apiData, 
+    error, 
+    isLoading 
+  } = useGetPendingTransfersQuery({
+    page: currentPage,
+    page_size: 10,
+    code: 'FAD'
+  });
+  
+  const [bulkApproveRejectTransfer] = useBulkApproveRejectTransferMutation();
   
   // Modal states
   const [isApproveModalOpen, setIsApproveModalOpen] = useState<boolean>(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState<boolean>(false);
   const [selectedRow, setSelectedRow] = useState<TableRow | null>(null);
+  const [reason, setReason] = useState<string>('');
+
+  // Transform API data to table format (Code, Requested By, Status, Transaction Date, Amount)
+  const transformApiDataToTableRows = (apiTransfers: PendingTransferData[]): TableRow[] => {
+    return apiTransfers.map((t) => {
+      const id = String(t.transaction_id ?? t.id ?? '');
+      const code = t.code ?? id;
+      const requested_by = t.requested_by ?? t.from_center ?? '-';
+      const statusRaw = t.status ?? '';
+      const status = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase();
+      const transaction_date = t.transaction_date ?? (t.request_date ? new Date(t.request_date).toLocaleDateString() : '-');
+      const amount = typeof t.amount === 'string' ? parseFloat(t.amount) : (t.amount ?? 0);
+
+      return {
+        id, // keep for navigation
+        code,
+        requested_by,
+        status,
+        transaction_date,
+        amount,
+      } as TableRow;
+    });
+  };
+
+  // Use API data if available, otherwise fallback to static data mapped to new columns
+  const tableData = apiData?.results 
+    ? transformApiDataToTableRows(apiData.results) 
+    : PendingtransferData.map((row) => ({
+        id: String(row.id ?? ''),
+        code: String(row.id ?? ''),
+        requested_by: String(row.from ?? '-'),
+        status: String(row.status ?? ''),
+        transaction_date: String(row.date ?? '-'),
+        amount: Number(row.amount ?? 0),
+      }));
+
+
+
+
 
   // Handler for transaction ID click
   const handleTransactionIdClick = (row: TableRow) => {
     navigate(`/app/PendingAdjustments/${row.id}`);
   };
 
-// Table columns configuration
-const PendingAdjustmentsColumns: TableColumn[] = [
-  {
-    id: 'id',
-    header: 'Transaction ID',
-    accessor: 'id',
-    width: 140,
-    minWidth: 120,
 
-       render: (value, row) => (
+
+
+// Table columns configuration
+const PendingTransferColumns: TableColumn[] = [
+  {
+    id: 'code',
+    header: 'Transaction Code',
+    accessor: 'code',
+    width: 160,
+    minWidth: 140,
+    render: (value, row) => (
       <span 
         className="font-medium bg-[#F6F6F6] p-2 rounded-md cursor-pointer hover:bg-blue-100 transition"
         onClick={() => handleTransactionIdClick(row)}
       >
-               {String(value)}
-
-      </span>
-    )
-  },
-  {
-    id: 'date',
-    header: 'Date',
-    accessor: 'date',
-    width: 120,
-    minWidth: 100
-  },
-  {
-    id: 'from',
-    header: 'From',
-    accessor: 'from',
-    width: 150,
-    minWidth: 120
-  },
-  {
-    id: 'to',
-    header: 'To',
-    accessor: 'to',
-    width: 150,
-    minWidth: 120
-    
-  },
-  {
-    id: 'amount',
-    header: 'Amount',
-    accessor: 'amount',
-    width: 120,
-    minWidth: 100,
-    
-    render: (value) => (
-      <span className="font-medium text-[#282828]">
-        ${Number(value).toLocaleString()}
-      </span>
-    )
-  },
-  {
-    id: 'Attachments',
-    header: 'Attachments',
-    accessor: 'Attachments',
-    width: 120,
-    minWidth: 100,
-    render: (value) => (
-      <span
-        className="font-medium bg-[#F6F6F6] p-2 rounded-md cursor-pointer hover:bg-blue-100 transition"
-      >
         {String(value)}
       </span>
     )
   },
   {
-    id: 'Track',
-    header: 'Track',
-    accessor: 'Track',
-    width: 130,
-    minWidth: 110,
-     render: (value) => (
-      <span
-        className="font-medium bg-[#F6F6F6] p-2 rounded-md cursor-pointer hover:bg-blue-100 transition"
-      >
-        {String(value)}
-      </span>
-    )
+    id: 'requested_by',
+    header: 'Requested By',
+    accessor: 'requested_by',
+    width: 160,
+    minWidth: 140,
   },
   {
     id: 'status',
@@ -350,21 +117,42 @@ const PendingAdjustmentsColumns: TableColumn[] = [
     accessor: 'status',
     width: 110,
     minWidth: 90,
+    render: (value) => {
+      const v = String(value).toLowerCase();
+      const cls = v === 'active' || v === 'approved'
+        ? 'bg-[#00A350] text-white'
+        : v === 'pending' || v === 'under approval'
+        ? 'bg-[#FFC043] text-white'
+        : 'bg-[#D44333] text-white';
+      return (
+        <span className={`px-2 py-1 rounded-lg text-sm font-medium cursor-pointer hover:opacity-80 transition ${cls}`}>
+          {String(value)}
+        </span>
+      );
+    }
+  },
+  {
+    id: 'transaction_date',
+    header: 'Transaction Date',
+    accessor: 'transaction_date',
+    width: 150,
+    minWidth: 120,
+  },
+  {
+    id: 'amount',
+    header: 'Amount',
+    accessor: 'amount',
+    width: 120,
+    minWidth: 100,
     render: (value) => (
-      <span 
-        className={`px-2 py-1 rounded-lg text-sm font-medium cursor-pointer hover:opacity-80 transition ${
-          value === 'Active' 
-            ? 'bg-[#00A350] text-white' 
-            : value === 'Pending'
-            ? 'bg-[#FFC043] text-white'
-            : 'bg-[#D44333] text-white'
-        }`}
-      >
-        {String(value)}
+      <span className="font-medium text-[#282828]">
+        {Number(value).toLocaleString()}
       </span>
     )
-  }
+  },
 ];
+
+
 
   const handleSearchChange = (text: string) => {
     console.log("Search changed:", text);
@@ -377,48 +165,80 @@ const PendingAdjustmentsColumns: TableColumn[] = [
   };
 
   const handleFilter = () => {
-    console.log("Filter adjustments");
+    console.log("Filter transfers");
     // Add your filter logic here
   };
 
   const handlePageChange = (page: number) => {
     console.log("Page changed to:", page);
     setCurrentPage(page);
-    // Add your pagination API call here
+    // RTK Query will automatically refetch data when currentPage changes
   };
+
+
+ 
 
   const handleApprove = (row: TableRow) => {
     setSelectedRow(row);
+    setReason(''); // Clear reason when opening modal
     setIsApproveModalOpen(true);
   };
 
   const handleReject = (row: TableRow) => {
     setSelectedRow(row);
+    setReason(''); // Clear reason when opening modal
     setIsRejectModalOpen(true);
   };
 
   const handleView = (row: TableRow) => {
-    navigate(`/app/PendingAdjustments/${row.id}`);
+    navigate(`/app/PendingTransfer/${row.id}`);
   };
 
-  const confirmApprove = () => {
+  const confirmApprove = async () => {
     if (selectedRow) {
-      console.log("Approving adjustment:", selectedRow);
-      // Add your approve API call here
+      try {
+        const ACTION_APPROVE = "approve";
+        await bulkApproveRejectTransfer({ 
+          transaction_id: [parseInt(selectedRow.id as string)],
+          decide: [ACTION_APPROVE],
+          reason: reason ? [reason] : [],
+          other_user_id: []
+        }).unwrap();
+        console.log("Transfer approved successfully:", selectedRow);
+        setReason(''); // Clear reason after success
+      } catch (error) {
+        console.error("Error approving transfer:", error);
+        // Handle error (show toast notification, etc.)
+      }
     }
     setIsApproveModalOpen(false);
     setSelectedRow(null);
   };
 
-  const confirmReject = () => {
+  const confirmReject = async () => {
     if (selectedRow) {
-      console.log("Rejecting adjustment:", selectedRow);
-      // Add your reject API call here
+      try {
+        const ACTION_REJECT = "reject";
+        await bulkApproveRejectTransfer({ 
+          transaction_id: [parseInt(selectedRow.id as string)],
+          decide: [ACTION_REJECT],
+          reason: reason ? [reason] : [],
+          other_user_id: []
+        }).unwrap();
+        console.log("Transfer rejected successfully:", selectedRow);
+        setReason(''); // Clear reason after success
+      } catch (error) {
+        console.error("Error rejecting transfer:", error);
+        // Handle error (show toast notification, etc.)
+      }
     }
     setIsRejectModalOpen(false);
     setSelectedRow(null);
   };
 
+
+
+ 
   return (
     <div>
         <div className='flex justify-between items-center'>
@@ -437,84 +257,120 @@ const PendingAdjustmentsColumns: TableColumn[] = [
       />
     </div>
 
-    {/* Adjustments Table */}
+    {/* Transfer Table */}
     <div className="mt-6">
-      <SharedTable
-        title="Recent Pending Adjustments"
-        columns={PendingAdjustmentsColumns}
-        data={PendingAdjustmentsData}
-        onFilter={handleFilter}
-        filterLabel="Filter Pending Adjustments"
-        maxHeight="600px"
-        className="shadow-lg"
-        showPagination={true}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-        itemsPerPage={10}
-        pending={true}
-        showActions={true}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onView={handleView}
-        showFooter={true}
-      />
+      {isLoading ? (
+     <div className="flex justify-center items-center h-64 bg-white rounded-lg">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Loading transfers...</span>
+        </div>
+      ) : error ? (
+        <div className="flex justify-center items-center h-64 bg-gradient-to-br from-red-50 to-rose-100 rounded-2xl border border-red-100 shadow-sm">
+          <div className="text-center max-w-md px-6">
+            <div className="mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-red-800 font-bold text-xl">Unable to load transfers</h3>
+              <p className="text-red-600 text-sm leading-relaxed">
+                We're having trouble connecting to our servers. This might be a temporary issue.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center mt-6">
+                <button 
+                  className="px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  onClick={() => window.location.reload()}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Try Again
+                  </span>
+                </button>
+                <button 
+                  className="px-6 py-3 bg-white text-red-600 border-2 border-red-200 rounded-xl font-medium hover:bg-red-50 transform hover:scale-105 transition-all duration-200"
+                  onClick={() => setCurrentPage(1)}
+                >
+                  Reset Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <SharedTable
+          title="Recent Pending Adjustments"
+          columns={PendingTransferColumns}
+          data={tableData}
+          onFilter={handleFilter}
+          filterLabel="Filter Pending Adjustments"
+          maxHeight="600px"
+          className="shadow-lg"
+          showPagination={true}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          itemsPerPage={10}
+          pending={true}
+          showActions={true}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onView={handleView}
+          showFooter={true}
+        />
+      )}
     </div>
 
     {/* Approve Modal */}
     <SharedModal
       isOpen={isApproveModalOpen}
-      onClose={() => setIsApproveModalOpen(false)}
-      title="Approve Adjustment"
+      onClose={() => {
+        setIsApproveModalOpen(false);
+        setReason(''); // Clear reason when closing modal
+      }}
+      title="Approve Budget Request"
       size="md"
     >
       <div className="p-4">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-green-100 rounded-full">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 6L9 17L4 12" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">Approve Adjustment</h3>
-            <p className="text-sm text-gray-500">Are you sure you want to approve this adjustment?</p>
-          </div>
+       
+            <p className="text-sm text-[#282828]"> You're about to approve this budget request. Once approved, the requester will be notified, and the process will move to the next stage. Are you sure you want to continue?</p>
+        
+         
         </div>
         
-        {selectedRow && (
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-gray-700">Transaction ID:</span>
-                <span className="ml-2 text-gray-900">{String(selectedRow.id)}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Amount:</span>
-                <span className="ml-2 text-gray-900">${Number(selectedRow.amount).toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">From:</span>
-                <span className="ml-2 text-gray-900">{String(selectedRow.from)}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">To:</span>
-                <span className="ml-2 text-gray-900">{String(selectedRow.to)}</span>
-              </div>
-            </div>
-          </div>
-        )}
+           <div>
+          <label className="block text-xs font-bold text-[#282828] mb-2">
+           Reason (Optional)
+          </label>
+          <textarea
+            rows={7}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
+            placeholder="Add any comments or notes (optional)..."
+          />
+        </div>
+     
         
         <div className="flex justify-end gap-3">
           <button
-            onClick={() => setIsApproveModalOpen(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            onClick={() => {
+              setIsApproveModalOpen(false);
+              setReason(''); // Clear reason when cancelling
+            }}
+            className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={confirmApprove}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-md hover:bg-green-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#00A350]  border border-green-600 rounded-md hover:bg-green-700 transition-colors"
           >
-            Approve Adjustment
+            Approve
           </button>
         </div>
       </div>
@@ -523,58 +379,49 @@ const PendingAdjustmentsColumns: TableColumn[] = [
     {/* Reject Modal */}
     <SharedModal
       isOpen={isRejectModalOpen}
-      onClose={() => setIsRejectModalOpen(false)}
-      title="Reject Adjustment"
+      onClose={() => {
+        setIsRejectModalOpen(false);
+        setReason(''); // Clear reason when closing modal
+      }}
+      title="Reject Transfer"
       size="md"
     >
       <div className="p-4">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-red-100 rounded-full">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
+          
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Reject Adjustment</h3>
-            <p className="text-sm text-gray-500">Are you sure you want to reject this adjustment?</p>
+            <p className="text-sm text-[#282828]">You're about to reject this budget request. This action cannot be undone. Please provide a clear reason for rejection so the requester understands the next steps.</p>
           </div>
         </div>
         
-        {selectedRow && (
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-gray-700">Transaction ID:</span>
-                <span className="ml-2 text-gray-900">{String(selectedRow.id)}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Amount:</span>
-                <span className="ml-2 text-gray-900">${Number(selectedRow.amount).toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">From:</span>
-                <span className="ml-2 text-gray-900">{String(selectedRow.from)}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">To:</span>
-                <span className="ml-2 text-gray-900">{String(selectedRow.to)}</span>
-              </div>
-            </div>
-          </div>
-        )}
+          <div>
+          <label className="block text-xs font-bold text-[#282828] mb-2">
+           Reason for rejection (Optional)
+          </label>
+          <textarea
+            rows={7}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
+            placeholder="Describe the reason for rejection (optional)..."
+          />
+        </div>
         
         <div className="flex justify-end gap-3">
           <button
-            onClick={() => setIsRejectModalOpen(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            onClick={() => {
+              setIsRejectModalOpen(false);
+              setReason(''); // Clear reason when cancelling
+            }}
+            className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={confirmReject}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-600 rounded-md hover:bg-red-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#D44333] border border-red-600 rounded-md hover:bg-red-700 transition-colors"
           >
-            Reject Adjustment
+            Reject Transfer
           </button>
         </div>
       </div>

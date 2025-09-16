@@ -226,7 +226,7 @@ export default function FundRequests() {
 
   // Event handlers
   const handleCodeClick = (row: TableRow) => {
-    navigate(`/app/FundAdjuments/${row.id}`);
+    navigate(`/app/FundRequests/${row.id}`);
   };
 
 

@@ -1,9 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SharedTable, type TableColumn, type TableRow as SharedTableRow, type TableRow } from '@/shared/SharedTable';
 import SharedModal from '@/shared/SharedModal';
+import { useGetTransferDetailsQuery } from '@/api/transferDetails.api';
+import { useBulkApproveRejectTransferMutation } from '@/api/pendingTransfer.api';
+import toast from 'react-hot-toast';
 
-interface RequestTableRow {
+interface TransferTableRow {
   id: string;
   to: number;
   from: number;
@@ -14,29 +17,80 @@ interface RequestTableRow {
   projectName: string;
   accountCode: string;
   projectCode: string;
+  approvedBudget?: number;
+  costCenterCode?: string;
+  costCenterName?: string;
+  other_ytd?: number;
+  period?: string;
 }
 
-export default function PendingRequestsDetails() {
+
+
+export default function PendingAdjustmentsDetails() {
   const { id } = useParams<{ id: string }>();
   console.log(id);
   
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [rows] = useState<RequestTableRow[]>([
-    {
-      id: '1',
-      to: 0,
-      from: 0,
-      encumbrance: 0,
-      availableBudget: 0,
-      actual: 0,
-      accountName: 'General Operations',
-      projectName: 'Project Alpha',
-      accountCode: 'ACC001',
-      projectCode: 'PRJ001'
+  
+  // Use the transaction ID from params, default to 82 for testing
+  const transactionId = id ;
+
+  // Fetch data from adjd-transfers API
+  const { 
+    data: apiData, 
+    error, 
+    isLoading 
+  } = useGetTransferDetailsQuery(String(transactionId));
+  
+  // State for processed rows
+  const [rows, setRows] = useState<TransferTableRow[]>([]);
+
+  // Process API data when it loads
+  useEffect(() => {
+    if (apiData?.transfers && apiData.transfers.length > 0) {
+      const processedRows = apiData.transfers.map((transfer) => ({
+        id: transfer.transfer_id.toString(),
+        to: parseFloat(transfer.to_center),
+        from: parseFloat(transfer.from_center),
+        encumbrance: parseFloat(transfer.encumbrance),
+        availableBudget: parseFloat(transfer.available_budget),
+        actual: parseFloat(transfer.actual),
+        accountName: transfer.account_name && transfer.account_name.trim() !== '' ? transfer.account_name : transfer.account_code.toString(),
+        projectName: transfer.project_name && transfer.project_name.trim() !== '' ? transfer.project_name : transfer.project_code || '',
+        accountCode: transfer.account_code.toString(),
+        projectCode: transfer.project_code || '',
+        approvedBudget: parseFloat(transfer.approved_budget),
+        costCenterCode: transfer.cost_center_code.toString(),
+        costCenterName: transfer.cost_center_name && transfer.cost_center_name.trim() !== '' ? transfer.cost_center_name : transfer.cost_center_code.toString(),
+        other_ytd: 0,
+        period: '',
+      }));
+      setRows(processedRows);
+    } else {
+      // If no API data, set a default row
+      setRows([{
+        id: 'default-1',
+        to: 0,
+        from: 0,
+        encumbrance: 0,
+        availableBudget: 0,
+        actual: 0,
+        accountName: 'General Operations',
+        projectName: 'Project Alpha',
+        accountCode: 'ACC001',
+        projectCode: 'PRJ001',
+        approvedBudget: 0,
+        costCenterCode: '',
+        costCenterName: '',
+        other_ytd: 0,
+        period: '',
+      }]);
     }
-  ]);
+  }, [apiData]);
+
+
 
   // Check if pagination should be shown
   const shouldShowPagination = rows.length > 10;
@@ -45,11 +99,23 @@ export default function PendingRequestsDetails() {
     navigate('/app/PendingRequests');
   };
 
+
+
+
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  // Keep the old columns for the main request table
+
+
+
+
+
+
+
+
+  // Keep the old columns for the main transfer table
   const columnsDetails: TableColumn[] = [
     {
       id: 'to',
@@ -57,9 +123,9 @@ export default function PendingRequestsDetails() {
       showSum: true,
   
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return  (
-          <span className="text-sm text-gray-900">{requestRow.to.toFixed(2)}</span>  
+          <span className="text-sm text-gray-900">{transferRow.to.toFixed(2)}</span>  
         );
       }
     },
@@ -69,9 +135,9 @@ export default function PendingRequestsDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return  (
-          <span className="text-sm text-gray-900">{requestRow.from.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{transferRow.from.toFixed(2)}</span>
         ) 
       }
     },
@@ -81,8 +147,8 @@ export default function PendingRequestsDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
-        const value = requestRow.encumbrance || 0;
+        const transferRow = row as unknown as TransferTableRow;
+        const value = transferRow.encumbrance || 0;
         return (
           <span className="text-sm text-gray-900">
             {value.toFixed(2)}
@@ -96,8 +162,8 @@ export default function PendingRequestsDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
-        const value = requestRow.availableBudget || 0;
+        const transferRow = row as unknown as TransferTableRow;
+        const value = transferRow.availableBudget || 0;
         return (
           <span className="text-sm text-gray-900">
             {value.toFixed(2)}
@@ -111,8 +177,23 @@ export default function PendingRequestsDetails() {
       showSum: true,
      
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
-        const value = requestRow.actual || 0;
+        const transferRow = row as unknown as TransferTableRow;
+        const value = transferRow.actual || 0;
+        return (
+          <span className="text-sm text-gray-900">
+            {value.toFixed(2)}
+          </span>
+        );
+      }
+    },
+      {
+      id: 'approvedBudget',
+      header: 'Approved Budget',
+      showSum: true,
+     
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = transferRow.approvedBudget || 0;
         return (
           <span className="text-sm text-gray-900">
             {value.toFixed(2)}
@@ -121,12 +202,36 @@ export default function PendingRequestsDetails() {
       }
     },
     {
+      id: 'other_ytd',
+      header: 'Other YTD',
+      showSum: true,
+     
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = transferRow.other_ytd || 0;
+        return (
+          <span className="text-sm text-gray-900">
+            {value.toFixed(2)}
+          </span>
+        );
+      }
+    },
+    {
+      id: 'period',
+      header: 'Period',
+     
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return <span className="text-sm text-gray-900">{transferRow.period || ''}</span>;
+      }
+    },
+    {
       id: 'accountName',
       header: 'Account Name',
  
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
-        return <span className="text-sm text-gray-900">{requestRow.accountName}</span>;
+        const transferRow = row as unknown as TransferTableRow;
+        return <span className="text-sm text-gray-900">{transferRow.accountName}</span>;
       }
     },
     {
@@ -134,8 +239,17 @@ export default function PendingRequestsDetails() {
       header: 'Project Name',
 
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
-        return <span className="text-sm text-gray-900">{requestRow.projectName}</span>;
+        const transferRow = row as unknown as TransferTableRow;
+        return <span className="text-sm text-gray-900">{transferRow.projectName}</span>;
+      }
+    },
+       {
+      id: 'costCenterName',
+      header: 'Cost Center Name',
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return <span className="text-sm text-gray-900">{transferRow.costCenterName || ''}</span>;
       }
     },
     {
@@ -143,9 +257,9 @@ export default function PendingRequestsDetails() {
       header: 'Account Code',
 
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return  (
-          <span className="text-sm text-gray-900">{requestRow.accountCode}</span>
+          <span className="text-sm text-gray-900">{transferRow.accountCode}</span>
         ) 
       }
     },
@@ -155,9 +269,19 @@ export default function PendingRequestsDetails() {
       header: 'Project Code',
 
       render: (_, row) => {
-        const requestRow = row as unknown as RequestTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return (
-          <span className="text-sm text-gray-900">{requestRow.projectCode}</span>
+          <span className="text-sm text-gray-900">{transferRow.projectCode}</span>
+        ) 
+      }
+    },  {
+      id: 'costCenterCode',
+      header: 'Cost Center',
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">{transferRow.costCenterCode || ''}</span>
         ) 
       }
     }
@@ -165,33 +289,101 @@ export default function PendingRequestsDetails() {
   const [isApproveModalOpen, setIsApproveModalOpen] = useState<boolean>(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState<boolean>(false);
   const [selectedRow, setSelectedRow] = useState<TableRow | null>(null);
+  const [bulkApproveRejectTransfer] = useBulkApproveRejectTransferMutation();
 
-  const handleApprove = () => {
+
+   const [reason, setReason] = useState<string>('');
+
+
+  const handleApprove = (row: TableRow) => {
+  console.log(row);
+  
+    setSelectedRow(row);
+    setReason(''); // Clear reason when opening modal
     setIsApproveModalOpen(true);
   };
 
-  const handleReject = () => {
+  const handleReject = (row: TableRow) => {
+    
+    setSelectedRow(row);
+    setReason(''); // Clear reason when opening modal
     setIsRejectModalOpen(true);
   };
+const confirmApprove = async () => {
 
-  const confirmApprove = () => {
-    if (selectedRow) {
-      console.log("Approving request:", selectedRow);
-      // Add your approve API call here
+    if (id) {
+      try {
+        const ACTION_APPROVE = "approve";
+        await bulkApproveRejectTransfer({ 
+          transaction_id: [parseInt(id)],
+          decide: [ACTION_APPROVE],
+          reason: reason ? [reason] : [],
+          other_user_id: []
+        }).unwrap();
+        console.log("Transfer approved successfully:", selectedRow);
+        toast.success('Transfer approved successfully');
+        navigate('/app/PendingRequests');
+        setReason(''); // Clear reason after success
+      } catch (error) {
+        console.error("Error approving transfer:", error);
+        // Handle error (show toast notification, etc.)
+      }
     }
     setIsApproveModalOpen(false);
     setSelectedRow(null);
   };
 
-  const confirmReject = () => {
-    if (selectedRow) {
-      console.log("Rejecting request:", selectedRow);
-      // Add your reject API call here
+  const confirmReject = async () => {
+    if (id) {
+      try {
+        const ACTION_REJECT = "reject";
+        await bulkApproveRejectTransfer({ 
+          transaction_id: [parseInt(id)],
+          decide: [ACTION_REJECT],
+          reason: reason ? [reason] : [],
+          other_user_id: []
+        }).unwrap();
+        console.log("Transfer rejected successfully:", id);
+        toast.success('Transfer rejected successfully');
+                navigate('/app/PendingRequests');
+
+        setReason(''); // Clear reason after success
+      } catch (error) {
+        console.error("Error rejecting transfer:", error);
+        // Handle error (show toast notification, etc.)
+      }
     }
     setIsRejectModalOpen(false);
     setSelectedRow(null);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64 bg-white rounded-lg">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Loading transfers...</span>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    const errorMessage = 'data' in error 
+      ? JSON.stringify(error.data) 
+      : 'message' in error 
+        ? error.message 
+        : 'Failed to load transfer details';
+    
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-lg text-red-600">
+          Error: {errorMessage}
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div>
       {/* Header with back button */}
@@ -200,13 +392,14 @@ export default function PendingRequestsDetails() {
           onClick={handleBack}
           className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
         >
-         Pending Requests
+         Pendeing Fund Requests
         </button>
         <span className='text-[#737373] text-lg'>/</span>
         <h1 className="text-lg  text-[#737373] font-light tracking-wide">Code</h1>
       </div>
 
         <div>
+    
           
           <SharedTable
             columns={columnsDetails}
@@ -227,7 +420,7 @@ export default function PendingRequestsDetails() {
     <div className="flex justify-end items-center bg-white rounded-md shadow-sm  mt-4 p-3 w-full">
       {/* زرار Reject */}
       <button 
-      onClick={() => handleReject()}
+      onClick={() => handleReject(selectedRow!)}
         className="px-4 py-1.5 border border-[#D44333] text-[#D44333] rounded-md hover:bg-red-50 transition"
       >
         Reject
@@ -238,17 +431,20 @@ export default function PendingRequestsDetails() {
 
       {/* زرار Approve */}
       <button
-            onClick={() => handleApprove()}
+            onClick={() => handleApprove(selectedRow!)}
         className="px-4 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
       >
         Approve
       </button>
     </div>
    
-   {/* Approve Modal */}
+    {/* Approve Modal */}
     <SharedModal
       isOpen={isApproveModalOpen}
-      onClose={() => setIsApproveModalOpen(false)}
+      onClose={() => {
+        setIsApproveModalOpen(false);
+        setReason(''); // Clear reason when closing modal
+      }}
       title="Approve Budget Request"
       size="md"
     >
@@ -256,13 +452,30 @@ export default function PendingRequestsDetails() {
         <div className="flex items-center gap-3 mb-4">
        
             <p className="text-sm text-[#282828]"> You're about to approve this budget request. Once approved, the requester will be notified, and the process will move to the next stage. Are you sure you want to continue?</p>
+        
+         
         </div>
         
+           <div>
+          <label className="block text-xs font-bold text-[#282828] mb-2">
+           Reason (Optional)
+          </label>
+          <textarea
+            rows={7}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
+            placeholder="Add any comments or notes (optional)..."
+          />
+        </div>
      
         
         <div className="flex justify-end gap-3">
           <button
-            onClick={() => setIsApproveModalOpen(false)}
+            onClick={() => {
+              setIsApproveModalOpen(false);
+              setReason(''); // Clear reason when cancelling
+            }}
             className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
           >
             Cancel
@@ -280,8 +493,11 @@ export default function PendingRequestsDetails() {
     {/* Reject Modal */}
     <SharedModal
       isOpen={isRejectModalOpen}
-      onClose={() => setIsRejectModalOpen(false)}
-      title="Reject Request"
+      onClose={() => {
+        setIsRejectModalOpen(false);
+        setReason(''); // Clear reason when closing modal
+      }}
+      title="Reject Transfer"
       size="md"
     >
       <div className="p-4">
@@ -294,19 +510,23 @@ export default function PendingRequestsDetails() {
         
           <div>
           <label className="block text-xs font-bold text-[#282828] mb-2">
-           Reason for rejection
+           Reason for rejection (Optional)
           </label>
           <textarea
             rows={7}
-       
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
             className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
-            placeholder="Describe your issue in detail...."
+            placeholder="Describe the reason for rejection (optional)..."
           />
         </div>
         
         <div className="flex justify-end gap-3">
           <button
-            onClick={() => setIsRejectModalOpen(false)}
+            onClick={() => {
+              setIsRejectModalOpen(false);
+              setReason(''); // Clear reason when cancelling
+            }}
             className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
           >
             Cancel
@@ -315,11 +535,12 @@ export default function PendingRequestsDetails() {
             onClick={confirmReject}
             className="px-4 py-2 text-sm font-medium text-white bg-[#D44333] border border-red-600 rounded-md hover:bg-red-700 transition-colors"
           >
-            Reject Request
+            Reject Transfer
           </button>
         </div>
       </div>
     </SharedModal>
+    
     </div>
   );
 }

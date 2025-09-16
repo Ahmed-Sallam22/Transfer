@@ -322,7 +322,7 @@ const confirmApprove = async () => {
         }).unwrap();
         console.log("Transfer approved successfully:", selectedRow);
         toast.success('Transfer approved successfully');
-        navigate('/app/FundAdjustments');
+        navigate('/app/PendingTransfer');
         setReason(''); // Clear reason after success
       } catch (error) {
         console.error("Error approving transfer:", error);
@@ -345,7 +345,7 @@ const confirmApprove = async () => {
         }).unwrap();
         console.log("Transfer rejected successfully:", id);
         toast.success('Transfer rejected successfully');
-                navigate('/app/FundAdjustments');
+                navigate('/app/PendingTransfer');
 
         setReason(''); // Clear reason after success
       } catch (error) {
@@ -392,7 +392,7 @@ const confirmApprove = async () => {
           onClick={handleBack}
           className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
         >
-         Pendeing Fund Adjustments
+         Pendeing Transfer
         </button>
         <span className='text-[#737373] text-lg'>/</span>
         <h1 className="text-lg  text-[#737373] font-light tracking-wide">Code</h1>

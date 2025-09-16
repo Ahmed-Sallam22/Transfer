@@ -96,7 +96,7 @@ export default function PendingAdjustmentsDetails() {
   const shouldShowPagination = rows.length > 10;
 
   const handleBack = () => {
-    navigate('/app/FundAdjustments');
+    navigate('/app/PendingAdjustments');
   };
 
 
@@ -322,7 +322,7 @@ const confirmApprove = async () => {
         }).unwrap();
         console.log("Transfer approved successfully:", selectedRow);
         toast.success('Transfer approved successfully');
-        navigate('/app/FundAdjustments');
+        navigate('/app/PendingAdjustments');
         setReason(''); // Clear reason after success
       } catch (error) {
         console.error("Error approving transfer:", error);
@@ -345,7 +345,7 @@ const confirmApprove = async () => {
         }).unwrap();
         console.log("Transfer rejected successfully:", id);
         toast.success('Transfer rejected successfully');
-                navigate('/app/FundAdjustments');
+                navigate('/app/PendingAdjustments');
 
         setReason(''); // Clear reason after success
       } catch (error) {

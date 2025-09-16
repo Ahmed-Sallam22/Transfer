@@ -7,7 +7,7 @@ import { useGetBalanceReportQuery } from '@/api/balanceReport.api';
 import { toast } from 'react-hot-toast';
 import { store } from '@/app/store';
 
-interface FundAdjustmentTableRow {
+interface TransferTableRow {
   id: string;
   to: number;
   from: number;
@@ -29,7 +29,8 @@ interface FundAdjustmentTableRow {
   validation_errors?: string[];
 }
 
-interface FundAdjustmentDetailRow {
+
+interface TransferDetailRow {
   id: string;
   itemId: string;
   itemName: string;
@@ -77,11 +78,15 @@ export default function TransferDetails() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   
+  // Loading states
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Local state for additional rows (new rows added by user)
-  const [localRows, setLocalRows] = useState<FundAdjustmentTableRow[]>([]);
+  const [localRows, setLocalRows] = useState<TransferTableRow[]>([]);
   
   // State to track all edits locally (both existing and new rows)
-  const [editedRows, setEditedRows] = useState<FundAdjustmentTableRow[]>([]);
+  const [editedRows, setEditedRows] = useState<TransferTableRow[]>([]);
 
   // Initialize editedRows when API data loads
   useEffect(() => {
@@ -193,7 +198,7 @@ export default function TransferDetails() {
       : [""];
 
   // Create a default row for when there's no data
-  const createDefaultRow = (): FundAdjustmentTableRow => ({
+  const createDefaultRow = (): TransferTableRow => ({
     id: 'default-1',
     to: 0,
     from: 0,
@@ -227,7 +232,7 @@ export default function TransferDetails() {
   }, [apiData?.status.status, apiData?.summary.status]);
 
   // Sample data for fund requests details
-  const [rowsDetails] = useState<FundAdjustmentDetailRow[]>([
+  const [rowsDetails] = useState<TransferDetailRow[]>([
     {
       id: '1',
       itemId: '1213322',
@@ -272,6 +277,7 @@ export default function TransferDetails() {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       // Filter out empty rows before saving
       const nonEmptyEditedRows = editedRows.filter(row => 
@@ -326,20 +332,26 @@ export default function TransferDetails() {
       });
       
       // Save to API
-      await createTransfer(transfersToSave).unwrap();
-      console.log('Transfers saved successfully:', transfersToSave);
-      
-      // Clear localStorage after successful save
-      localStorage.removeItem(`localRows_${transactionId}`);
-      setLocalRows([]);
-      
-      // Show success toast
-      toast.success('Transfers saved successfully!');
+      const result = await createTransfer(transfersToSave).unwrap();
+  console.log('Transfers saved successfully:', transfersToSave);
+  console.log('API Response:', result);
+
+  // Refetch transfer details after save to update the table
+  store.dispatch(transferDetailsApi.util.invalidateTags(['TransferDetails']));
+
+  // Clear localStorage only after successful save
+  localStorage.removeItem(`localRows_${transactionId}`);
+  setLocalRows([]);
+
+  // Show success toast
+  toast.success('Transfers saved successfully!');
       
     } catch (error) {
       console.error('Error saving transfers:', error);
       // Show error toast
       toast.error('Error saving transfers. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -355,21 +367,23 @@ export default function TransferDetails() {
         row.projectCode === '')
     );
     
-    // Check if there are no real transfers (excluding default empty rows)
-    const hasNoTransfers = (!apiData?.transfers || apiData.transfers.length === 0) && 
-                          localRows.length === 0 && 
-                          nonDefaultEditedRows.length === 0;
+    // Count total valid rows (API rows + local rows)
+    const totalValidRows = (apiData?.transfers?.length || 0) + localRows.length + nonDefaultEditedRows.length;
+    
+    // Check if there are fewer than 2 rows
+    const hasInsufficientRows = totalValidRows < 2;
     
     // Check if there are validation errors in any row
     const hasValidationErrors = [...editedRows, ...localRows].some(row => 
       row.validation_errors && row.validation_errors.length > 0
     );
     
-    return hasNoTransfers || hasValidationErrors;
+    return hasInsufficientRows || hasValidationErrors;
   };
 
   const handleSubmit = async () => {
     if (!isSubmitDisabled()) {
+      setIsSubmitting(true);
       try {
         // Call the submit API
         await submitTransfer({ 
@@ -386,6 +400,9 @@ export default function TransferDetails() {
         
       } catch (error) {
         console.error('Error submitting transfer:', error);
+        toast.error('Error submitting transfer. Please try again.');
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -439,7 +456,7 @@ export default function TransferDetails() {
   };
 
   const addNewRow = () => {
-    const newRow: FundAdjustmentTableRow = {
+    const newRow: TransferTableRow = {
       id: `new-${Date.now()}`,
       to: 0,
       from: 0,
@@ -466,13 +483,40 @@ export default function TransferDetails() {
     });
   };
 
+  // Function to delete a row
+  const deleteRow = (rowId: string) => {
+    // Check if this is a local row (new row)
+    if (rowId.startsWith('new-')) {
+      setLocalRows(prevRows => {
+        const updatedRows = prevRows.filter(row => row.id !== rowId);
+        
+        // Update localStorage when deleting local rows
+        if (updatedRows.length > 0) {
+          localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(updatedRows));
+        } else {
+          localStorage.removeItem(`localRows_${transactionId}`);
+        }
+        
+        console.log(`Deleted local row ${rowId}`);
+        return updatedRows;
+      });
+    } else {
+      // For existing API rows, remove from editedRows
+      setEditedRows(prevRows => {
+        const updatedRows = prevRows.filter(row => row.id !== rowId);
+        console.log(`Deleted API row ${rowId}`);
+        return updatedRows;
+      });
+    }
+  };
 
 
 
-  const updateRow = async (rowId: string, field: keyof FundAdjustmentTableRow, value: string | number) => {
+
+  const updateRow = async (rowId: string, field: keyof TransferTableRow, value: string | number) => {
     // Handle business logic for from/to mutual exclusivity
     const updatedValue = value;
-    const additionalUpdates: Partial<FundAdjustmentTableRow> = {};
+    const additionalUpdates: Partial<TransferTableRow> = {};
     
     if (field === 'from' && Number(value) > 0) {
       additionalUpdates.to = 0;
@@ -495,49 +539,9 @@ export default function TransferDetails() {
         additionalUpdates.costCenterName = updatedValue.toString();
         console.log(`Row ${rowId}: Cost center name updated to ${updatedValue}`);
       }
-      
-      // Determine which state array to check based on row type
-      const isNewRow = rowId.startsWith('new-');
-      const currentRowArray = isNewRow ? localRows : editedRows;
-      const currentRow = currentRowArray.find(r => r.id === rowId);
-      
-      if (currentRow) {
-        // Calculate segments after this update
-        const segments = {
-          costCenter: field === 'costCenterCode' ? value.toString() : (currentRow.costCenterCode || ''),
-          account: field === 'accountCode' ? value.toString() : (currentRow.accountCode || ''),
-          project: field === 'projectCode' ? value.toString() : (currentRow.projectCode || '')
-        };
-        
-        console.log(`Row ${rowId}: Current segments state:`, segments);
-        
-        // Only call API if ALL 3 segments are now complete
-        if (segments.costCenter && segments.account && segments.project) {
-          console.log(`Row ${rowId}: ✅ All 3 segments complete! Calling financial data API...`);
-          console.log(`Row ${rowId}: API call with segments:`, {
-            segment1: segments.costCenter,
-            segment2: segments.account,
-            segment3: segments.project
-          });
-          
-          try {
-            // Fetch financial data and apply to the row
-            const financialUpdates = await fetchFinancialDataForRow(rowId, segments);
-            Object.assign(additionalUpdates, financialUpdates);
-            console.log(`Row ${rowId}: Financial data applied:`, financialUpdates);
-          } catch (error) {
-            console.error(`Error fetching financial data for row ${rowId}:`, error);
-          }
-        } else {
-          console.log(`Row ${rowId}: ⏳ Segments incomplete, waiting for all 3. Missing:`, {
-            costCenter: !segments.costCenter,
-            account: !segments.account,
-            project: !segments.project
-          });
-        }
-      }
     }
 
+    // Update the row state immediately first (don't wait for API)
     // Check if this is a local row (new row)
     if (rowId.startsWith('new-')) {
       setLocalRows(prevRows => {
@@ -563,6 +567,71 @@ export default function TransferDetails() {
         })
       );
     }
+
+    // Now handle financial data API call if needed (after UI update)
+    if (field === 'costCenterCode' || field === 'accountCode' || field === 'projectCode') {
+      // Determine which state array to check based on row type
+      const isNewRow = rowId.startsWith('new-');
+      const currentRowArray = isNewRow ? localRows : editedRows;
+      const currentRow = currentRowArray.find(r => r.id === rowId);
+      
+      if (currentRow) {
+        // Calculate segments after this update
+        const segments = {
+          costCenter: field === 'costCenterCode' ? value.toString() : (currentRow.costCenterCode || ''),
+          account: field === 'accountCode' ? value.toString() : (currentRow.accountCode || ''),
+          project: field === 'projectCode' ? value.toString() : (currentRow.projectCode || '')
+        };
+        
+        console.log(`Row ${rowId}: Current segments state:`, segments);
+        
+        // Only call API if ALL 3 segments are now complete
+        if (segments.costCenter && segments.account && segments.project) {
+          console.log(`Row ${rowId}: ✅ All 3 segments complete! Calling financial data API...`);
+          console.log(`Row ${rowId}: API call with segments:`, {
+            segment1: segments.costCenter,
+            segment2: segments.account,
+            segment3: segments.project
+          });
+          
+          // Call API in background (don't await)
+          fetchFinancialDataForRow(rowId, segments).then(financialUpdates => {
+            console.log(`Row ${rowId}: Financial data received:`, financialUpdates);
+            
+            // Apply financial data to the row after API response
+            if (isNewRow) {
+              setLocalRows(prevRows => {
+                const updatedRows = prevRows.map(row => {
+                  if (row.id === rowId) {
+                    return { ...row, ...financialUpdates };
+                  }
+                  return row;
+                });
+                localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(updatedRows));
+                return updatedRows;
+              });
+            } else {
+              setEditedRows(prevRows => 
+                prevRows.map(row => {
+                  if (row.id === rowId) {
+                    return { ...row, ...financialUpdates };
+                  }
+                  return row;
+                })
+              );
+            }
+          }).catch(error => {
+            console.error(`Error fetching financial data for row ${rowId}:`, error);
+          });
+        } else {
+          console.log(`Row ${rowId}: ⏳ Segments incomplete, waiting for all 3. Missing:`, {
+            costCenter: !segments.costCenter,
+            account: !segments.account,
+            project: !segments.project
+          });
+        }
+      }
+    }
   };
 
   // Define columns for SharedTable
@@ -571,7 +640,7 @@ export default function TransferDetails() {
       id: 'itemId',
       header: 'Item ID',
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.itemId}</span>;
       }
     },
@@ -579,7 +648,7 @@ export default function TransferDetails() {
       id: 'itemName',
       header: 'Item Name',
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.itemName}</span>;
       }
     },
@@ -587,7 +656,7 @@ export default function TransferDetails() {
       id: 'accountId',
       header: 'Account ID',
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.accountId}</span>;
       }
     },
@@ -595,7 +664,7 @@ export default function TransferDetails() {
       id: 'accountName',
       header: 'Account Name',
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.accountName}</span>;
       }
     },
@@ -604,7 +673,7 @@ export default function TransferDetails() {
       header: 'From',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.from.toLocaleString()}</span>;
       }
     },
@@ -613,7 +682,7 @@ export default function TransferDetails() {
       header: 'To',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.to.toLocaleString()}</span>;
       }
     },
@@ -622,7 +691,7 @@ export default function TransferDetails() {
       header: 'Approved Budget',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.approvedBudget.toLocaleString()}</span>;
       }
     },
@@ -631,7 +700,7 @@ export default function TransferDetails() {
       header: 'Current',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.current.toLocaleString()}</span>;
       }
     },
@@ -640,7 +709,7 @@ export default function TransferDetails() {
       header: 'Available Budget',
       showSum: true,
       render: (_, row) => {
-        const detailRow = row as unknown as FundAdjustmentDetailRow;
+        const detailRow = row as unknown as TransferDetailRow;
         return <span className="text-sm text-gray-900">{detailRow.availableBudget.toLocaleString()}</span>;
       }
     }
@@ -648,16 +717,25 @@ export default function TransferDetails() {
 
   // Keep the old columns for the main transfer table
   const columnsDetails: TableColumn[] = [
-    
+
     {
       id: 'validation',
       header: 'Status',
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         const hasErrors = transferRow.validation_errors && transferRow.validation_errors.length > 0;
         
         return (
-          <div className="flex items-center justify-center">
+          <div className="flex items-center  gap-3 justify-center">
+              <button
+              onClick={() => deleteRow(transferRow.id)}
+              className="flex items-center justify-center w-6 h-6 bg-red-100 border border-red-300 rounded-full text-red-600 hover:bg-red-200 transition-colors"
+              title="Delete row"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
             {hasErrors ? (
               <button
                 onClick={() => handleValidationErrorClick(transferRow.validation_errors || [])}
@@ -687,11 +765,10 @@ export default function TransferDetails() {
       showSum: true,
   
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
-        const hasErrors = transferRow.validation_errors && transferRow.validation_errors.length > 0;
+        const transferRow = row as unknown as TransferTableRow;
         
         return isSubmitted ? (
-          <span className={`text-sm text-gray-900 ${hasErrors ? 'bg-red-50 border border-red-200 rounded px-2 py-1' : 'bg-green-50 border border-green-200 rounded px-2 py-1'}`}>
+          <span className={`text-sm text-gray-900 `}>
             {transferRow.to.toFixed(2)}
           </span>
         ) : (
@@ -699,11 +776,7 @@ export default function TransferDetails() {
             type="number"
             value={transferRow.to || ''}
             onChange={(e) => updateRow(transferRow.id, 'to', Number(e.target.value) || 0)}
-            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] ${
-              hasErrors 
-                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
-                : 'border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500'
-            }`}
+            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
             placeholder="To"
           />
         );
@@ -715,11 +788,10 @@ export default function TransferDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
-        const hasErrors = transferRow.validation_errors && transferRow.validation_errors.length > 0;
+        const transferRow = row as unknown as TransferTableRow;
         
         return isSubmitted ? (
-          <span className={`text-sm text-gray-900 ${hasErrors ? 'bg-red-50 border border-red-200 rounded px-2 py-1' : 'bg-green-50 border border-green-200 rounded px-2 py-1'}`}>
+          <span className={`text-sm text-gray-900 `}>
             {transferRow.from.toFixed(2)}
           </span>
         ) : (
@@ -727,11 +799,7 @@ export default function TransferDetails() {
             type="number"
             value={transferRow.from || ''}
             onChange={(e) => updateRow(transferRow.id, 'from', Number(e.target.value) || 0)}
-            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] ${
-              hasErrors 
-                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
-                : 'border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500'
-            }`}
+            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
             placeholder="From"
           />
         );
@@ -743,7 +811,7 @@ export default function TransferDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.encumbrance || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -758,7 +826,7 @@ export default function TransferDetails() {
       showSum: true,
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.availableBudget || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -773,7 +841,7 @@ export default function TransferDetails() {
       showSum: true,
      
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.actual || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -788,7 +856,7 @@ export default function TransferDetails() {
       showSum: true,
      
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.approvedBudget || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -803,7 +871,7 @@ export default function TransferDetails() {
       showSum: true,
      
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.other_ytd || 0;
         return (
           <span className="text-sm text-gray-900">
@@ -817,7 +885,7 @@ export default function TransferDetails() {
       header: 'Period',
      
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return <span className="text-sm text-gray-900">{transferRow.period }</span>;
       }
     },
@@ -827,7 +895,7 @@ export default function TransferDetails() {
       header: 'Account Name',
  
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return <span className="text-sm text-gray-900">{transferRow.accountName}</span>;
       }
     },
@@ -836,7 +904,7 @@ export default function TransferDetails() {
       header: 'Project Name',
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return <span className="text-sm text-gray-900">{transferRow.projectName}</span>;
       }
     },
@@ -845,7 +913,7 @@ export default function TransferDetails() {
       header: 'Cost Center Name',
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return <span className="text-sm text-gray-900">{transferRow.costCenterName}</span>;
       }
     },
@@ -854,7 +922,7 @@ export default function TransferDetails() {
       header: 'Account Code',
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return isSubmitted ? (
           <span className="text-sm text-gray-900">{transferRow.accountCode}</span>
         ) : (
@@ -877,7 +945,7 @@ export default function TransferDetails() {
       header: 'Project Code',
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return isSubmitted ? (
           <span className="text-sm text-gray-900">{transferRow.projectCode}</span>
         ) : (
@@ -899,7 +967,7 @@ export default function TransferDetails() {
       header: 'Cost Center',
 
       render: (_, row) => {
-        const transferRow = row as unknown as FundAdjustmentTableRow;
+        const transferRow = row as unknown as TransferTableRow;
         return isSubmitted ? (
           <span className="text-sm text-gray-900">{transferRow.costCenterCode}</span>
         ) : (
@@ -1066,7 +1134,7 @@ export default function TransferDetails() {
             onClick={handleBack}
             className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
           >
-           Fund Adjustments
+          Fund Adjustments
           </button>
           <span className='text-[#737373] text-lg'>/</span>
           <h1 className="text-lg  text-[#737373] font-light tracking-wide">Code</h1>
@@ -1097,9 +1165,9 @@ export default function TransferDetails() {
             data={rows as unknown as SharedTableRow[]}
             showFooter={true}
             maxHeight="600px"
-            onSave={handleSave}
+            onSave={isSaving ? undefined : handleSave}
             
-            showSaveButton={!isSubmitted}
+            showSaveButton={!isSubmitted && !isSaving}
             showPagination={shouldShowPagination}
             currentPage={currentPage}
             onPageChange={handlePageChange}
@@ -1109,6 +1177,15 @@ export default function TransferDetails() {
             addRowButtonText="Add New Row"
           />
 
+          {/* Custom Save Section with Loading State */}
+          {!isSubmitted && isSaving && (
+            <div className="flex justify-end mt-4 p-4 bg-white rounded-lg shadow-sm">
+              <div className="flex items-center gap-2 text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm">Saving transfers...</span>
+              </div>
+            </div>
+          )}
  
         </div>
 
@@ -1130,7 +1207,7 @@ export default function TransferDetails() {
 </defs>
 </svg>
 
-              Upload Fund Adjustments File
+              UploadTransfer File
             </button>
           
 
@@ -1145,31 +1222,45 @@ export default function TransferDetails() {
           
           <button
             onClick={handleSubmit}
-            disabled={isSubmitDisabled()}
-            className={`px-6 py-2 text-sm rounded-lg transition-colors ${
-              isSubmitDisabled()
+            disabled={isSubmitDisabled() || isSubmitting}
+            className={`px-6 py-2 text-sm rounded-lg transition-colors inline-flex items-center gap-2 ${
+              isSubmitDisabled() || isSubmitting
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
             title={
-              isSubmitDisabled()
-                ? (!apiData?.transfers || apiData.transfers.length === 0) && localRows.length === 0 && editedRows.length === 0
-                  ? 'Cannot submit: No transfers available'
-                  : 'Cannot submit: Please fix validation errors'
-                : 'Submit transfer request'
+              isSubmitting
+                ? 'Submitting transfer...'
+                : isSubmitDisabled()
+                  ? (() => {
+                      const totalValidRows = (apiData?.transfers?.length || 0) + localRows.length + 
+                        editedRows.filter(row => !(row.id.startsWith('default-') && 
+                          row.costCenterCode === '' && 
+                          row.accountCode === '' && 
+                          row.projectCode === '')).length;
+                      
+                      if (totalValidRows < 2) {
+                        return 'Cannot submit: At least 2 rows are required';
+                      } else {
+                        return 'Cannot submit: Please fix validation errors';
+                      }
+                    })()
+                  : 'Submit transfer request'
             }
           >
-            Submit
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Submitting...
+              </>
+            ) : (
+              'Submit'
+            )}
           </button>
         </div>
         
-        {/* Submit status message - only show if there are transfers with validation errors */}
+        {/* Submit status message - only show if submit is disabled */}
         {isSubmitDisabled() && (
-          // Check if there are actual transfers (not just empty default rows)
-          (apiData?.transfers && apiData.transfers.length > 0) || 
-          localRows.length > 0 || 
-          editedRows.some(row => !row.id.startsWith('default-') || row.costCenterCode !== '' || row.accountCode !== '' || row.projectCode !== '')
-        ) && (
           <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M8 1L15 14H1L8 1Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
@@ -1177,7 +1268,19 @@ export default function TransferDetails() {
               <circle cx="8" cy="11" r="0.5" fill="currentColor"/>
             </svg>
             <span>
-              Cannot submit: Please fix all validation errors before submitting.
+              {(() => {
+                const totalValidRows = (apiData?.transfers?.length || 0) + localRows.length + 
+                  editedRows.filter(row => !(row.id.startsWith('default-') && 
+                    row.costCenterCode === '' && 
+                    row.accountCode === '' && 
+                    row.projectCode === '')).length;
+                
+                if (totalValidRows < 2) {
+                  return 'Cannot submit: At least 2 rows are required for transfer.';
+                } else {
+                  return 'Cannot submit: Please fix all validation errors before submitting.';
+                }
+              })()}
             </span>
           </div>
         )}
@@ -1208,7 +1311,7 @@ export default function TransferDetails() {
               setIsAttachmentsModalOpen(false);
               setSelectedFile(null);
             }}
-            title="Upload Fund Adjustments File"
+            title="UploadTransfer File"
             size="lg"
           >
               {/* Upload icon */}
