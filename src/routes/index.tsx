@@ -23,8 +23,8 @@ import AddWorkFlow from '@/pages/dashboard/AddWorkFlow';
 import WorkFlow from '@/pages/dashboard/WorkFlow';
 
 const SignIn = lazy(() => import('../pages/auth/SignIn'));
-const SignUp = lazy(() => import('../pages/auth/SignUp'));
-const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
+// const SignUp = lazy(() => import('../pages/auth/SignUp'));
+// const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
 const AppLayout = lazy(() => import('../components/layout/AppLayout'));
 const Home = lazy(() => import('../pages/dashboard/Home'));
 
@@ -41,7 +41,7 @@ export default function AppRoutes() {
             </ProtectedRoute>
           } 
         />
-        <Route 
+        {/* <Route 
           path="/auth/sign-up" 
           element={
             <ProtectedRoute requireAuth={false}>
@@ -56,7 +56,7 @@ export default function AppRoutes() {
               <ResetPassword />
             </ProtectedRoute>
           } 
-        />
+        /> */}
 
         {/* Protected routes (authentication required) */}
         <Route 

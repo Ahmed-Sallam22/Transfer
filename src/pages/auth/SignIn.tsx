@@ -1,15 +1,14 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import {  useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { useLoginMutation } from '../../api/auth.api';
 import { useAppDispatch } from '../../features/auth/hooks';
 import { setCredentials } from '../../features/auth/authSlice';
-import { Button, Input, PasswordInput, Checkbox, FormField, MicrosoftIcon } from '../../components/ui';
+import { Button, Input, PasswordInput, Checkbox, FormField } from '../../components/ui';
 import Animation from '../../assets/Animation.png';
-import DividerWithText from '@/components/ui/DividerWithText';
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),

@@ -256,6 +256,8 @@ export default function AccountsProjects() {
   };
 
   const handleEdit = (row: TableRow, index: number) => {
+    console.log("Edit item:", row);
+    
     setIsEditMode(true);
     setEditRowIndex(index);
     setIsCreateModalOpen(true);

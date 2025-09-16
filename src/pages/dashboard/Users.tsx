@@ -5,8 +5,6 @@ import SearchBar from '@/shared/SearchBar';
 import SharedModal from '@/shared/SharedModal';
 import { SharedSelect } from '@/shared/SharedSelect';
 import type { SelectOption } from '@/shared/SharedSelect';
-import { useUser, useUserRole, useUserLevel } from '@/features/auth/hooks';
-
 // Sample data for users
 const usersData: TableRow[] = [
   {
@@ -74,13 +72,13 @@ const userLevelsData: TableRow[] = [
   }
 ];
 
-// Sample data for users by level distribution
-const usersByLevelData = [
-  { level: 'Level 1', count: 2 },
-  { level: 'Level 2', count: 3 },
-  { level: 'Level 3', count: 5 },
-  { level: 'Level 4', count: 1 }
-];
+// // Sample data for users by level distribution
+// const usersByLevelData = [
+//   { level: 'Level 1', count: 2 },
+//   { level: 'Level 2', count: 3 },
+//   { level: 'Level 3', count: 5 },
+//   { level: 'Level 4', count: 1 }
+// ];
 
 // Role options
 const roleOptions: SelectOption[] = [
@@ -125,7 +123,7 @@ export default function Users() {
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
   const [isUserLevelModalOpen, setIsUserLevelModalOpen] = useState<boolean>(false);
   const [editingUser, setEditingUser] = useState<TableRow | null>(null);
-  const [editingUserLevel, setEditingUserLevel] = useState<TableRow | null>(null);
+  const [editingUserLevel] = useState<TableRow | null>(null);
   
   // Form states for user
   const [userForm, setUserForm] = useState({
@@ -253,45 +251,45 @@ export default function Users() {
     setIsUserModalOpen(true);
   };
 
-  const handleEditUser = (user: TableRow) => {
-    setEditingUser(user);
-    setUserForm({
-      username: String(user.username),
-      password: '',
-      role: String(user.role)
-    });
-    setIsUserModalOpen(true);
-  };
+  // const handleEditUser = (user: TableRow) => {
+  //   setEditingUser(user);
+  //   setUserForm({
+  //     username: String(user.username),
+  //     password: '',
+  //     role: String(user.role)
+  //   });
+  //   setIsUserModalOpen(true);
+  // };
 
-  const handleDeleteUser = (user: TableRow) => {
-    if (confirm(`Are you sure you want to delete user "${user.username}"?`)) {
-      console.log("Deleting user:", user);
-      // Add delete logic here
-    }
-  };
+  // const handleDeleteUser = (user: TableRow) => {
+  //   if (confirm(`Are you sure you want to delete user "${user.username}"?`)) {
+  //     console.log("Deleting user:", user);
+  //     // Add delete logic here
+  //   }
+  // };
 
-  const handleAddUserLevel = () => {
-    setEditingUserLevel(null);
-    setUserLevelForm({ name: '', description: '', order: '' });
-    setIsUserLevelModalOpen(true);
-  };
+  // const handleAddUserLevel = () => {
+  //   setEditingUserLevel(null);
+  //   setUserLevelForm({ name: '', description: '', order: '' });
+  //   setIsUserLevelModalOpen(true);
+  // };
 
-  const handleEditUserLevel = (level: TableRow) => {
-    setEditingUserLevel(level);
-    setUserLevelForm({
-      name: String(level.name),
-      description: String(level.description),
-      order: String(level.order)
-    });
-    setIsUserLevelModalOpen(true);
-  };
+  // const handleEditUserLevel = (level: TableRow) => {
+  //   setEditingUserLevel(level);
+  //   setUserLevelForm({
+  //     name: String(level.name),
+  //     description: String(level.description),
+  //     order: String(level.order)
+  //   });
+  //   setIsUserLevelModalOpen(true);
+  // };
 
-  const handleDeleteUserLevel = (level: TableRow) => {
-    if (confirm(`Are you sure you want to delete level "${level.name}"?`)) {
-      console.log("Deleting user level:", level);
-      // Add delete logic here
-    }
-  };
+  // const handleDeleteUserLevel = (level: TableRow) => {
+  //   if (confirm(`Are you sure you want to delete level "${level.name}"?`)) {
+  //     console.log("Deleting user level:", level);
+  //     // Add delete logic here
+  //   }
+  // };
 
   const handleSaveUser = () => {
     console.log(editingUser ? "Updating user:" : "Creating user:", userForm);
