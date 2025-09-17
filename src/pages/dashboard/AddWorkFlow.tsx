@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui";
+import { Input, Toggle } from "@/components/ui";
 import SharedModal from "@/shared/SharedModal";
 import { SharedSelect, type SelectOption } from "@/shared/SharedSelect";
 import { useState, useEffect } from "react";
@@ -9,6 +9,7 @@ import {
   useUpdateWorkflowTemplateMutation,
   useGetWorkflowTemplateQuery,
   type WorkflowStage,
+  type CreateWorkflowRequest,
 } from "@/api/workflow.api";
 
 export default function AddWorkFlow() {
@@ -49,6 +50,7 @@ export default function AddWorkFlow() {
     allowReject: true,
     slaHours: undefined as number | undefined,
     requiredUserLevel: undefined as number | undefined,
+    isActive: true,
   });
 
   // Edit stage state
@@ -62,14 +64,16 @@ export default function AddWorkFlow() {
   // Load workflow data when editing
   useEffect(() => {
     if (isEditMode && workflowData) {
-      setWorkflowForm({
+      const formData = {
         code: workflowData.code,
         name: workflowData.name,
         transferType: workflowData.transfer_type,
         version: workflowData.version,
         description: workflowData.description,
         isActive: workflowData.is_active,
-      });
+      };
+
+      setWorkflowForm(formData);
       setTranstype(workflowData.transfer_type);
 
       // Load stages data
@@ -94,6 +98,20 @@ export default function AddWorkFlow() {
       }
     }
   }, [isEditMode, workflowData]);
+
+  // Function to get all workflow values
+  const getAllWorkflowValues = (): CreateWorkflowRequest => {
+    // Always return all values for both create and update operations
+    return {
+      code: workflowForm.code,
+      transfer_type: workflowForm.transferType,
+      name: workflowForm.name,
+      description: workflowForm.description,
+      version: workflowForm.version || 1,
+      is_active: workflowForm.isActive,
+      stages: stages,
+    };
+  };
 
   // Select options for transaction dates
   const TranstypeOptions: SelectOption[] = [
@@ -159,6 +177,7 @@ export default function AddWorkFlow() {
       allowReject: true,
       slaHours: undefined,
       requiredUserLevel: undefined,
+      isActive: true,
     });
   };
 
@@ -180,6 +199,7 @@ export default function AddWorkFlow() {
       allowReject: stage.allow_reject,
       slaHours: stage.sla_hours,
       requiredUserLevel: stage.required_user_level,
+      isActive: true, // Default to true since stages don't have this field yet
     });
     setEditingStageIndex(index);
     setIsStageEditMode(true);
@@ -188,18 +208,10 @@ export default function AddWorkFlow() {
 
   const handleCreateWorkflow = async () => {
     try {
-      const workflowData = {
-        code: workflowForm.code,
-        transfer_type: workflowForm.transferType,
-        name: workflowForm.name,
-        description: workflowForm.description,
-        version: workflowForm.version || 1,
-        is_active: workflowForm.isActive,
-        stages: stages,
-      };
+      const workflowData = getAllWorkflowValues();
 
       if (isEditMode && id) {
-        // Update existing workflow
+        // Update existing workflow with all values
         await updateWorkflowTemplate({
           id: Number(id),
           body: workflowData,
@@ -239,6 +251,7 @@ export default function AddWorkFlow() {
       allowReject: true,
       slaHours: undefined,
       requiredUserLevel: undefined,
+      isActive: true,
     });
     setIsStageEditMode(false);
     setEditingStageIndex(null);
@@ -258,6 +271,7 @@ export default function AddWorkFlow() {
       allowReject: true,
       slaHours: undefined,
       requiredUserLevel: undefined,
+      isActive: true,
     });
   };
 
@@ -334,25 +348,18 @@ export default function AddWorkFlow() {
               autoComplete="off"
             />
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
+            <div className="space-y-4">
+              <Toggle
                 id="allowReject"
+                label="Allow Reject"
                 checked={stageForm.allowReject}
-                onChange={(e) =>
+                onChange={(checked) =>
                   setStageForm((prev) => ({
                     ...prev,
-                    allowReject: e.target.checked,
+                    allowReject: checked,
                   }))
                 }
-                className="rounded border-gray-300"
               />
-              <label
-                htmlFor="allowReject"
-                className="text-sm font-medium text-gray-700"
-              >
-                Allow Reject
-              </label>
             </div>
           </div>
 
@@ -421,7 +428,21 @@ export default function AddWorkFlow() {
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-md ">Workflow Information</h2>
+        <div className="flex justify-between items-center mb-3 ">
+          <h2 className="text-md ">Workflow Information</h2>
+
+          <Toggle
+            id="workflowStatus"
+            label="Active"
+            checked={workflowForm.isActive}
+            onChange={(checked) =>
+              setWorkflowForm((prev) => ({
+                ...prev,
+                isActive: checked,
+              }))
+            }
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <Input

@@ -10,6 +10,7 @@ import {
   useBulkApproveRejectTransferMutation,
   type PendingTransferData 
 } from '@/api/pendingTransfer.api';
+import toast from 'react-hot-toast';
 
 
 
@@ -206,9 +207,11 @@ const PendingTransferColumns: TableColumn[] = [
         }).unwrap();
         console.log("Transfer approved successfully:", selectedRow);
         setReason(''); // Clear reason after success
+                toast.success("Transfer approved successfully");
+        
       } catch (error) {
         console.error("Error approving transfer:", error);
-        // Handle error (show toast notification, etc.)
+        toast.error("Failed to approve transfer");
       }
     }
     setIsApproveModalOpen(false);
@@ -227,9 +230,10 @@ const PendingTransferColumns: TableColumn[] = [
         }).unwrap();
         console.log("Transfer rejected successfully:", selectedRow);
         setReason(''); // Clear reason after success
+        toast.success("Transfer rejected successfully");
       } catch (error) {
         console.error("Error rejecting transfer:", error);
-        // Handle error (show toast notification, etc.)
+        toast.error("Failed to reject transfer");
       }
     }
     setIsRejectModalOpen(false);

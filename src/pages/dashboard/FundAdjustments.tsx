@@ -848,7 +848,7 @@ export default function FundAdjustments() {
     </SharedModal>
 
     {/* Status Pipeline Modal */}
-    <SharedModal
+  <SharedModal
       isOpen={isStatusModalOpen}
       onClose={() => {
         setIsStatusModalOpen(false);
@@ -892,7 +892,7 @@ export default function FundAdjustments() {
                         ? 'bg-yellow-500 border-yellow-200'
                         : stage.status === 'rejected'
                         ? 'bg-red-500 border-red-200'
-                        : 'bg-gray-500 border-gray-200'
+                        : 'bg-blue-500 border-blue-200'
                     }`}>
                       {stage.status === 'approved' || stage.status === 'active' ? (
                         <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -907,9 +907,24 @@ export default function FundAdjustments() {
                           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                       ) : (
-                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                        </svg>
+                      <svg
+  className="w-6 h-6 text-white animate-spin"
+  viewBox="0 0 20 20"
+  fill="none"
+  role="status"
+  aria-label="In progress"
+>
+  {/* faint full ring */}
+  <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+  {/* leading arc */}
+  <path
+    d="M10 2 A 8 8 0 0 1 18 10"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+  />
+</svg>
+
                       )}
                     </div>
                     
@@ -956,9 +971,9 @@ export default function FundAdjustments() {
                               <span className="font-medium">Rejected</span>
                             </div>
                           ) : (
-                            <div className="flex items-center text-gray-600">
-                              <div className="w-4 h-4 bg-gray-400 rounded-full mr-1"></div>
-                              <span className="font-medium">Not Started</span>
+                            <div className="flex items-center text-blue-700">
+                              <div className="w-4 h-4 bg-blue-700 rounded-full mr-1"></div>
+                              <span className="font-medium">In Progress</span>
                             </div>
                           )}
                         </div>

@@ -11,6 +11,7 @@ import {
   useDeleteWorkflowTemplateMutation,
   type WorkflowTemplate,
 } from "@/api/workflow.api";
+import toast from "react-hot-toast";
 
 export default function WorkFlow() {
   const navigate = useNavigate();
@@ -43,9 +44,11 @@ export default function WorkFlow() {
     const workflow = row as unknown as WorkflowTemplate;
     try {
       await deleteWorkflowTemplate(workflow.id).unwrap();
+      toast.success("Workflow template deleted successfully");
       // Success feedback could be added here (toast notification, etc.)
     } catch (error) {
       console.error("Failed to delete workflow template:", error);
+      toast.error("Failed to delete workflow template");
       // Error feedback could be added here
     }
   };

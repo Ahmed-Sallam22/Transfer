@@ -6,3 +6,4 @@ export { FormField, type FormFieldProps } from './FormField';
 export { MicrosoftIcon } from './MicrosoftIcon';
 export { TanfeezLoader } from './TanfeezLoader';
 export { RichTextEditor } from './RichTextEditor';
+export { Toggle } from './Toggle';
