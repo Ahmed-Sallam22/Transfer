@@ -8,6 +8,7 @@ import {
 import SharedModal from "@/shared/SharedModal";
 import {
   useGetWorkflowTemplatesQuery,
+  useDeleteWorkflowTemplateMutation,
   type WorkflowTemplate,
 } from "@/api/workflow.api";
 
@@ -26,8 +27,27 @@ export default function WorkFlow() {
     isLoading,
   } = useGetWorkflowTemplatesQuery();
 
+  // Delete workflow mutation
+  const [deleteWorkflowTemplate] = useDeleteWorkflowTemplateMutation();
+
   const handleCreateNewWorkflow = () => {
     navigate("/app/AddWorkFlow");
+  };
+
+  const handleEdit = (row: SharedTableRow) => {
+    const workflow = row as unknown as WorkflowTemplate;
+    navigate(`/app/EditWorkFlow/${workflow.id}`);
+  };
+
+  const handleDelete = async (row: SharedTableRow) => {
+    const workflow = row as unknown as WorkflowTemplate;
+    try {
+      await deleteWorkflowTemplate(workflow.id).unwrap();
+      // Success feedback could be added here (toast notification, etc.)
+    } catch (error) {
+      console.error("Failed to delete workflow template:", error);
+      // Error feedback could be added here
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -78,7 +98,7 @@ export default function WorkFlow() {
       header: "Description",
       render: (_, row) => {
         const workflow = row as unknown as WorkflowTemplate;
-      
+
         return (
           <button
             onClick={() => handleDescriptionClick(workflow)}
@@ -187,6 +207,8 @@ export default function WorkFlow() {
           showFooter={false}
           maxHeight="600px"
           showActions={true}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
           showPagination={shouldShowPagination}
           currentPage={currentPage}
           onPageChange={handlePageChange}
@@ -204,17 +226,13 @@ export default function WorkFlow() {
         <div className="p-4">
           {selectedWorkflow && (
             <div className="space-y-4">
-           
-
               <div>
-         
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-900 leading-relaxed">
                     {selectedWorkflow.description || "No description available"}
                   </p>
                 </div>
               </div>
-
             </div>
           )}
 
