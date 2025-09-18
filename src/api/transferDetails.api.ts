@@ -20,6 +20,13 @@ export interface TransferDetail {
   file: string | null;
   transaction: number;
   validation_errors?: string[];
+  // New financial fields
+  budget_adjustments?: string;
+  commitments?: string;
+  expenditures?: string;
+  initial_budget?: string;
+  obligations?: string;
+  other_consumption?: string;
 }
 
 export interface TransferDetailsSummary {

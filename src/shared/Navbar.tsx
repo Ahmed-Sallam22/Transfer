@@ -6,6 +6,7 @@ import {
   Bell
 } from 'lucide-react';
 import img from '../assets/Avatar/32px.png';
+import { useLogout } from '@/hooks/useLogout';
 
 type NavbarProps = {
   locale: 'EN' | 'AR';
@@ -38,7 +39,8 @@ export default function Navbar({
   };
 
   const currentUser = user || getUserFromStorage();
-  
+    const logout = useLogout();
+
   // Default values if no user data is available
   const userName = currentUser?.username || 'User';
   const userRole = currentUser?.role || 'Guest';
@@ -114,7 +116,7 @@ export default function Navbar({
           userName={userName}
           userRole={userRole}
           avatarUrl={img}
-          onLogout={() => console.log("Logout clicked")}
+          onLogout={() => logout()}
         />
 
       </div>

@@ -27,6 +27,13 @@ interface TransferTableRow {
   period?: string;
   // Validation errors
   validation_errors?: string[];
+  // New budget fields
+  budget_adjustments?: string;
+  commitments?: string;
+  expenditures?: string;
+  initial_budget?: string;
+  obligations?: string;
+  other_consumption?: string;
 }
 
 
@@ -98,16 +105,31 @@ export default function TransferDetails() {
         encumbrance: parseFloat(transfer.encumbrance),
         availableBudget: parseFloat(transfer.available_budget),
         actual: parseFloat(transfer.actual),
-        accountName: transfer.account_name && transfer.account_name.trim() !== '' ? transfer.account_name : transfer.account_code.toString(),
-        projectName: transfer.project_name && transfer.project_name.trim() !== '' ? transfer.project_name : transfer.project_code,
+        accountName:
+          transfer.account_name && transfer.account_name.trim() !== ""
+            ? transfer.account_name
+            : transfer.account_code.toString(),
+        projectName:
+          transfer.project_name && transfer.project_name.trim() !== ""
+            ? transfer.project_name
+            : transfer.project_code,
         accountCode: transfer.account_code.toString(),
         projectCode: transfer.project_code,
         approvedBudget: parseFloat(transfer.approved_budget),
         costCenterCode: transfer.cost_center_code.toString(),
-        costCenterName: transfer.cost_center_name && transfer.cost_center_name.trim() !== '' ? transfer.cost_center_name : transfer.cost_center_code.toString(),
+        costCenterName:
+          transfer.cost_center_name && transfer.cost_center_name.trim() !== ""
+            ? transfer.cost_center_name
+            : transfer.cost_center_code.toString(),
         other_ytd: 0,
-        period: apiData?.summary.period||'',
-        validation_errors: transfer.validation_errors
+        period: apiData?.summary.period || "",
+        validation_errors: transfer.validation_errors,
+        budget_adjustments: transfer.budget_adjustments || "0",
+        commitments: transfer.commitments || "0",
+        expenditures: transfer.expenditures || "0",
+        initial_budget: transfer.initial_budget || "0",
+        obligations: transfer.obligations || "0",
+        other_consumption: transfer.other_consumption || "0",
       }));
       setEditedRows(initialRows);
     } else {
@@ -717,56 +739,101 @@ export default function TransferDetails() {
 
   // Keep the old columns for the main transfer table
   const columnsDetails: TableColumn[] = [
-
     {
-      id: 'validation',
-      header: 'Status',
+      id: "validation",
+      header: "Status",
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-        const hasErrors = transferRow.validation_errors && transferRow.validation_errors.length > 0;
-        
+        const hasErrors =
+          transferRow.validation_errors &&
+          transferRow.validation_errors.length > 0;
+
         return (
           <div className="flex items-center  gap-3 justify-center">
-              <button
+            <button
               onClick={() => deleteRow(transferRow.id)}
               className="flex items-center justify-center w-6 h-6 bg-red-100 border border-red-300 rounded-full text-red-600 hover:bg-red-200 transition-colors"
               title="Delete row"
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9 3L3 9M3 3L9 9"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
             {hasErrors ? (
               <button
-                onClick={() => handleValidationErrorClick(transferRow.validation_errors || [])}
+                onClick={() =>
+                  handleValidationErrorClick(
+                    transferRow.validation_errors || []
+                  )
+                }
                 className="flex items-center justify-center w-6 h-6 bg-yellow-100 border border-yellow-300 rounded-full text-yellow-600 hover:bg-yellow-200 transition-colors"
                 title="Click to view validation errors"
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 1L11 10H1L6 1Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-                  <path d="M6 4V6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="6" cy="8.5" r="0.5" fill="currentColor"/>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6 1L11 10H1L6 1Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M6 4V6.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="6" cy="8.5" r="0.5" fill="currentColor" />
                 </svg>
               </button>
             ) : (
               <div className="w-6 h-6 bg-green-100 border border-green-300 rounded-full flex items-center justify-center">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2.5 6L4.5 8L9.5 3" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2.5 6L4.5 8L9.5 3"
+                    stroke="#16a34a"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
             )}
           </div>
         );
-      }
+      },
     },
     {
-      id: 'to',
-      header: 'To',
+      id: "to",
+      header: "To",
       showSum: true,
-  
+
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-        
+
         return isSubmitted ? (
           <span className={`text-sm text-gray-900 `}>
             {transferRow.to.toFixed(2)}
@@ -774,22 +841,24 @@ export default function TransferDetails() {
         ) : (
           <input
             type="number"
-            value={transferRow.to || ''}
-            onChange={(e) => updateRow(transferRow.id, 'to', Number(e.target.value) || 0)}
+            value={transferRow.to || ""}
+            onChange={(e) =>
+              updateRow(transferRow.id, "to", Number(e.target.value) || 0)
+            }
             className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
             placeholder="To"
           />
         );
-      }
+      },
     },
     {
-      id: 'from',
-      header: 'From',
+      id: "from",
+      header: "From",
       showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-        
+
         return isSubmitted ? (
           <span className={`text-sm text-gray-900 `}>
             {transferRow.from.toFixed(2)}
@@ -797,193 +866,295 @@ export default function TransferDetails() {
         ) : (
           <input
             type="number"
-            value={transferRow.from || ''}
-            onChange={(e) => updateRow(transferRow.id, 'from', Number(e.target.value) || 0)}
+            value={transferRow.from || ""}
+            onChange={(e) =>
+              updateRow(transferRow.id, "from", Number(e.target.value) || 0)
+            }
             className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
             placeholder="From"
           />
         );
-      }
+      },
     },
     {
-      id: 'encumbrance',
-      header: 'Encumbrance',
+      id: "encumbrance",
+      header: "Encumbrance",
       showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.encumbrance || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
     {
-      id: 'availableBudget',
-      header: 'Available Budget',
+      id: "availableBudget",
+      header: "Available Budget",
       showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.availableBudget || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
     {
-      id: 'actual',
-      header: 'Actual',
+      id: "actual",
+      header: "Actual",
       showSum: true,
-     
+
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.actual || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
     {
-      id: 'approvedBudget',
-      header: 'Approved Budget',
+      id: "budget_adjustments",
+      header: "Budget Adjustments",
       showSum: true,
-     
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.budget_adjustments) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "commitments",
+      header: "Commitments",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.commitments) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "expenditures",
+      header: "Expenditures",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.expenditures) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "initial_budget",
+      header: "Initial Budget",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.initial_budget) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "obligations",
+      header: "Obligations",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.obligations) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "other_consumption",
+      header: "Other Consumption",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.other_consumption) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "approvedBudget",
+      header: "Approved Budget",
+      showSum: true,
+
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.approvedBudget || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
     {
-      id: 'other_ytd',
-      header: 'Other YTD',
+      id: "other_ytd",
+      header: "Other YTD",
       showSum: true,
-     
+
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.other_ytd || 0;
         return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "period",
+      header: "Period",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">{transferRow.period}</span>
+        );
+      },
+    },
+
+    {
+      id: "accountName",
+      header: "Account Name",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
           <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
+            {transferRow.accountName}
           </span>
         );
-      }
+      },
     },
     {
-      id: 'period',
-      header: 'Period',
-     
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.period }</span>;
-      }
-    },
-    
-    {
-      id: 'accountName',
-      header: 'Account Name',
- 
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.accountName}</span>;
-      }
-    },
-    {
-      id: 'projectName',
-      header: 'Project Name',
+      id: "projectName",
+      header: "Project Name",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.projectName}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.projectName}
+          </span>
+        );
+      },
     },
-       {
-      id: 'costCenterName',
-      header: 'Cost Center Name',
+    {
+      id: "costCenterName",
+      header: "Cost Center Name",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.costCenterName}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterName}
+          </span>
+        );
+      },
     },
     {
-      id: 'accountCode',
-      header: 'Account Code',
+      id: "accountCode",
+      header: "Account Code",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return isSubmitted ? (
-          <span className="text-sm text-gray-900">{transferRow.accountCode}</span>
+          <span className="text-sm text-gray-900">
+            {transferRow.accountCode}
+          </span>
         ) : (
           <select
             value={transferRow.accountCode}
-            onChange={(e) => updateRow(transferRow.id, 'accountCode', e.target.value)}
+            onChange={(e) =>
+              updateRow(transferRow.id, "accountCode", e.target.value)
+            }
             className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
           >
             <option value="">Select account</option>
-            {accountCodes.map(code => (
-              <option key={code} value={code}>{code}</option>
+            {accountCodes.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
             ))}
           </select>
         );
-      }
+      },
     },
 
     {
-      id: 'projectCode',
-      header: 'Project Code',
+      id: "projectCode",
+      header: "Project Code",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return isSubmitted ? (
-          <span className="text-sm text-gray-900">{transferRow.projectCode}</span>
+          <span className="text-sm text-gray-900">
+            {transferRow.projectCode}
+          </span>
         ) : (
           <select
             value={transferRow.projectCode}
-            onChange={(e) => updateRow(transferRow.id, 'projectCode', e.target.value)}
+            onChange={(e) =>
+              updateRow(transferRow.id, "projectCode", e.target.value)
+            }
             className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
           >
             <option value="">Select project code</option>
-            {projectCodes.map(code => (
-              <option key={code} value={code}>{code}</option>
+            {projectCodes.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
             ))}
           </select>
         );
-      }
+      },
     },
     {
-      id: 'costCenterCode',
-      header: 'Cost Center',
+      id: "costCenterCode",
+      header: "Cost Center",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return isSubmitted ? (
-          <span className="text-sm text-gray-900">{transferRow.costCenterCode}</span>
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterCode}
+          </span>
         ) : (
           <select
             value={transferRow.costCenterCode}
-            onChange={(e) => updateRow(transferRow.id, 'costCenterCode', e.target.value)}
+            onChange={(e) =>
+              updateRow(transferRow.id, "costCenterCode", e.target.value)
+            }
             className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
           >
             <option value="">Select cost center</option>
-            {costCenterCodes.map(code => (
-              <option key={code} value={code}>{code}</option>
+            {costCenterCodes.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
             ))}
           </select>
         );
-      }
-    }
+      },
+    },
   ];
 
   // Handler for validation error click

@@ -22,6 +22,12 @@ interface TransferTableRow {
   costCenterName?: string;
   other_ytd?: number;
   period?: string;
+  budget_adjustments?: string;
+  commitments?: string;
+  expenditures?: string;
+  initial_budget?: string;
+  obligations?: string;
+  other_consumption?: string;
 }
 
 
@@ -57,39 +63,61 @@ export default function PendingAdjustmentsDetails() {
         encumbrance: parseFloat(transfer.encumbrance),
         availableBudget: parseFloat(transfer.available_budget),
         actual: parseFloat(transfer.actual),
-        accountName: transfer.account_name && transfer.account_name.trim() !== '' ? transfer.account_name : transfer.account_code.toString(),
-        projectName: transfer.project_name && transfer.project_name.trim() !== '' ? transfer.project_name : transfer.project_code || '',
+        accountName:
+          transfer.account_name && transfer.account_name.trim() !== ""
+            ? transfer.account_name
+            : transfer.account_code.toString(),
+        projectName:
+          transfer.project_name && transfer.project_name.trim() !== ""
+            ? transfer.project_name
+            : transfer.project_code || "",
         accountCode: transfer.account_code.toString(),
-        projectCode: transfer.project_code || '',
+        projectCode: transfer.project_code || "",
         approvedBudget: parseFloat(transfer.approved_budget),
         costCenterCode: transfer.cost_center_code.toString(),
-        costCenterName: transfer.cost_center_name && transfer.cost_center_name.trim() !== '' ? transfer.cost_center_name : transfer.cost_center_code.toString(),
+        costCenterName:
+          transfer.cost_center_name && transfer.cost_center_name.trim() !== ""
+            ? transfer.cost_center_name
+            : transfer.cost_center_code.toString(),
         other_ytd: 0,
-        period: '',
+        period: "",
+        budget_adjustments: transfer.budget_adjustments || "0",
+        commitments: transfer.commitments || "0",
+        expenditures: transfer.expenditures || "0",
+        initial_budget: transfer.initial_budget || "0",
+        obligations: transfer.obligations || "0",
+        other_consumption: transfer.other_consumption || "0",
       }));
       setRows(processedRows);
     } else {
       // If no API data, set a default row
-      setRows([{
-        id: 'default-1',
-        to: 0,
-        from: 0,
-        encumbrance: 0,
-        availableBudget: 0,
-        actual: 0,
-        accountName: 'General Operations',
-        projectName: 'Project Alpha',
-        accountCode: 'ACC001',
-        projectCode: 'PRJ001',
-        approvedBudget: 0,
-        costCenterCode: '',
-        costCenterName: '',
-        other_ytd: 0,
-        period: '',
-      }]);
+      setRows([
+        {
+          id: "default-1",
+          to: 0,
+          from: 0,
+          encumbrance: 0,
+          availableBudget: 0,
+          actual: 0,
+          accountName: "General Operations",
+          projectName: "Project Alpha",
+          accountCode: "ACC001",
+          projectCode: "PRJ001",
+          approvedBudget: 0,
+          costCenterCode: "",
+          costCenterName: "",
+          other_ytd: 0,
+          period: "",
+          budget_adjustments: "0",
+          commitments: "0",
+          expenditures: "0",
+          initial_budget: "0",
+          obligations: "0",
+          other_consumption: "0",
+        },
+      ]);
     }
   }, [apiData]);
-
 
 
   // Check if pagination should be shown
@@ -116,175 +144,270 @@ export default function PendingAdjustmentsDetails() {
 
 
   // Keep the old columns for the main transfer table
-  const columnsDetails: TableColumn[] = [
+   const columnsDetails: TableColumn[] = [
     {
-      id: 'to',
-      header: 'To',
-      showSum: true,
-  
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return  (
-          <span className="text-sm text-gray-900">{transferRow.to.toFixed(2)}</span>  
-        );
-      }
-    },
-    {
-      id: 'from',
-      header: 'From',
+      id: "to",
+      header: "To",
       showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-        return  (
-          <span className="text-sm text-gray-900">{transferRow.from.toFixed(2)}</span>
-        ) 
-      }
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.to.toFixed(2)}
+          </span>
+        );
+      },
     },
     {
-      id: 'encumbrance',
-      header: 'Encumbrance',
+      id: "from",
+      header: "From",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.from.toFixed(2)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "encumbrance",
+      header: "Encumbrance",
       showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.encumbrance || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
     {
-      id: 'availableBudget',
-      header: 'Available Budget',
+      id: "availableBudget",
+      header: "Available Budget",
       showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.availableBudget || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
     {
-      id: 'actual',
-      header: 'Actual',
+      id: "actual",
+      header: "Actual",
       showSum: true,
-     
+
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.actual || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
-      {
-      id: 'approvedBudget',
-      header: 'Approved Budget',
+    {
+      id: "budget_adjustments",
+      header: "Budget Adjustments",
       showSum: true,
-     
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.budget_adjustments) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "commitments",
+      header: "Commitments",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.commitments) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "expenditures",
+      header: "Expenditures",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.expenditures) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "initial_budget",
+      header: "Initial Budget",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.initial_budget) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "obligations",
+      header: "Obligations",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.obligations) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "other_consumption",
+      header: "Other Consumption",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        const value = Number(transferRow.other_consumption) || 0;
+        return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "approvedBudget",
+      header: "Approved Budget",
+      showSum: true,
+
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.approvedBudget || 0;
         return (
-          <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
-          </span>
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
         );
-      }
+      },
     },
     {
-      id: 'other_ytd',
-      header: 'Other YTD',
+      id: "other_ytd",
+      header: "Other YTD",
       showSum: true,
-     
+
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.other_ytd || 0;
         return (
+          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+        );
+      },
+    },
+    {
+      id: "period",
+      header: "Period",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
           <span className="text-sm text-gray-900">
-            {value.toFixed(2)}
+            {transferRow.period || ""}
           </span>
         );
-      }
+      },
     },
     {
-      id: 'period',
-      header: 'Period',
-     
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.period || ''}</span>;
-      }
-    },
-    {
-      id: 'accountName',
-      header: 'Account Name',
- 
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.accountName}</span>;
-      }
-    },
-    {
-      id: 'projectName',
-      header: 'Project Name',
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.projectName}</span>;
-      }
-    },
-       {
-      id: 'costCenterName',
-      header: 'Cost Center Name',
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return <span className="text-sm text-gray-900">{transferRow.costCenterName || ''}</span>;
-      }
-    },
-    {
-      id: 'accountCode',
-      header: 'Account Code',
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return  (
-          <span className="text-sm text-gray-900">{transferRow.accountCode}</span>
-        ) 
-      }
-    },
-
-    {
-      id: 'projectCode',
-      header: 'Project Code',
+      id: "accountName",
+      header: "Account Name",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return (
-          <span className="text-sm text-gray-900">{transferRow.projectCode}</span>
-        ) 
-      }
-    },  {
-      id: 'costCenterCode',
-      header: 'Cost Center',
+          <span className="text-sm text-gray-900">
+            {transferRow.accountName}
+          </span>
+        );
+      },
+    },
+    {
+      id: "projectName",
+      header: "Project Name",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return (
-          <span className="text-sm text-gray-900">{transferRow.costCenterCode || ''}</span>
-        ) 
-      }
-    }
+          <span className="text-sm text-gray-900">
+            {transferRow.projectName}
+          </span>
+        );
+      },
+    },
+    {
+      id: "costCenterName",
+      header: "Cost Center Name",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterName || ""}
+          </span>
+        );
+      },
+    },
+    {
+      id: "accountCode",
+      header: "Account Code",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.accountCode}
+          </span>
+        );
+      },
+    },
+
+    {
+      id: "projectCode",
+      header: "Project Code",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.projectCode}
+          </span>
+        );
+      },
+    },
+    {
+      id: "costCenterCode",
+      header: "Cost Center",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterCode || ""}
+          </span>
+        );
+      },
+    },
   ];
   const [isApproveModalOpen, setIsApproveModalOpen] = useState<boolean>(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState<boolean>(false);

@@ -15,7 +15,10 @@ export const useTokenRefresh = () => {
     }
 
     try {
-      const result = await refreshTokenMutation({ refresh: tokens.refresh }).unwrap();
+      const result = await refreshTokenMutation({ 
+        refresh: tokens.refresh,
+        user_id: user?.id || 0
+      }).unwrap();
       
       if (user && userLevel !== null) {
         dispatch(setCredentials({

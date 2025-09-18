@@ -41,15 +41,21 @@ const sections = [
       { to: '/app/PendingTransfer', label: 'Pending Transfer', icon: Clock },
     ],
   },
-  {
-    title: 'Fund',
+   {
+    title: 'Additional Funds',
     items: [
-      { to: '/app/FundAdjustments', label: 'Fund Adjustments', icon: SlidersHorizontal },
       { to: '/app/fund-requests', label: 'Fund Requests', icon: FilePlus2 },
-      { to: '/app/PendingAdjustments', label: 'Pending Adjustments', icon: ClipboardCheck },
       { to: '/app/PendingRequests', label: 'Pending Requests', icon: ClipboardList },
     ],
   },
+  {
+    title: 'Fund Adjustments',
+    items: [
+      { to: '/app/FundAdjustments', label: 'Fund Adjustments', icon: SlidersHorizontal },
+      { to: '/app/PendingAdjustments', label: 'Pending Adjustments', icon: ClipboardCheck },
+    ],
+  },
+ 
   {
     title: 'Management',
     items: [

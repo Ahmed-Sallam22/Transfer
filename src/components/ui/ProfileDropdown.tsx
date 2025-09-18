@@ -1,6 +1,8 @@
 // src/components/layout/ProfileDropdown.tsx
 import { useState, useRef, useEffect } from "react";
-import { User, FileText, LogOut } from "lucide-react";
+import { User,
+  //  FileText,
+    LogOut } from "lucide-react";
 
 type Props = {
   userName: string;
@@ -39,7 +41,7 @@ export default function ProfileDropdown({
         <img
           src={avatarUrl}
           alt={userName}
-          className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-cover flex-shrink-0"
+          className="h-5 w-5 sm:h-8 sm:w-8 rounded-full object-cover flex-shrink-0"
         />
         <div className="hidden md:block text-left min-w-0">
           <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{userName}</div>
@@ -62,7 +64,7 @@ export default function ProfileDropdown({
               <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" />
               <span className="truncate">My accounts</span>
             </button>
-            <button className="flex items-center gap-3 w-full px-3 py-2.5 sm:py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+            {/* <button className="flex items-center gap-3 w-full px-3 py-2.5 sm:py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
               <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" />
               <span className="truncate">Lorem Ipsum</span>
             </button>
@@ -73,7 +75,7 @@ export default function ProfileDropdown({
             <button className="flex items-center gap-3 w-full px-3 py-2.5 sm:py-2 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
               <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" />
               <span className="truncate">Lorem Ipsum</span>
-            </button>
+            </button> */}
           </div>
 
           {/* Logout */}

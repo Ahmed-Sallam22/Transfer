@@ -519,7 +519,7 @@ export default function FundRequests() {
       const FundAdjumentsData = {
         transaction_date: time_period,
         notes: htmlNotes, // Send as HTML
-        type: "FAD" // Static as requested
+        type: "AFR" // Static as requested
       };
 
       if (isEditMode && selectedFundAdjuments) {
