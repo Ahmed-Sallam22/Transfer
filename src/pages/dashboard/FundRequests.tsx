@@ -201,6 +201,8 @@ export default function FundRequests() {
               ? 'bg-yellow-100 text-yellow-800'
               : value === 'rejected'
               ? 'bg-red-100 text-red-800'
+                 : value === 'in_progress'
+              ? 'bg-blue-300 text-blue-800'
               : 'bg-gray-100 text-gray-800'
           }`}
           onClick={() => handleStatusClick(row)}
