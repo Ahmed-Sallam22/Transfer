@@ -461,13 +461,24 @@ export default function TransferDetails() {
       const record = result.data?.data?.[0];
       
       // Apply financial data to the row
-      const financialUpdates = {
+       const financialUpdates = {
         encumbrance: record?.encumbrance_ytd || 0,
         availableBudget: record?.funds_available_asof || 0,
         actual: record?.actual_ytd || 0,
         approvedBudget: record?.budget_ytd || 0,
         other_ytd: record?.other_ytd || 0,
-        period: record?.as_of_period || ''
+        period: record?.as_of_period || "",
+        budget_adjustments: record?.budget_adjustments || "0",
+        other_consumption:record?.other_consumption || "0",
+        commitments: record?.commitments || "0",
+        expenditures: record?.expenditures || "0",
+        initial_budget: record?.initial_budget || "0",
+        obligations: record?.obligations || "0",
+        funds_available_asof: record?.funds_available_asof || "0",
+        budget_ytd: record?.budget_ytd || "0",
+        total_budget: record?.total_budget || "0",
+        total_consumption: record?.total_consumption || "0",
+        
       };
       
       return financialUpdates;

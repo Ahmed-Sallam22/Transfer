@@ -138,6 +138,14 @@ export interface FinancialDataRecord {
   actual_ytd: number;
   funds_available_asof: number;
   budget_ytd: number;
+  budget_adjustments: number;
+  commitments: number;
+  expenditures: number;
+  initial_budget: number;
+  obligations: number;
+  other_consumption: number;
+  total_budget: number;
+  total_consumption: number;
 }
 
 export interface FinancialDataResponse {

@@ -395,6 +395,7 @@ export default function TransferDetails() {
           project_name: row.projectName || "-",
           approved_budget: row.approvedBudget || 0,
           available_budget: row.availableBudget || 0,
+          
           to_center: toCenter,
           encumbrance: row.encumbrance || 0,
           actual: row.actual || 0,
@@ -533,6 +534,17 @@ export default function TransferDetails() {
         approvedBudget: record?.budget_ytd || 0,
         other_ytd: record?.other_ytd || 0,
         period: record?.as_of_period || "",
+        budget_adjustments: record?.budget_adjustments || "0",
+        other_consumption:record?.other_consumption || "0",
+        commitments: record?.commitments || "0",
+        expenditures: record?.expenditures || "0",
+        initial_budget: record?.initial_budget || "0",
+        obligations: record?.obligations || "0",
+        funds_available_asof: record?.funds_available_asof || "0",
+        budget_ytd: record?.budget_ytd || "0",
+        total_budget: record?.total_budget || "0",
+        total_consumption: record?.total_consumption || "0",
+        
       };
 
       return financialUpdates;
