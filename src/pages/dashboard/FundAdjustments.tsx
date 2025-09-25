@@ -549,13 +549,7 @@ export default function FundAdjustments() {
     { value: 'Dec', label: 'December' }
   ];
 
-  const handleSelectChange = (value: string | number) => {
-    settime_period(String(value));
-    // Clear validation error when user makes selection
-    if (validationErrors.time_period) {
-      setValidationErrors(prev => ({ ...prev, time_period: undefined }));
-    }
-  };
+ 
 
   const handleReasonChange = (value: string) => {
     setreason(value);
@@ -656,15 +650,15 @@ export default function FundAdjustments() {
         <div className="p-4 space-y-4">
           {/* Transaction Date */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Transaction Date *
-            </label>
-            <SharedSelect
+      
+          <SharedSelect
+              key={`transaction-date-${isEditMode ? selectedFundAdjustment?.transaction_id : 'create'}`}
+              title="Transaction Date"
               options={accountOptions}
               value={time_period}
-              onChange={handleSelectChange}
+              onChange={(value) => settime_period(String(value))}
               placeholder="Select transaction date"
-              error={validationErrors.time_period}
+              required
             />
           </div>
 
