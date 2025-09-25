@@ -9,6 +9,7 @@ import {
   useGetActiveProjectsWithEnvelopeQuery,
   type EnvelopeProject,
 } from "@/api/envelope.api";
+import SharedSelect from "@/shared/SharedSelect";
 
 interface EnvelopeTableRow {
   id: string;
@@ -54,7 +55,7 @@ export default function Envelope() {
   // Table columns definition
   const columns: TableColumn[] = [
     {
-      id: "project_code",
+      id: "project_code",  
       header: "Project Code",
       render: (_, row) => {
         const envelopeRow = row as unknown as EnvelopeTableRow;
@@ -141,85 +142,62 @@ export default function Envelope() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+        {/* <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2> */}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Project Selection */}
           <div>
-            <label
-              htmlFor="project"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Project <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="project"
+            <SharedSelect
+              title="Project"
+              required={true}
               value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg  focus:ring-blue-500 focus:border-blue-500 text-sm"
+              onChange={(value) => setSelectedProject(String(value))}
+              placeholder="Select a project"
               disabled={isLoadingProjects}
-            >
-              <option value="">Select a project</option>
-                          <option value="9000000">9000000</option>
-
-              {projectsData?.data?.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.project}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "9000000", label: "9000000" },
+                ...(projectsData?.data?.map((project) => ({
+                  value: project.id,
+                  label: project.project || project.id,
+                })) || []),
+              ]}
+            />
           </div>
 
           {/* Year Selection (Optional) */}
           <div>
-            <label
-              htmlFor="year"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Year (Optional)
-            </label>
-            <select
-              id="year"
+            <SharedSelect
+              title="Year (Optional)"
               value={year}
-              onChange={(e) => setYear(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg  focus:ring-blue-500 focus:border-blue-500 text-sm"
-            >
-              <option value="">Select year</option>
-              {years.map((yr) => (
-                <option key={yr} value={yr}>
-                  20{yr}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setYear(String(value))}
+              placeholder="Select year"
+              options={years.map((yr) => ({
+                value: yr,
+                label: `20${yr}`,
+              }))}
+              clearable={true}
+            />
           </div>
 
           {/* Month Selection (Optional) */}
           <div>
-            <label
-              htmlFor="month"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Month (Optional)
-            </label>
-            <select
-              id="month"
+            <SharedSelect
+              title="Month (Optional)"
               value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg  focus:ring-blue-500 focus:border-blue-500 text-sm"
-            >
-              <option value="">Select month</option>
-              {months.map((mo) => (
-                <option key={mo} value={mo}>
-                  {mo}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setMonth(String(value))}
+              placeholder="Select month"
+              options={months.map((mo) => ({
+                value: mo,
+                label: mo,
+              }))}
+              clearable={true}
+            />
           </div>
         </div>
       </div>
 
       {/* Envelope Summary */}
-      {envelopeData && (
+      {envelopeData && selectedProject &&  (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Envelope Summary
@@ -278,6 +256,7 @@ export default function Envelope() {
               onPageChange={handlePageChange}
               itemsPerPage={itemsPerPage}
               maxHeight="600px"
+              
               showColumnSelector={true}
             />
           ) : (
