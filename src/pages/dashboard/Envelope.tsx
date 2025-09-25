@@ -28,7 +28,6 @@ export default function Envelope() {
   const { data: projectsData, isLoading: isLoadingProjects } =
     useGetProjectsQuery();
 
-
   // Fetch envelope data when project is selected
   const {
     data: envelopeData,
@@ -161,9 +160,11 @@ export default function Envelope() {
               disabled={isLoadingProjects}
             >
               <option value="">Select a project</option>
+                          <option value="9000000">9000000</option>
+
               {projectsData?.data?.map((project) => (
                 <option key={project.id} value={project.id}>
-                  {project.project }
+                  {project.project}
                 </option>
               ))}
             </select>
@@ -277,6 +278,7 @@ export default function Envelope() {
               onPageChange={handlePageChange}
               itemsPerPage={itemsPerPage}
               maxHeight="600px"
+              showColumnSelector={true}
             />
           ) : (
             <div className="flex items-center justify-center h-64">

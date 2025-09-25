@@ -519,6 +519,7 @@ export default function PendingTransferDetails() {
           onPageChange={handlePageChange}
           itemsPerPage={itemsPerPage}
           addRowButtonText="Add New Row"
+          showColumnSelector={true}
         />
       </div>
       <div className="flex justify-end items-center bg-white rounded-md shadow-sm  mt-4 p-3 w-full">

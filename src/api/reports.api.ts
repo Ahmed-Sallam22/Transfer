@@ -3,7 +3,7 @@ import { customBaseQuery } from './baseQuery';
 
 export interface BalanceReportItem {
   control_budget_name: string;
-  ledger_name: string;
+  ledger_name: string | null;
   as_of_period: string;
   segment1: string;
   segment2: string;
@@ -13,6 +13,14 @@ export interface BalanceReportItem {
   actual_ytd: number;
   funds_available_asof: number;
   budget_ytd: number;
+  budget_adjustments: number;
+  commitments: number;
+  expenditures: number;
+  initial_budget: number;
+  obligations: number;
+  other_consumption: number;
+  total_budget: number;
+  total_consumption: number;
 }
 
 export interface BalanceReportResponse {

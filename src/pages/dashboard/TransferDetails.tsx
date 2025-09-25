@@ -18,6 +18,7 @@ import {
 import { useGetBalanceReportQuery } from "@/api/balanceReport.api";
 import { toast } from "react-hot-toast";
 import { store } from "@/app/store";
+import Select from "react-select";
 
 interface TransferTableRow {
   id: string;
@@ -395,7 +396,7 @@ export default function TransferDetails() {
           project_name: row.projectName || "-",
           approved_budget: row.approvedBudget || 0,
           available_budget: row.availableBudget || 0,
-          
+
           to_center: toCenter,
           encumbrance: row.encumbrance || 0,
           actual: row.actual || 0,
@@ -535,7 +536,7 @@ export default function TransferDetails() {
         other_ytd: record?.other_ytd || 0,
         period: record?.as_of_period || "",
         budget_adjustments: record?.budget_adjustments || "0",
-        other_consumption:record?.other_consumption || "0",
+        other_consumption: record?.other_consumption || "0",
         commitments: record?.commitments || "0",
         expenditures: record?.expenditures || "0",
         initial_budget: record?.initial_budget || "0",
@@ -544,7 +545,6 @@ export default function TransferDetails() {
         budget_ytd: record?.budget_ytd || "0",
         total_budget: record?.total_budget || "0",
         total_consumption: record?.total_consumption || "0",
-        
       };
 
       return financialUpdates;
@@ -1186,10 +1186,22 @@ export default function TransferDetails() {
         );
       },
     },
+    {
+      id: "costCenterName",
+      header: "Legal Entity",
 
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterName}
+          </span>
+        );
+      },
+    },
     {
       id: "accountName",
-      header: "Account Name",
+      header: "Account ",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
@@ -1202,7 +1214,7 @@ export default function TransferDetails() {
     },
     {
       id: "projectName",
-      header: "Project Name",
+      header: "Project ",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
@@ -1213,79 +1225,10 @@ export default function TransferDetails() {
         );
       },
     },
-    {
-      id: "costCenterName",
-      header: "Cost Center Name",
 
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return (
-          <span className="text-sm text-gray-900">
-            {transferRow.costCenterName}
-          </span>
-        );
-      },
-    },
-    {
-      id: "accountCode",
-      header: "Account Code",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return isSubmitted ? (
-          <span className="text-sm text-gray-900">
-            {transferRow.accountCode}
-          </span>
-        ) : (
-          <select
-            value={transferRow.accountCode}
-            onChange={(e) =>
-              updateRow(transferRow.id, "accountCode", e.target.value)
-            }
-            className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
-          >
-            <option value="">Select account</option>
-            {accountCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        );
-      },
-    },
-
-    {
-      id: "projectCode",
-      header: "Project Code",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return isSubmitted ? (
-          <span className="text-sm text-gray-900">
-            {transferRow.projectCode}
-          </span>
-        ) : (
-          <select
-            value={transferRow.projectCode}
-            onChange={(e) =>
-              updateRow(transferRow.id, "projectCode", e.target.value)
-            }
-            className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
-          >
-            <option value="">Select project code</option>
-            {projectCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        );
-      },
-    },
     {
       id: "costCenterCode",
-      header: "Cost Center",
+      header: "Legal Entity",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
@@ -1294,20 +1237,155 @@ export default function TransferDetails() {
             {transferRow.costCenterCode}
           </span>
         ) : (
-          <select
-            value={transferRow.costCenterCode}
-            onChange={(e) =>
-              updateRow(transferRow.id, "costCenterCode", e.target.value)
+          <Select
+            value={
+              transferRow.costCenterCode
+                ? {
+                    value: transferRow.costCenterCode,
+                    label: transferRow.costCenterCode,
+                  }
+                : null
             }
-            className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
-          >
-            <option value="">Select cost center</option>
-            {costCenterCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
+            onChange={(option) =>
+              updateRow(transferRow.id, "costCenterCode", option?.value || "")
+            }
+            options={costCenterCodes.map((code) => ({
+              value: code,
+              label: code,
+            }))}
+            placeholder="Select Legal"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
+          />
+        );
+      },
+    },
+    {
+      id: "accountCode",
+      header: "Account",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return isSubmitted ? (
+          <span className="text-sm text-gray-900">
+            {transferRow.accountCode}
+          </span>
+        ) : (
+          <Select
+            value={
+              transferRow.accountCode
+                ? {
+                    value: transferRow.accountCode,
+                    label: transferRow.accountCode,
+                  }
+                : null
+            }
+            onChange={(option) =>
+              updateRow(transferRow.id, "accountCode", option?.value || "")
+            }
+            options={accountCodes.map((code) => ({
+              value: code,
+              label: code,
+            }))}
+            placeholder="Select account"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
+          />
+        );
+      },
+    },
+
+    {
+      id: "projectCode",
+      header: "Project",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return isSubmitted ? (
+          <span className="text-sm text-gray-900">
+            {transferRow.projectCode}
+          </span>
+        ) : (
+          <Select
+            value={
+              transferRow.projectCode
+                ? {
+                    value: transferRow.projectCode,
+                    label: transferRow.projectCode,
+                  }
+                : null
+            }
+            onChange={(option) =>
+              updateRow(transferRow.id, "projectCode", option?.value || "")
+            }
+            options={projectCodes.map((code) => ({
+              value: code,
+              label: code,
+            }))}
+            placeholder="Select project"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
+          />
         );
       },
     },
@@ -1500,6 +1578,7 @@ export default function TransferDetails() {
           showAddRowButton={!isSubmitted}
           onAddNewRow={addNewRow}
           addRowButtonText="Add New Row"
+          showColumnSelector={true}
         />
 
         {/* Custom Save Section with Loading State */}

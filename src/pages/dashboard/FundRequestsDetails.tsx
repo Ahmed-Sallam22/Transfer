@@ -1,11 +1,25 @@
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { SharedTable, type TableColumn, type TableRow as SharedTableRow } from '@/shared/SharedTable';
-import SharedModal from '@/shared/SharedModal';
-import { useGetTransferDetailsQuery, useCreateTransferMutation, useSubmitTransferMutation, useUploadExcelMutation, useReopenTransferMutation, transferDetailsApi, type CreateTransferData } from '@/api/transferDetails.api';
-import { useGetBalanceReportQuery } from '@/api/balanceReport.api';
-import { toast } from 'react-hot-toast';
-import { store } from '@/app/store';
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import {
+  SharedTable,
+  type TableColumn,
+  type TableRow as SharedTableRow,
+} from "@/shared/SharedTable";
+import SharedModal from "@/shared/SharedModal";
+import {
+  useGetTransferDetailsQuery,
+  useCreateTransferMutation,
+  useSubmitTransferMutation,
+  useUploadExcelMutation,
+  useReopenTransferMutation,
+  transferDetailsApi,
+  type CreateTransferData,
+} from "@/api/transferDetails.api";
+import { useGetBalanceReportQuery } from "@/api/balanceReport.api";
+import { toast } from "react-hot-toast";
+import { store } from "@/app/store";
+import Select from "react-select";
+
 interface TransferTableRow {
   id: string;
   to: number;
@@ -35,7 +49,6 @@ interface TransferTableRow {
   other_consumption?: string;
 }
 
-
 interface TransferDetailRow {
   id: string;
   itemId: string;
@@ -53,44 +66,45 @@ export default function TransferDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Get status from navigation state (passed from Transfer page)
   const transferStatus = location.state?.status || null;
-  
+
   // Use RTK Query to fetch transfer details
-  const transactionId = id || '513'; // Use ID from params or default to 513
-  const { 
-    data: apiData, 
-    error, 
-    isLoading 
+  const transactionId = id || "513"; // Use ID from params or default to 513
+  const {
+    data: apiData,
+    error,
+    isLoading,
   } = useGetTransferDetailsQuery(transactionId);
-  
+
   const [createTransfer] = useCreateTransferMutation();
   const [submitTransfer] = useSubmitTransferMutation();
   const [uploadExcel] = useUploadExcelMutation();
   const [reopenTransfer] = useReopenTransferMutation();
-  
+
   // State for balance report period
-  
+
   // Fetch balance report data for dropdowns
-  const { 
-    data: balanceReportData, 
+  const {
+    data: balanceReportData,
     isLoading: isLoadingBalanceReport,
-    error: balanceReportError
-  } = useGetBalanceReportQuery({ as_of_period: apiData?.summary?.period||'' });
-  
-  
+    error: balanceReportError,
+  } = useGetBalanceReportQuery({
+    as_of_period: apiData?.summary?.period || "",
+  });
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  
+
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Local state for additional rows (new rows added by user)
   const [localRows, setLocalRows] = useState<TransferTableRow[]>([]);
-  
+
   // State to track all edits locally (both existing and new rows)
   const [editedRows, setEditedRows] = useState<TransferTableRow[]>([]);
 
@@ -145,9 +159,9 @@ export default function TransferDetails() {
       try {
         const parsedRows = JSON.parse(savedLocalRows);
         setLocalRows(parsedRows);
-        console.log('Loaded local rows from localStorage:', parsedRows);
+        console.log("Loaded local rows from localStorage:", parsedRows);
       } catch (error) {
-        console.error('Error parsing localStorage data:', error);
+        console.error("Error parsing localStorage data:", error);
       }
     }
   }, [transactionId]);
@@ -155,8 +169,11 @@ export default function TransferDetails() {
   // Save local rows to localStorage whenever they change
   useEffect(() => {
     if (localRows.length > 0) {
-      localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(localRows));
-      console.log('Saved local rows to localStorage:', localRows);
+      localStorage.setItem(
+        `localRows_${transactionId}`,
+        JSON.stringify(localRows)
+      );
+      console.log("Saved local rows to localStorage:", localRows);
     } else {
       localStorage.removeItem(`localRows_${transactionId}`);
     }
@@ -166,22 +183,26 @@ export default function TransferDetails() {
   useEffect(() => {
     const cleanupEmptyRows = () => {
       // Filter out empty rows (rows with no meaningful data)
-      const nonEmptyRows = localRows.filter(row => 
-        row.costCenterCode !== '' || 
-        row.accountCode !== '' || 
-        row.projectCode !== '' ||
-        row.to > 0 ||
-        row.from > 0
+      const nonEmptyRows = localRows.filter(
+        (row) =>
+          row.costCenterCode !== "" ||
+          row.accountCode !== "" ||
+          row.projectCode !== "" ||
+          row.to > 0 ||
+          row.from > 0
       );
-      
+
       // Update localStorage with only non-empty rows
       if (nonEmptyRows.length > 0) {
-        localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(nonEmptyRows));
+        localStorage.setItem(
+          `localRows_${transactionId}`,
+          JSON.stringify(nonEmptyRows)
+        );
       } else {
         localStorage.removeItem(`localRows_${transactionId}`);
       }
-      
-      console.log('Cleaned up empty rows from localStorage');
+
+      console.log("Cleaned up empty rows from localStorage");
     };
 
     // Handle page refresh, browser close, or navigation away
@@ -190,62 +211,85 @@ export default function TransferDetails() {
     };
 
     // Add event listener for page unload
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     // Cleanup when component unmounts (user leaves the page)
     return () => {
       cleanupEmptyRows();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [localRows, transactionId]);
-  
+
   // Get unique account codes, project codes, and cost center codes from the balance report API
-  const accountCodes = balanceReportData?.data?.Account && balanceReportData.data.Account.length > 0
-    ? balanceReportData.data.Account
-    : apiData?.transfers && apiData.transfers.length > 0
-      ? Array.from(new Set(apiData.transfers.map(transfer => transfer.account_code.toString())))
-      : [''];
-  
-  const projectCodes = balanceReportData?.data?.Project && balanceReportData.data.Project.length > 0
-    ? balanceReportData.data.Project
-    : apiData?.transfers && apiData.transfers.length > 0
-      ? Array.from(new Set(apiData.transfers.map(transfer => transfer.project_code)))
+  const accountCodes =
+    balanceReportData?.data?.Account &&
+    balanceReportData.data.Account.length > 0
+      ? balanceReportData.data.Account
+      : apiData?.transfers && apiData.transfers.length > 0
+      ? Array.from(
+          new Set(
+            apiData.transfers.map((transfer) =>
+              transfer.account_code.toString()
+            )
+          )
+        )
       : [""];
-      
-  const costCenterCodes = balanceReportData?.data?.Cost_Center && balanceReportData.data.Cost_Center.length > 0
-    ? balanceReportData.data.Cost_Center
-    : apiData?.transfers && apiData.transfers.length > 0
-      ? Array.from(new Set(apiData.transfers.map(transfer => transfer.cost_center_code.toString())))
+
+  const projectCodes =
+    balanceReportData?.data?.Project &&
+    balanceReportData.data.Project.length > 0
+      ? balanceReportData.data.Project
+      : apiData?.transfers && apiData.transfers.length > 0
+      ? Array.from(
+          new Set(apiData.transfers.map((transfer) => transfer.project_code))
+        )
+      : [""];
+
+  const costCenterCodes =
+    balanceReportData?.data?.Cost_Center &&
+    balanceReportData.data.Cost_Center.length > 0
+      ? balanceReportData.data.Cost_Center
+      : apiData?.transfers && apiData.transfers.length > 0
+      ? Array.from(
+          new Set(
+            apiData.transfers.map((transfer) =>
+              transfer.cost_center_code.toString()
+            )
+          )
+        )
       : [""];
 
   // Create a default row for when there's no data
   const createDefaultRow = (): TransferTableRow => ({
-    id: 'default-1',
+    id: "default-1",
     to: 0,
     from: 0,
     encumbrance: 0,
     availableBudget: 0,
     actual: 0,
-    accountName: '',
-    projectName: '',
-    accountCode: '',
-    projectCode: '',
+    accountName: "",
+    projectName: "",
+    accountCode: "",
+    projectCode: "",
     approvedBudget: 0,
-    costCenterCode: '',
-    costCenterName: '',
+    costCenterCode: "",
+    costCenterName: "",
     other_ytd: 0,
-    period: '',
-    validation_errors: [] // Explicitly set as empty array (no errors)
+    period: "",
+    validation_errors: [], // Explicitly set as empty array (no errors)
   });
 
   // Set submission status based on API status
   useEffect(() => {
-    if (apiData?.status.status !== 'not yet sent for approval' || apiData?.summary?.status !== 'not yet sent for approval') {
+    if (
+      apiData?.status.status !== "not yet sent for approval" ||
+      apiData?.summary?.status !== "not yet sent for approval"
+    ) {
       setIsSubmitted(true);
     } else {
       setIsSubmitted(false);
     }
-    if (apiData?.summary?.status !== 'not yet sent for approval') {
+    if (apiData?.summary?.status !== "not yet sent for approval") {
       setIsSubmitted(true);
     } else {
       setIsSubmitted(false);
@@ -255,76 +299,78 @@ export default function TransferDetails() {
   // Sample data for fund requests details
   const [rowsDetails] = useState<TransferDetailRow[]>([
     {
-      id: '1',
-      itemId: '1213322',
-      itemName: '11 - Project 1',
-      accountId: '3121',
-      accountName: 'Audit fees',
+      id: "1",
+      itemId: "1213322",
+      itemName: "11 - Project 1",
+      accountId: "3121",
+      accountName: "Audit fees",
       from: 1000,
       to: 20000,
       approvedBudget: 1283914.64,
       current: 346062.59,
-      availableBudget: 22430677.39
+      availableBudget: 22430677.39,
     },
     {
-      id: '2',
-      itemId: '1213323',
-      itemName: '12 - Project 2',
-      accountId: '3122',
-      accountName: 'Consulting fees',
+      id: "2",
+      itemId: "1213323",
+      itemName: "12 - Project 2",
+      accountId: "3122",
+      accountName: "Consulting fees",
       from: 5000,
       to: 15000,
-      approvedBudget: 800000.00,
-      current: 250000.00,
-      availableBudget: 15000000.00
+      approvedBudget: 800000.0,
+      current: 250000.0,
+      availableBudget: 15000000.0,
     },
     {
-      id: '3',
-      itemId: '1213324',
-      itemName: '13 - Project 3',
-      accountId: '3123',
-      accountName: 'Training costs',
+      id: "3",
+      itemId: "1213324",
+      itemName: "13 - Project 3",
+      accountId: "3123",
+      accountName: "Training costs",
       from: 2000,
       to: 8000,
-      approvedBudget: 500000.00,
-      current: 150000.00,
-      availableBudget: 8500000.00
-    }
-  ]);  // Check if pagination should be shown
+      approvedBudget: 500000.0,
+      current: 150000.0,
+      availableBudget: 8500000.0,
+    },
+  ]); // Check if pagination should be shown
   const shouldShowPagination = rows.length > 10;
 
   const handleBack = () => {
-    navigate('/app/fund-requests');
+    navigate("/app/fund-requests");
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
       // Filter out empty rows before saving
-      const nonEmptyEditedRows = editedRows.filter(row => 
-        row.costCenterCode !== '' || 
-        row.accountCode !== '' || 
-        row.projectCode !== '' ||
-        row.to > 0 ||
-        row.from > 0
+      const nonEmptyEditedRows = editedRows.filter(
+        (row) =>
+          row.costCenterCode !== "" ||
+          row.accountCode !== "" ||
+          row.projectCode !== "" ||
+          row.to > 0 ||
+          row.from > 0
       );
-      
-      const nonEmptyLocalRows = localRows.filter(row => 
-        row.costCenterCode !== '' || 
-        row.accountCode !== '' || 
-        row.projectCode !== '' ||
-        row.to > 0 ||
-        row.from > 0
+
+      const nonEmptyLocalRows = localRows.filter(
+        (row) =>
+          row.costCenterCode !== "" ||
+          row.accountCode !== "" ||
+          row.projectCode !== "" ||
+          row.to > 0 ||
+          row.from > 0
       );
-      
+
       // Combine all non-empty rows: edited API rows + local rows
       const allRows = [...nonEmptyEditedRows, ...nonEmptyLocalRows];
-      
+
       // Transform table rows to API transfer data format with business logic
-      const transfersToSave: CreateTransferData[] = allRows.map(row => {
+      const transfersToSave: CreateTransferData[] = allRows.map((row) => {
         let fromCenter = row.from || 0;
         let toCenter = row.to || 0;
-        
+
         // Business logic: Handle from_center and to_center mutual exclusivity
         // If user writes any number in from, to must be 0
         // If user writes any number in to, from must be 0
@@ -333,72 +379,77 @@ export default function TransferDetails() {
         } else if (toCenter > 0) {
           fromCenter = 0; // If to_center has a number, set from_center to 0
         }
-        
+
         return {
           transaction: parseInt(transactionId),
-          cost_center_code: row.costCenterCode || '',
-          cost_center_name: row.costCenterName || '',
-          account_code: row.accountCode || '',
-          account_name: row.accountName || '',
-          project_code: row.projectCode || '-',
-          project_name: row.projectName || '-',
+          cost_center_code: row.costCenterCode || "",
+          cost_center_name: row.costCenterName || "",
+          account_code: row.accountCode || "",
+          account_name: row.accountName || "",
+          project_code: row.projectCode || "-",
+          project_name: row.projectName || "-",
           approved_budget: row.approvedBudget || 0,
           available_budget: row.availableBudget || 0,
           to_center: toCenter,
           encumbrance: row.encumbrance || 0,
           actual: row.actual || 0,
           done: 1,
-          from_center: fromCenter
+          from_center: fromCenter,
         };
       });
-      
+
       // Save to API
       const result = await createTransfer(transfersToSave).unwrap();
-  console.log('Transfers saved successfully:', transfersToSave);
-  console.log('API Response:', result);
+      console.log("Transfers saved successfully:", transfersToSave);
+      console.log("API Response:", result);
 
-  // Refetch transfer details after save to update the table
-  store.dispatch(transferDetailsApi.util.invalidateTags(['TransferDetails']));
+      // Refetch transfer details after save to update the table
+      store.dispatch(
+        transferDetailsApi.util.invalidateTags(["TransferDetails"])
+      );
 
-  // Clear localStorage only after successful save
-  localStorage.removeItem(`localRows_${transactionId}`);
-  setLocalRows([]);
+      // Clear localStorage only after successful save
+      localStorage.removeItem(`localRows_${transactionId}`);
+      setLocalRows([]);
 
-  // Show success toast
-  toast.success('Transfers saved successfully!');
-      
+      // Show success toast
+      toast.success("Transfers saved successfully!");
     } catch (error) {
-      console.error('Error saving transfers:', error);
+      console.error("Error saving transfers:", error);
       // Show error toast
-      toast.error('Error saving transfers. Please try again.');
+      toast.error("Error saving transfers. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
-
-
   // Check if submit should be disabled
   const isSubmitDisabled = () => {
     // Filter out default rows (empty rows with no data)
-    const nonDefaultEditedRows = editedRows.filter(row => 
-      !(row.id.startsWith('default-') && 
-        row.costCenterCode === '' && 
-        row.accountCode === '' && 
-        row.projectCode === '')
+    const nonDefaultEditedRows = editedRows.filter(
+      (row) =>
+        !(
+          row.id.startsWith("default-") &&
+          row.costCenterCode === "" &&
+          row.accountCode === "" &&
+          row.projectCode === ""
+        )
     );
-    
+
     // Count total valid rows (API rows + local rows)
-    const totalValidRows = (apiData?.transfers?.length || 0) + localRows.length + nonDefaultEditedRows.length;
-    
+    const totalValidRows =
+      (apiData?.transfers?.length || 0) +
+      localRows.length +
+      nonDefaultEditedRows.length;
+
     // Check if there are fewer than 2 rows
     const hasInsufficientRows = totalValidRows < 2;
-    
+
     // Check if there are validation errors in any row
-    const hasValidationErrors = [...editedRows, ...localRows].some(row => 
-      row.validation_errors && row.validation_errors.length > 0
+    const hasValidationErrors = [...editedRows, ...localRows].some(
+      (row) => row.validation_errors && row.validation_errors.length > 0
     );
-    
+
     return hasInsufficientRows || hasValidationErrors;
   };
 
@@ -407,21 +458,23 @@ export default function TransferDetails() {
       setIsSubmitting(true);
       try {
         // Call the submit API
-        await submitTransfer({ 
-          transaction: parseInt(transactionId) 
+        await submitTransfer({
+          transaction: parseInt(transactionId),
         }).unwrap();
-        
+
         // Show success toast
-        toast.success('Transfer submitted successfully!');
-        
+        toast.success("Transfer submitted successfully!");
+
         // Set submitted state
         setIsSubmitted(true);
-        
-        console.log('Transfer submitted successfully for transaction:', transactionId);
-        
+
+        console.log(
+          "Transfer submitted successfully for transaction:",
+          transactionId
+        );
       } catch (error) {
-        console.error('Error submitting transfer:', error);
-        toast.error('Error submitting transfer. Please try again.');
+        console.error("Error submitting transfer:", error);
+        toast.error("Error submitting transfer. Please try again.");
       } finally {
         setIsSubmitting(false);
       }
@@ -433,33 +486,41 @@ export default function TransferDetails() {
   };
 
   // Helper function to fetch financial data when all 3 segments are selected
-  const fetchFinancialDataForRow = async (rowId: string, segments: { costCenter: string, account: string, project: string }) => {
+  const fetchFinancialDataForRow = async (
+    rowId: string,
+    segments: { costCenter: string; account: string; project: string }
+  ) => {
     try {
       console.log(`Row ${rowId}: Calling financial data API with segments:`, {
         segment1: parseInt(segments.costCenter),
         segment2: parseInt(segments.account),
         segment3: segments.project,
-        as_of_period: apiData?.summary?.period || 'sep-25',
-        control_budget_name: 'MIC_HQ_MONTHLY'
+        as_of_period: apiData?.summary?.period || "sep-25",
+        control_budget_name: "MIC_HQ_MONTHLY",
       });
-      
-      // Use RTK Query's initiate method to trigger the query manually
-      const result = await store.dispatch(
-        transferDetailsApi.endpoints.getFinancialData.initiate({
-          segment1: parseInt(segments.costCenter),
-          segment2: parseInt(segments.account),
-          segment3: segments.project,
-          as_of_period: apiData?.summary?.period || 'sep-25',
-          control_budget_name: 'MIC_HQ_MONTHLY'
-        })
-      ).unwrap();
 
-      console.log(`Row ${rowId}: Financial data fetched:`, result.data?.data[0]);
+      // Use RTK Query's initiate method to trigger the query manually
+      const result = await store
+        .dispatch(
+          transferDetailsApi.endpoints.getFinancialData.initiate({
+            segment1: parseInt(segments.costCenter),
+            segment2: parseInt(segments.account),
+            segment3: segments.project,
+            as_of_period: apiData?.summary?.period || "sep-25",
+            control_budget_name: "MIC_HQ_MONTHLY",
+          })
+        )
+        .unwrap();
+
+      console.log(
+        `Row ${rowId}: Financial data fetched:`,
+        result.data?.data[0]
+      );
 
       // Get the first record from the response data array
       const record = result.data?.data?.[0];
-      
-     const financialUpdates = {
+
+      const financialUpdates = {
         encumbrance: record?.encumbrance_ytd || 0,
         availableBudget: record?.funds_available_asof || 0,
         actual: record?.actual_ytd || 0,
@@ -467,7 +528,7 @@ export default function TransferDetails() {
         other_ytd: record?.other_ytd || 0,
         period: record?.as_of_period || "",
         budget_adjustments: record?.budget_adjustments || "0",
-        other_consumption:record?.other_consumption || "0",
+        other_consumption: record?.other_consumption || "0",
         commitments: record?.commitments || "0",
         expenditures: record?.expenditures || "0",
         initial_budget: record?.initial_budget || "0",
@@ -476,9 +537,8 @@ export default function TransferDetails() {
         budget_ytd: record?.budget_ytd || "0",
         total_budget: record?.total_budget || "0",
         total_consumption: record?.total_consumption || "0",
-        
       };
-      
+
       return financialUpdates;
     } catch (error) {
       console.error(`Error fetching financial data for row ${rowId}:`, error);
@@ -494,22 +554,25 @@ export default function TransferDetails() {
       encumbrance: 0,
       availableBudget: 0,
       actual: 0,
-      accountName: '',
-      projectName: '',
-      accountCode: '',
-      projectCode: '',
+      accountName: "",
+      projectName: "",
+      accountCode: "",
+      projectCode: "",
       approvedBudget: 0,
-      costCenterCode: '',
-      costCenterName: '',
+      costCenterCode: "",
+      costCenterName: "",
       other_ytd: 0,
-      period: '',
-      validation_errors: [] // Explicitly set as empty array (no errors)
+      period: "",
+      validation_errors: [], // Explicitly set as empty array (no errors)
     };
-    
-    setLocalRows(prevRows => {
+
+    setLocalRows((prevRows) => {
       const updatedRows = [...prevRows, newRow];
       // Save to localStorage when adding new rows
-      localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(updatedRows));
+      localStorage.setItem(
+        `localRows_${transactionId}`,
+        JSON.stringify(updatedRows)
+      );
       return updatedRows;
     });
   };
@@ -517,80 +580,93 @@ export default function TransferDetails() {
   // Function to delete a row
   const deleteRow = (rowId: string) => {
     // Check if this is a local row (new row)
-    if (rowId.startsWith('new-')) {
-      setLocalRows(prevRows => {
-        const updatedRows = prevRows.filter(row => row.id !== rowId);
-        
+    if (rowId.startsWith("new-")) {
+      setLocalRows((prevRows) => {
+        const updatedRows = prevRows.filter((row) => row.id !== rowId);
+
         // Update localStorage when deleting local rows
         if (updatedRows.length > 0) {
-          localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(updatedRows));
+          localStorage.setItem(
+            `localRows_${transactionId}`,
+            JSON.stringify(updatedRows)
+          );
         } else {
           localStorage.removeItem(`localRows_${transactionId}`);
         }
-        
+
         console.log(`Deleted local row ${rowId}`);
         return updatedRows;
       });
     } else {
       // For existing API rows, remove from editedRows
-      setEditedRows(prevRows => {
-        const updatedRows = prevRows.filter(row => row.id !== rowId);
+      setEditedRows((prevRows) => {
+        const updatedRows = prevRows.filter((row) => row.id !== rowId);
         console.log(`Deleted API row ${rowId}`);
         return updatedRows;
       });
     }
   };
 
-
-
-
-  const updateRow = async (rowId: string, field: keyof TransferTableRow, value: string | number) => {
+  const updateRow = async (
+    rowId: string,
+    field: keyof TransferTableRow,
+    value: string | number
+  ) => {
     // Handle business logic for from/to mutual exclusivity
     const updatedValue = value;
     const additionalUpdates: Partial<TransferTableRow> = {};
-    
-    if (field === 'from' && Number(value) > 0) {
+
+    if (field === "from" && Number(value) > 0) {
       additionalUpdates.to = 0;
-    } else if (field === 'to' && Number(value) > 0) {
+    } else if (field === "to" && Number(value) > 0) {
       additionalUpdates.from = 0;
     }
 
     // Check if this is a segment field update
-    if (field === 'costCenterCode' || field === 'accountCode' || field === 'projectCode') {
+    if (
+      field === "costCenterCode" ||
+      field === "accountCode" ||
+      field === "projectCode"
+    ) {
       console.log(`Row ${rowId}: ${field} changed to ${value}`);
-      
+
       // Handle name updates for dropdown changes (immediate update)
-      if (field === 'accountCode') {
+      if (field === "accountCode") {
         additionalUpdates.accountName = updatedValue.toString();
         console.log(`Row ${rowId}: Account name updated to ${updatedValue}`);
-      } else if (field === 'projectCode') {
+      } else if (field === "projectCode") {
         additionalUpdates.projectName = updatedValue.toString();
         console.log(`Row ${rowId}: Project name updated to ${updatedValue}`);
-      } else if (field === 'costCenterCode') {
+      } else if (field === "costCenterCode") {
         additionalUpdates.costCenterName = updatedValue.toString();
-        console.log(`Row ${rowId}: Cost center name updated to ${updatedValue}`);
+        console.log(
+          `Row ${rowId}: Cost center name updated to ${updatedValue}`
+        );
       }
     }
 
     // Update the row state immediately first (don't wait for API)
     // Check if this is a local row (new row)
-    if (rowId.startsWith('new-')) {
-      setLocalRows(prevRows => {
-        const updatedRows = prevRows.map(row => {
+    if (rowId.startsWith("new-")) {
+      setLocalRows((prevRows) => {
+        const updatedRows = prevRows.map((row) => {
           if (row.id === rowId) {
             return { ...row, [field]: updatedValue, ...additionalUpdates };
           }
           return row;
         });
-        
+
         // Save to localStorage when updating local rows
-        localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(updatedRows));
+        localStorage.setItem(
+          `localRows_${transactionId}`,
+          JSON.stringify(updatedRows)
+        );
         return updatedRows;
       });
     } else {
       // For existing API rows (including default rows), update editedRows
-      setEditedRows(prevRows => 
-        prevRows.map(row => {
+      setEditedRows((prevRows) =>
+        prevRows.map((row) => {
           if (row.id === rowId) {
             return { ...row, [field]: updatedValue, ...additionalUpdates };
           }
@@ -600,66 +676,95 @@ export default function TransferDetails() {
     }
 
     // Now handle financial data API call if needed (after UI update)
-    if (field === 'costCenterCode' || field === 'accountCode' || field === 'projectCode') {
+    if (
+      field === "costCenterCode" ||
+      field === "accountCode" ||
+      field === "projectCode"
+    ) {
       // Determine which state array to check based on row type
-      const isNewRow = rowId.startsWith('new-');
+      const isNewRow = rowId.startsWith("new-");
       const currentRowArray = isNewRow ? localRows : editedRows;
-      const currentRow = currentRowArray.find(r => r.id === rowId);
-      
+      const currentRow = currentRowArray.find((r) => r.id === rowId);
+
       if (currentRow) {
         // Calculate segments after this update
         const segments = {
-          costCenter: field === 'costCenterCode' ? value.toString() : (currentRow.costCenterCode || ''),
-          account: field === 'accountCode' ? value.toString() : (currentRow.accountCode || ''),
-          project: field === 'projectCode' ? value.toString() : (currentRow.projectCode || '')
+          costCenter:
+            field === "costCenterCode"
+              ? value.toString()
+              : currentRow.costCenterCode || "",
+          account:
+            field === "accountCode"
+              ? value.toString()
+              : currentRow.accountCode || "",
+          project:
+            field === "projectCode"
+              ? value.toString()
+              : currentRow.projectCode || "",
         };
-        
+
         console.log(`Row ${rowId}: Current segments state:`, segments);
-        
+
         // Only call API if ALL 3 segments are now complete
         if (segments.costCenter && segments.account && segments.project) {
-          console.log(`Row ${rowId}: ✅ All 3 segments complete! Calling financial data API...`);
+          console.log(
+            `Row ${rowId}: ✅ All 3 segments complete! Calling financial data API...`
+          );
           console.log(`Row ${rowId}: API call with segments:`, {
             segment1: segments.costCenter,
             segment2: segments.account,
-            segment3: segments.project
+            segment3: segments.project,
           });
-          
+
           // Call API in background (don't await)
-          fetchFinancialDataForRow(rowId, segments).then(financialUpdates => {
-            console.log(`Row ${rowId}: Financial data received:`, financialUpdates);
-            
-            // Apply financial data to the row after API response
-            if (isNewRow) {
-              setLocalRows(prevRows => {
-                const updatedRows = prevRows.map(row => {
-                  if (row.id === rowId) {
-                    return { ...row, ...financialUpdates };
-                  }
-                  return row;
-                });
-                localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(updatedRows));
-                return updatedRows;
-              });
-            } else {
-              setEditedRows(prevRows => 
-                prevRows.map(row => {
-                  if (row.id === rowId) {
-                    return { ...row, ...financialUpdates };
-                  }
-                  return row;
-                })
+          fetchFinancialDataForRow(rowId, segments)
+            .then((financialUpdates) => {
+              console.log(
+                `Row ${rowId}: Financial data received:`,
+                financialUpdates
               );
-            }
-          }).catch(error => {
-            console.error(`Error fetching financial data for row ${rowId}:`, error);
-          });
+
+              // Apply financial data to the row after API response
+              if (isNewRow) {
+                setLocalRows((prevRows) => {
+                  const updatedRows = prevRows.map((row) => {
+                    if (row.id === rowId) {
+                      return { ...row, ...financialUpdates };
+                    }
+                    return row;
+                  });
+                  localStorage.setItem(
+                    `localRows_${transactionId}`,
+                    JSON.stringify(updatedRows)
+                  );
+                  return updatedRows;
+                });
+              } else {
+                setEditedRows((prevRows) =>
+                  prevRows.map((row) => {
+                    if (row.id === rowId) {
+                      return { ...row, ...financialUpdates };
+                    }
+                    return row;
+                  })
+                );
+              }
+            })
+            .catch((error) => {
+              console.error(
+                `Error fetching financial data for row ${rowId}:`,
+                error
+              );
+            });
         } else {
-          console.log(`Row ${rowId}: ⏳ Segments incomplete, waiting for all 3. Missing:`, {
-            costCenter: !segments.costCenter,
-            account: !segments.account,
-            project: !segments.project
-          });
+          console.log(
+            `Row ${rowId}: ⏳ Segments incomplete, waiting for all 3. Missing:`,
+            {
+              costCenter: !segments.costCenter,
+              account: !segments.account,
+              project: !segments.project,
+            }
+          );
         }
       }
     }
@@ -668,82 +773,110 @@ export default function TransferDetails() {
   // Define columns for SharedTable
   const columns: TableColumn[] = [
     {
-      id: 'itemId',
-      header: 'Item ID',
+      id: "itemId",
+      header: "Item ID",
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.itemId}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">{detailRow.itemId}</span>
+        );
+      },
     },
     {
-      id: 'itemName',
-      header: 'Item Name',
+      id: "itemName",
+      header: "Item Name",
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.itemName}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">{detailRow.itemName}</span>
+        );
+      },
     },
     {
-      id: 'accountId',
-      header: 'Account ID',
+      id: "accountId",
+      header: "Account ID",
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.accountId}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">{detailRow.accountId}</span>
+        );
+      },
     },
     {
-      id: 'accountName',
-      header: 'Account Name',
+      id: "accountName",
+      header: "Account Name",
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.accountName}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">{detailRow.accountName}</span>
+        );
+      },
     },
     {
-      id: 'from',
-      header: 'From',
+      id: "from",
+      header: "From",
       showSum: true,
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.from.toLocaleString()}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">
+            {detailRow.from.toLocaleString()}
+          </span>
+        );
+      },
     },
     {
-      id: 'to',
-      header: 'To',
+      id: "to",
+      header: "To",
       showSum: true,
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.to.toLocaleString()}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">
+            {detailRow.to.toLocaleString()}
+          </span>
+        );
+      },
     },
     {
-      id: 'approvedBudget',
-      header: 'Approved Budget',
+      id: "approvedBudget",
+      header: "Approved Budget",
       showSum: true,
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.approvedBudget.toLocaleString()}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">
+            {detailRow.approvedBudget.toLocaleString()}
+          </span>
+        );
+      },
     },
     {
-      id: 'current',
-      header: 'Current',
+      id: "current",
+      header: "Current",
       showSum: true,
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.current.toLocaleString()}</span>;
-      }
+        return (
+          <span className="text-sm text-gray-900">
+            {detailRow.current.toLocaleString()}
+          </span>
+        );
+      },
     },
     {
-      id: 'availableBudget',
-      header: 'Available Budget',
+      id: "availableBudget",
+      header: "Available Budget",
       showSum: true,
       render: (_, row) => {
         const detailRow = row as unknown as TransferDetailRow;
-        return <span className="text-sm text-gray-900">{detailRow.availableBudget.toLocaleString()}</span>;
-      }
-    }
+        return (
+          <span className="text-sm text-gray-900">
+            {detailRow.availableBudget.toLocaleString()}
+          </span>
+        );
+      },
+    },
   ];
 
   const columnsDetails: TableColumn[] = [
@@ -874,7 +1007,7 @@ export default function TransferDetails() {
     //     ) : (
     //       <input
     //         type="number"
-            
+
     //         value={transferRow.from || ""}
     //         onChange={(e) =>
     //           updateRow(transferRow.id, "from", Number(e.target.value) || 0)
@@ -1041,8 +1174,21 @@ export default function TransferDetails() {
     },
 
     {
+      id: "costCenterName",
+      header: "Legal Entity",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterName}
+          </span>
+        );
+      },
+    },
+    {
       id: "accountName",
-      header: "Account Name",
+      header: "Account ",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
@@ -1055,7 +1201,7 @@ export default function TransferDetails() {
     },
     {
       id: "projectName",
-      header: "Project Name",
+      header: "Project ",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
@@ -1066,79 +1212,10 @@ export default function TransferDetails() {
         );
       },
     },
-    {
-      id: "costCenterName",
-      header: "Cost Center Name",
 
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return (
-          <span className="text-sm text-gray-900">
-            {transferRow.costCenterName}
-          </span>
-        );
-      },
-    },
-    {
-      id: "accountCode",
-      header: "Account Code",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return isSubmitted ? (
-          <span className="text-sm text-gray-900">
-            {transferRow.accountCode}
-          </span>
-        ) : (
-          <select
-            value={transferRow.accountCode}
-            onChange={(e) =>
-              updateRow(transferRow.id, "accountCode", e.target.value)
-            }
-            className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
-          >
-            <option value="">Select account</option>
-            {accountCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        );
-      },
-    },
-
-    {
-      id: "projectCode",
-      header: "Project Code",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return isSubmitted ? (
-          <span className="text-sm text-gray-900">
-            {transferRow.projectCode}
-          </span>
-        ) : (
-          <select
-            value={transferRow.projectCode}
-            onChange={(e) =>
-              updateRow(transferRow.id, "projectCode", e.target.value)
-            }
-            className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
-          >
-            <option value="">Select project code</option>
-            {projectCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        );
-      },
-    },
     {
       id: "costCenterCode",
-      header: "Cost Center",
+      header: "Legal Entity",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
@@ -1147,20 +1224,155 @@ export default function TransferDetails() {
             {transferRow.costCenterCode}
           </span>
         ) : (
-          <select
-            value={transferRow.costCenterCode}
-            onChange={(e) =>
-              updateRow(transferRow.id, "costCenterCode", e.target.value)
+          <Select
+            value={
+              transferRow.costCenterCode
+                ? {
+                    value: transferRow.costCenterCode,
+                    label: transferRow.costCenterCode,
+                  }
+                : null
             }
-            className="w-full px-3 py-2 border border-[#E2E2E2] rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF]"
-          >
-            <option value="">Select cost center</option>
-            {costCenterCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
+            onChange={(option) =>
+              updateRow(transferRow.id, "costCenterCode", option?.value || "")
+            }
+            options={costCenterCodes.map((code) => ({
+              value: code,
+              label: code,
+            }))}
+            placeholder="Select Legal"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
+          />
+        );
+      },
+    },
+    {
+      id: "accountCode",
+      header: "Account",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return isSubmitted ? (
+          <span className="text-sm text-gray-900">
+            {transferRow.accountCode}
+          </span>
+        ) : (
+          <Select
+            value={
+              transferRow.accountCode
+                ? {
+                    value: transferRow.accountCode,
+                    label: transferRow.accountCode,
+                  }
+                : null
+            }
+            onChange={(option) =>
+              updateRow(transferRow.id, "accountCode", option?.value || "")
+            }
+            options={accountCodes.map((code) => ({
+              value: code,
+              label: code,
+            }))}
+            placeholder="Select account"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
+          />
+        );
+      },
+    },
+
+    {
+      id: "projectCode",
+      header: "Project",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return isSubmitted ? (
+          <span className="text-sm text-gray-900">
+            {transferRow.projectCode}
+          </span>
+        ) : (
+          <Select
+            value={
+              transferRow.projectCode
+                ? {
+                    value: transferRow.projectCode,
+                    label: transferRow.projectCode,
+                  }
+                : null
+            }
+            onChange={(option) =>
+              updateRow(transferRow.id, "projectCode", option?.value || "")
+            }
+            options={projectCodes.map((code) => ({
+              value: code,
+              label: code,
+            }))}
+            placeholder="Select project"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
+          />
         );
       },
     },
@@ -1172,21 +1384,23 @@ export default function TransferDetails() {
     setIsValidationErrorModalOpen(true);
   };
 
-    const [isAttachmentsModalOpen, setIsAttachmentsModalOpen] = useState(false);
-    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-    const [isValidationErrorModalOpen, setIsValidationErrorModalOpen] = useState(false);
-    const [selectedValidationErrors, setSelectedValidationErrors] = useState<string[]>([]);
+  const [isAttachmentsModalOpen, setIsAttachmentsModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isValidationErrorModalOpen, setIsValidationErrorModalOpen] =
+    useState(false);
+  const [selectedValidationErrors, setSelectedValidationErrors] = useState<
+    string[]
+  >([]);
 
-    const [isDragOver, setIsDragOver] = useState(false);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [isReopenClicked, setIsReopenClicked] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isReopenClicked, setIsReopenClicked] = useState(false);
 
   // Handler for attachments click
   const handleAttachmentsClick = () => {
     setIsAttachmentsModalOpen(true);
   };
-
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -1201,34 +1415,37 @@ export default function TransferDetails() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
-    const validFile = files.find(file => 
-      file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-      file.type === 'application/pdf' ||
-      file.type === 'application/msword' ||
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.name.endsWith('.xlsx') ||
-      file.name.endsWith('.pdf') ||
-      file.name.endsWith('.doc') ||
-      file.name.endsWith('.docx')
+    const validFile = files.find(
+      (file) =>
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        file.type === "application/pdf" ||
+        file.type === "application/msword" ||
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        file.name.endsWith(".xlsx") ||
+        file.name.endsWith(".pdf") ||
+        file.name.endsWith(".doc") ||
+        file.name.endsWith(".docx")
     );
-    
+
     if (validFile) {
       handleFileSelect(validFile);
     } else {
-      alert('Please upload a valid file (.xlsx, .pdf, .doc, .docx)');
+      alert("Please upload a valid file (.xlsx, .pdf, .doc, .docx)");
     }
   };
 
-   const handleFileSelect = (file: File) => {
-    console.log('File selected:', file.name, file.size, file.type);
+  const handleFileSelect = (file: File) => {
+    console.log("File selected:", file.name, file.size, file.type);
     setSelectedFile(file);
   };
 
   const handleUploadFile = async () => {
     if (!selectedFile) {
-      toast.error('Please select a file to upload');
+      toast.error("Please select a file to upload");
       return;
     }
 
@@ -1236,17 +1453,17 @@ export default function TransferDetails() {
     try {
       await uploadExcel({
         file: selectedFile,
-        transaction: parseInt(transactionId)
+        transaction: parseInt(transactionId),
       }).unwrap();
-      
-      toast.success('Excel file uploaded successfully!');
+
+      toast.success("Excel file uploaded successfully!");
       setIsAttachmentsModalOpen(false);
       setSelectedFile(null);
-      
-      console.log('Excel file uploaded successfully');
+
+      console.log("Excel file uploaded successfully");
     } catch (error) {
-      console.error('Error uploading Excel file:', error);
-      toast.error('Failed to upload Excel file. Please try again.');
+      console.error("Error uploading Excel file:", error);
+      toast.error("Failed to upload Excel file. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -1256,55 +1473,52 @@ export default function TransferDetails() {
     try {
       // Set the state immediately to hide the button
       setIsReopenClicked(true);
-      
+
       await reopenTransfer({
         transaction: parseInt(transactionId),
-        action: "reopen"
+        action: "reopen",
       }).unwrap();
-      
-      toast.success('Transfer request reopened successfully!');
-      console.log('Transfer request reopened successfully');
-      
+
+      toast.success("Transfer request reopened successfully!");
+      console.log("Transfer request reopened successfully");
+
       // Optionally navigate back to transfer list or refresh the page
       // navigate('/app/transfer');
-      
     } catch (error) {
-      console.error('Error reopening transfer request:', error);
-      toast.error('Failed to reopen transfer request. Please try again.');
-      
+      console.error("Error reopening transfer request:", error);
+      toast.error("Failed to reopen transfer request. Please try again.");
+
       // Reset the state if there was an error so user can try again
       setIsReopenClicked(false);
     }
   };
-  
+
   // Show loading state
   if (isLoading) {
     return (
-     <div className="flex justify-center items-center h-64 bg-white rounded-lg">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">Loading transfers...</span>
-        </div>
+      <div className="flex justify-center items-center h-64 bg-white rounded-lg">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Loading transfers...</span>
+      </div>
     );
   }
 
   // Show error state
   if (error) {
-    const errorMessage = 'data' in error 
-      ? JSON.stringify(error.data) 
-      : 'message' in error 
-        ? error.message 
-        : 'Failed to load transfer details';
-    
+    const errorMessage =
+      "data" in error
+        ? JSON.stringify(error.data)
+        : "message" in error
+        ? error.message
+        : "Failed to load transfer details";
+
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-lg text-red-600">
-          Error: {errorMessage}
-        </div>
+        <div className="text-lg text-red-600">Error: {errorMessage}</div>
       </div>
     );
   }
-  
-  
+
   return (
     <div>
       {/* Header with back button */}
@@ -1314,15 +1528,16 @@ export default function TransferDetails() {
             onClick={handleBack}
             className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
           >
-          Fund Requests
+            Fund Requests
           </button>
-          <span className='text-[#737373] text-lg'>/</span>
-          <h1 className="text-lg  text-[#737373] font-light tracking-wide">Code</h1>
+          <span className="text-[#737373] text-lg">/</span>
+          <h1 className="text-lg  text-[#737373] font-light tracking-wide">
+            Code
+          </h1>
         </div>
-        
+
         {/* Period Selector for Balance Report */}
         <div className="flex items-center gap-2">
-         
           {isLoadingBalanceReport && (
             <div className="flex items-center text-sm text-gray-500">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -1330,344 +1545,466 @@ export default function TransferDetails() {
             </div>
           )}
           {balanceReportError && (
-            <div className="text-sm text-red-500">
-              Error loading options
-            </div>
+            <div className="text-sm text-red-500">Error loading options</div>
           )}
         </div>
       </div>
 
-        <div>
-    
-  
-          <SharedTable
-            columns={columnsDetails}
-            data={rows as unknown as SharedTableRow[]}
-            showFooter={true}
-            maxHeight="600px"
-            onSave={isSaving ? undefined : handleSave}
-            
-            showSaveButton={!isSubmitted && !isSaving}
-            showPagination={shouldShowPagination}
-            currentPage={currentPage}
-            onPageChange={handlePageChange}
-            itemsPerPage={itemsPerPage}
-            showAddRowButton={!isSubmitted}
-            onAddNewRow={addNewRow}
-            addRowButtonText="Add New Row"
-          />
+      <div>
+        <SharedTable
+          columns={columnsDetails}
+          data={rows as unknown as SharedTableRow[]}
+          showFooter={true}
+          maxHeight="600px"
+          onSave={isSaving ? undefined : handleSave}
+          showSaveButton={!isSubmitted && !isSaving}
+          showPagination={shouldShowPagination}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          itemsPerPage={itemsPerPage}
+          showAddRowButton={!isSubmitted}
+          onAddNewRow={addNewRow}
+          addRowButtonText="Add New Row"
+          showColumnSelector={true}
+        />
 
-          {/* Custom Save Section with Loading State */}
-          {!isSubmitted && isSaving && (
-            <div className="flex justify-end mt-4 p-4 bg-white rounded-lg shadow-sm">
-              <div className="flex items-center gap-2 text-blue-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm">Saving transfers...</span>
-              </div>
+        {/* Custom Save Section with Loading State */}
+        {!isSubmitted && isSaving && (
+          <div className="flex justify-end mt-4 p-4 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center gap-2 text-blue-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="text-sm">Saving transfers...</span>
             </div>
-          )}
- 
-        </div>
-
-      {/* Action Buttons Section */}
-    {!isSubmitted?(
-   <div className="bg-white rounded-2xl p-6 shadow-sm mt-6">
-        <div className="flex justify-between items-center">
-          <div   className="flex gap-3">
-            <button onClick={() => handleAttachmentsClick()} className="inline-flex items-center text-sm gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_406_14639)">
-<path d="M11.334 6.00122C12.784 6.00929 13.5693 6.07359 14.0815 6.58585C14.6673 7.17164 14.6673 8.11444 14.6673 10.0001V10.6667C14.6673 12.5523 14.6673 13.4952 14.0815 14.0809C13.4957 14.6667 12.5529 14.6667 10.6673 14.6667H5.33398C3.44837 14.6667 2.50556 14.6667 1.91977 14.0809C1.33398 13.4952 1.33398 12.5523 1.33398 10.6667L1.33398 10.0001C1.33398 8.11444 1.33398 7.17163 1.91977 6.58585C2.43203 6.07359 3.2173 6.00929 4.66732 6.00122" stroke="#545454" stroke-width="1.5" stroke-linecap="round"/>
-<path d="M8 10L8 1.33333M8 1.33333L10 3.66667M8 1.33333L6 3.66667" stroke="#545454" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
-<defs>
-<clipPath id="clip0_406_14639">
-<rect width="16" height="16" rx="5" fill="white"/>
-</clipPath>
-</defs>
-</svg>
-
-              UploadTransfer File
-            </button>
-          
-
-            <button onClick={() => setIsReportModalOpen(true)} className="inline-flex text-sm items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M2.3103 2.30956C1.33398 3.28587 1.33398 4.85722 1.33398 7.99992C1.33398 11.1426 1.33398 12.714 2.3103 13.6903C3.28661 14.6666 4.85795 14.6666 8.00065 14.6666C11.1433 14.6666 12.7147 14.6666 13.691 13.6903C14.6673 12.714 14.6673 11.1426 14.6673 7.99992C14.6673 4.85722 14.6673 3.28587 13.691 2.30956C12.7147 1.33325 11.1433 1.33325 8.00065 1.33325C4.85795 1.33325 3.28661 1.33325 2.3103 2.30956ZM11.334 8.16659C11.6101 8.16659 11.834 8.39044 11.834 8.66659V11.9999C11.834 12.2761 11.6101 12.4999 11.334 12.4999C11.0578 12.4999 10.834 12.2761 10.834 11.9999V8.66659C10.834 8.39044 11.0578 8.16659 11.334 8.16659ZM8.50065 3.99992C8.50065 3.72378 8.27679 3.49992 8.00065 3.49992C7.72451 3.49992 7.50065 3.72378 7.50065 3.99992V11.9999C7.50065 12.2761 7.72451 12.4999 8.00065 12.4999C8.27679 12.4999 8.50065 12.2761 8.50065 11.9999V3.99992ZM4.66732 5.49992C4.94346 5.49992 5.16732 5.72378 5.16732 5.99992V11.9999C5.16732 12.2761 4.94346 12.4999 4.66732 12.4999C4.39118 12.4999 4.16732 12.2761 4.16732 11.9999V5.99992C4.16732 5.72378 4.39118 5.49992 4.66732 5.49992Z" fill="#545454"/>
-</svg>
-
-              Report
-            </button>
-          </div>
-          
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitDisabled() || isSubmitting}
-            className={`px-6 py-2 text-sm rounded-lg transition-colors inline-flex items-center gap-2 ${
-              isSubmitDisabled() || isSubmitting
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-            title={
-              isSubmitting
-                ? 'Submitting transfer...'
-                : isSubmitDisabled()
-                  ? (() => {
-                      const totalValidRows = (apiData?.transfers?.length || 0) + localRows.length + 
-                        editedRows.filter(row => !(row.id.startsWith('default-') && 
-                          row.costCenterCode === '' && 
-                          row.accountCode === '' && 
-                          row.projectCode === '')).length;
-                      
-                      if (totalValidRows < 2) {
-                        return 'Cannot submit: At least 2 rows are required';
-                      } else {
-                        return 'Cannot submit: Please fix validation errors';
-                      }
-                    })()
-                  : 'Submit transfer request'
-            }
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Submitting...
-              </>
-            ) : (
-              'Submit'
-            )}
-          </button>
-        </div>
-        
-        {/* Submit status message - only show if submit is disabled */}
-        {isSubmitDisabled() && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 1L15 14H1L8 1Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-              <path d="M8 5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <circle cx="8" cy="11" r="0.5" fill="currentColor"/>
-            </svg>
-            <span>
-              {(() => {
-                const totalValidRows = (apiData?.transfers?.length || 0) + localRows.length + 
-                  editedRows.filter(row => !(row.id.startsWith('default-') && 
-                    row.costCenterCode === '' && 
-                    row.accountCode === '' && 
-                    row.projectCode === '')).length;
-                
-                if (totalValidRows < 2) {
-                  return 'Cannot submit: At least 2 rows are required for transfer.';
-                } else {
-                  return 'Cannot submit: Please fix all validation errors before submitting.';
-                }
-              })()}
-            </span>
           </div>
         )}
       </div>
-    ):null}
-      
-            {/* Only show Re-open Request button if status is rejected and not already clicked */}
-            {!isReopenClicked && (transferStatus === 'rejected' || apiData?.status?.status === 'rejected' || apiData?.summary?.status === 'rejected') && (
-               <div className="bg-white rounded-2xl p-6 shadow-sm mt-6">
 
-            <button 
-                onClick={handleReopenRequest}
+      {/* Action Buttons Section */}
+      {!isSubmitted ? (
+        <div className="bg-white rounded-2xl p-6 shadow-sm mt-6">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleAttachmentsClick()}
+                className="inline-flex items-center text-sm gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <g clip-path="url(#clip0_406_14639)">
+                    <path
+                      d="M11.334 6.00122C12.784 6.00929 13.5693 6.07359 14.0815 6.58585C14.6673 7.17164 14.6673 8.11444 14.6673 10.0001V10.6667C14.6673 12.5523 14.6673 13.4952 14.0815 14.0809C13.4957 14.6667 12.5529 14.6667 10.6673 14.6667H5.33398C3.44837 14.6667 2.50556 14.6667 1.91977 14.0809C1.33398 13.4952 1.33398 12.5523 1.33398 10.6667L1.33398 10.0001C1.33398 8.11444 1.33398 7.17163 1.91977 6.58585C2.43203 6.07359 3.2173 6.00929 4.66732 6.00122"
+                      stroke="#545454"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M8 10L8 1.33333M8 1.33333L10 3.66667M8 1.33333L6 3.66667"
+                      stroke="#545454"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_406_14639">
+                      <rect width="16" height="16" rx="5" fill="white" />
+                    </clipPath>
+                  </defs>
+                </svg>
+                UploadTransfer File
+              </button>
+
+              <button
+                onClick={() => setIsReportModalOpen(true)}
                 className="inline-flex text-sm items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9.70065 14.4466C12.5607 13.6933 14.6673 11.0933 14.6673 7.99992C14.6673 4.31992 11.7073 1.33325 8.00065 1.33325C3.55398 1.33325 1.33398 5.03992 1.33398 5.03992M1.33398 5.03992V1.99992M1.33398 5.03992H2.67398H4.29398" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M1.33398 8C1.33398 11.68 4.32065 14.6667 8.00065 14.6667" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 3"/>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M2.3103 2.30956C1.33398 3.28587 1.33398 4.85722 1.33398 7.99992C1.33398 11.1426 1.33398 12.714 2.3103 13.6903C3.28661 14.6666 4.85795 14.6666 8.00065 14.6666C11.1433 14.6666 12.7147 14.6666 13.691 13.6903C14.6673 12.714 14.6673 11.1426 14.6673 7.99992C14.6673 4.85722 14.6673 3.28587 13.691 2.30956C12.7147 1.33325 11.1433 1.33325 8.00065 1.33325C4.85795 1.33325 3.28661 1.33325 2.3103 2.30956ZM11.334 8.16659C11.6101 8.16659 11.834 8.39044 11.834 8.66659V11.9999C11.834 12.2761 11.6101 12.4999 11.334 12.4999C11.0578 12.4999 10.834 12.2761 10.834 11.9999V8.66659C10.834 8.39044 11.0578 8.16659 11.334 8.16659ZM8.50065 3.99992C8.50065 3.72378 8.27679 3.49992 8.00065 3.49992C7.72451 3.49992 7.50065 3.72378 7.50065 3.99992V11.9999C7.50065 12.2761 7.72451 12.4999 8.00065 12.4999C8.27679 12.4999 8.50065 12.2761 8.50065 11.9999V3.99992ZM4.66732 5.49992C4.94346 5.49992 5.16732 5.72378 5.16732 5.99992V11.9999C5.16732 12.2761 4.94346 12.4999 4.66732 12.4999C4.39118 12.4999 4.16732 12.2761 4.16732 11.9999V5.99992C4.16732 5.72378 4.39118 5.49992 4.66732 5.49992Z"
+                    fill="#545454"
+                  />
                 </svg>
-                Re-open Request
+                Report
               </button>
-              </div>
-            )}
-   
-          {/* Manage Attachments Modal */}
-          <SharedModal
-            isOpen={isAttachmentsModalOpen}
-            onClose={() => {
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitDisabled() || isSubmitting}
+              className={`px-6 py-2 text-sm rounded-lg transition-colors inline-flex items-center gap-2 ${
+                isSubmitDisabled() || isSubmitting
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+              title={
+                isSubmitting
+                  ? "Submitting transfer..."
+                  : isSubmitDisabled()
+                  ? (() => {
+                      const totalValidRows =
+                        (apiData?.transfers?.length || 0) +
+                        localRows.length +
+                        editedRows.filter(
+                          (row) =>
+                            !(
+                              row.id.startsWith("default-") &&
+                              row.costCenterCode === "" &&
+                              row.accountCode === "" &&
+                              row.projectCode === ""
+                            )
+                        ).length;
+
+                      if (totalValidRows < 2) {
+                        return "Cannot submit: At least 2 rows are required";
+                      } else {
+                        return "Cannot submit: Please fix validation errors";
+                      }
+                    })()
+                  : "Submit transfer request"
+              }
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Submitting...
+                </>
+              ) : (
+                "Submit"
+              )}
+            </button>
+          </div>
+
+          {/* Submit status message - only show if submit is disabled */}
+          {isSubmitDisabled() && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 1L15 14H1L8 1Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M8 5V8"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <circle cx="8" cy="11" r="0.5" fill="currentColor" />
+              </svg>
+              <span>
+                {(() => {
+                  const totalValidRows =
+                    (apiData?.transfers?.length || 0) +
+                    localRows.length +
+                    editedRows.filter(
+                      (row) =>
+                        !(
+                          row.id.startsWith("default-") &&
+                          row.costCenterCode === "" &&
+                          row.accountCode === "" &&
+                          row.projectCode === ""
+                        )
+                    ).length;
+
+                  if (totalValidRows < 2) {
+                    return "Cannot submit: At least 2 rows are required for transfer.";
+                  } else {
+                    return "Cannot submit: Please fix all validation errors before submitting.";
+                  }
+                })()}
+              </span>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Only show Re-open Request button if status is rejected and not already clicked */}
+      {!isReopenClicked &&
+        (transferStatus === "rejected" ||
+          apiData?.status?.status === "rejected" ||
+          apiData?.summary?.status === "rejected") && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm mt-6">
+            <button
+              onClick={handleReopenRequest}
+              className="inline-flex text-sm items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9.70065 14.4466C12.5607 13.6933 14.6673 11.0933 14.6673 7.99992C14.6673 4.31992 11.7073 1.33325 8.00065 1.33325C3.55398 1.33325 1.33398 5.03992 1.33398 5.03992M1.33398 5.03992V1.99992M1.33398 5.03992H2.67398H4.29398"
+                  stroke="#545454"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M1.33398 8C1.33398 11.68 4.32065 14.6667 8.00065 14.6667"
+                  stroke="#545454"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray="3 3"
+                />
+              </svg>
+              Re-open Request
+            </button>
+          </div>
+        )}
+
+      {/* Manage Attachments Modal */}
+      <SharedModal
+        isOpen={isAttachmentsModalOpen}
+        onClose={() => {
+          setIsAttachmentsModalOpen(false);
+          setSelectedFile(null);
+        }}
+        title="UploadTransfer File"
+        size="lg"
+      >
+        {/* Upload icon */}
+        <div
+          className={`w-full flex flex-col py-10 gap-2.5 items-center transition-colors ${
+            isDragOver
+              ? "bg-blue-100 border-2 border-dashed border-blue-400"
+              : "bg-[#F6F6F6]"
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className=" rounded-full p-2  ">
+            <svg
+              width="50"
+              height="50"
+              viewBox="0 0 50 50"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M35.417 18.7542C39.9483 18.7794 42.4023 18.9803 44.0031 20.5811C45.8337 22.4117 45.8337 25.358 45.8337 31.2505V33.3339C45.8337 39.2264 45.8337 42.1727 44.0031 44.0033C42.1725 45.8339 39.2262 45.8339 33.3337 45.8339H16.667C10.7744 45.8339 7.82816 45.8339 5.99757 44.0033C4.16699 42.1727 4.16699 39.2264 4.16699 33.3339L4.16699 31.2505C4.16699 25.358 4.16699 22.4117 5.99757 20.5811C7.59837 18.9803 10.0524 18.7794 14.5837 18.7542"
+                stroke="#282828"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+              <path
+                d="M25 31.25L25 4.16666M25 4.16666L31.25 11.4583M25 4.16666L18.75 11.4583"
+                stroke="#282828"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="text-center">
+            <div className=" text-lg mb-1">
+              {selectedFile ? (
+                <span className="text-green-600">
+                  Selected: {selectedFile.name}
+                </span>
+              ) : (
+                <>
+                  Drag & drop Excel file or{" "}
+                  <button
+                    onClick={() =>
+                      document.getElementById("file-upload")?.click()
+                    }
+                    className="text-[#0052FF] underline hover:text-blue-700 transition-colors"
+                  >
+                    browse
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="text-xs text-[#757575] mb-2">
+              Supported formats: .xlsx, .pdf, .doc, .docx
+            </div>
+            <input
+              id="file-upload"
+              type="file"
+              accept=".xlsx,.pdf,.doc,.docx"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleFileSelect(file);
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex justify-end gap-3 p-4 ">
+          <button
+            onClick={() => {
               setIsAttachmentsModalOpen(false);
               setSelectedFile(null);
             }}
-            title="UploadTransfer File"
-            size="lg"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            disabled={isUploading}
           >
-              {/* Upload icon */}
-              <div 
-                className={`w-full flex flex-col py-10 gap-2.5 items-center transition-colors ${
-                  isDragOver ? 'bg-blue-100 border-2 border-dashed border-blue-400' : 'bg-[#F6F6F6]'
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-      
-              <div className=" rounded-full p-2  ">
-      <svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M35.417 18.7542C39.9483 18.7794 42.4023 18.9803 44.0031 20.5811C45.8337 22.4117 45.8337 25.358 45.8337 31.2505V33.3339C45.8337 39.2264 45.8337 42.1727 44.0031 44.0033C42.1725 45.8339 39.2262 45.8339 33.3337 45.8339H16.667C10.7744 45.8339 7.82816 45.8339 5.99757 44.0033C4.16699 42.1727 4.16699 39.2264 4.16699 33.3339L4.16699 31.2505C4.16699 25.358 4.16699 22.4117 5.99757 20.5811C7.59837 18.9803 10.0524 18.7794 14.5837 18.7542" stroke="#282828" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M25 31.25L25 4.16666M25 4.16666L31.25 11.4583M25 4.16666L18.75 11.4583" stroke="#282828" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+            Cancel
+          </button>
+          <button
+            onClick={handleUploadFile}
+            disabled={!selectedFile || isUploading}
+            className={`px-4 py-2 text-sm font-medium border rounded-md transition-colors inline-flex items-center gap-2 ${
+              !selectedFile || isUploading
+                ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
+                : "text-white bg-[#0052FF] border-[#0052FF] hover:bg-blue-700"
+            }`}
+          >
+            {isUploading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Uploading...
+              </>
+            ) : (
+              "Upload File"
+            )}
+          </button>
+        </div>
+      </SharedModal>
+
+      {/* Manage Report */}
+      <SharedModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        title="Fund Adjustments  Report"
+        size="full"
+      >
+        <div className="p-4 ">
+          <div className="bg-[#F6F6F6] rounded-lg p-3">
+            <h2 className="text-md  font-medium mb-4">Summary</h2>
+
+            <div className="grid grid-cols-3 gap-4 justify-between items-center">
+              <div>
+                <p className="text-sm text-[#757575]">Transaction ID:</p>
+                <p className="text-sm  text-[#282828]">
+                  {apiData?.summary?.transaction_id || "N/A"}
+                </p>
               </div>
-              <div className="text-center">
-                <div className=" text-lg mb-1">
-                  {selectedFile ? (
-                    <span className="text-green-600">
-                      Selected: {selectedFile.name}
-                    </span>
-                  ) : (
-                    <>
-                      Drag & drop Excel file or{' '}
-                      <button
-                        onClick={() => document.getElementById('file-upload')?.click()}
-                        className="text-[#0052FF] underline hover:text-blue-700 transition-colors"
-                      >
-                        browse
-                      </button>
-                    </>
-                  )}
-                </div>
-                <div className="text-xs text-[#757575] mb-2">Supported formats: .xlsx, .pdf, .doc, .docx</div>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".xlsx,.pdf,.doc,.docx"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleFileSelect(file);
-                    }
-                  }}
-                />
+              <div>
+                <p className="text-sm text-[#757575]">Total Transfers: </p>
+                <p className="text-sm  text-[#282828]">
+                  {apiData?.summary?.total_transfers || 0}
+                </p>
               </div>
-           
-                      </div>
-      
-              {/* Action buttons */}
-               <div className="flex justify-end gap-3 p-4 ">
-                <button
-                  onClick={() => {
-                    setIsAttachmentsModalOpen(false);
-                    setSelectedFile(null);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-                  disabled={isUploading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUploadFile}
-                  disabled={!selectedFile || isUploading}
-                  className={`px-4 py-2 text-sm font-medium border rounded-md transition-colors inline-flex items-center gap-2 ${
-                    !selectedFile || isUploading
-                      ? 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
-                      : 'text-white bg-[#0052FF] border-[#0052FF] hover:bg-blue-700'
-                  }`}
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Uploading...
-                    </>
-                  ) : (
-                    'Upload File'
-                  )}
-                </button>
+              <div>
+                <p className="text-sm text-[#757575]">Total From:</p>
+                <p className="text-sm  text-[#282828]">
+                  {apiData?.summary?.total_from?.toLocaleString() || "0.00"}
+                </p>
               </div>
-            
-          </SharedModal> 
 
-              {/* Manage Report */}
-              <SharedModal
-                isOpen={isReportModalOpen}
-                onClose={() => setIsReportModalOpen(false)}
-                title="Fund Adjustments  Report"
-                size="full"
-              >
-                <div className="p-4 ">
-                  <div className='bg-[#F6F6F6] rounded-lg p-3'>
-                  <h2 className="text-md  font-medium mb-4">Summary</h2>
+              <div>
+                <p className="text-sm text-[#757575]">Total To: </p>
+                <p className="text-sm  text-[#282828]">
+                  {apiData?.summary?.total_to?.toLocaleString() || "0.00"}
+                </p>
+              </div>
+            </div>
+          </div>
 
-<div className='grid grid-cols-3 gap-4 justify-between items-center'>
-  <div  >
-    <p className="text-sm text-[#757575]">Transaction ID:</p>
-    <p className="text-sm  text-[#282828]">{apiData?.summary?.transaction_id || 'N/A'}</p>
-  </div>
-  <div>
-    <p className="text-sm text-[#757575]">Total Transfers: </p>
-    <p className="text-sm  text-[#282828]">{apiData?.summary?.total_transfers || 0}</p>
-  </div>
-  <div>
-    <p className="text-sm text-[#757575]">Total From:</p>
-    <p className="text-sm  text-[#282828]">{apiData?.summary?.total_from?.toLocaleString() || '0.00'}</p>
-  </div>
-
-   <div>
-    <p className="text-sm text-[#757575]">Total To: </p>
-    <p className="text-sm  text-[#282828]">{apiData?.summary?.total_to?.toLocaleString() || '0.00'}</p>
-  </div>
-
-</div>
-                  </div>
-
-
-                  {/* Report content goes here */}
-                    <SharedTable
-                    title='Fund Adjustments Details'
+          {/* Report content goes here */}
+          <SharedTable
+            title="Fund Adjustments Details"
             columns={columns}
-            titleSize='sm'
+            titleSize="sm"
             showShadow={false}
             data={rowsDetails as unknown as SharedTableRow[]}
-            maxHeight="600px"   
+            maxHeight="600px"
             showPagination={rowsDetails.length > 10}
             currentPage={currentPage}
             onPageChange={handlePageChange}
             itemsPerPage={itemsPerPage}
-         
+            showColumnSelector={true}
           />
+        </div>
+      </SharedModal>
 
-                                  </div>
-
-              </SharedModal>
-
-              {/* Validation Errors Modal */}
-              <SharedModal
-                isOpen={isValidationErrorModalOpen}
-                onClose={() => setIsValidationErrorModalOpen(false)}
-                title="Validation Errors"
-                size="md"
+      {/* Validation Errors Modal */}
+      <SharedModal
+        isOpen={isValidationErrorModalOpen}
+        onClose={() => setIsValidationErrorModalOpen(false)}
+        title="Validation Errors"
+        size="md"
+      >
+        <div className="p-4">
+          <div className="space-y-3">
+            {selectedValidationErrors.map((error, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg"
               >
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {selectedValidationErrors.map((error, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 1L15 14H1L8 1Z" stroke="#dc2626" strokeWidth="1.5" strokeLinejoin="round"/>
-                            <path d="M8 5V8" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round"/>
-                            <circle cx="8" cy="11" r="0.5" fill="#dc2626"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm text-red-800 font-medium">Error {index + 1}</p>
-                          <p className="text-sm text-red-700 mt-1">{error}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="flex justify-end mt-6">
-                    <button
-                      onClick={() => setIsValidationErrorModalOpen(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-                    >
-                      Close
-                    </button>
-                  </div>
+                <div className="flex-shrink-0 mt-0.5">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M8 1L15 14H1L8 1Z"
+                      stroke="#dc2626"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M8 5V8"
+                      stroke="#dc2626"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="8" cy="11" r="0.5" fill="#dc2626" />
+                  </svg>
                 </div>
-              </SharedModal>
+                <div>
+                  <p className="text-sm text-red-800 font-medium">
+                    Error {index + 1}
+                  </p>
+                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={() => setIsValidationErrorModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </SharedModal>
     </div>
   );
 }

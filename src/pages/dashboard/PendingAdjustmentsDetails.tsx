@@ -1,10 +1,15 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { SharedTable, type TableColumn, type TableRow as SharedTableRow, type TableRow } from '@/shared/SharedTable';
-import SharedModal from '@/shared/SharedModal';
-import { useGetTransferDetailsQuery } from '@/api/transferDetails.api';
-import { useBulkApproveRejectTransferMutation } from '@/api/pendingTransfer.api';
-import toast from 'react-hot-toast';
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import {
+  SharedTable,
+  type TableColumn,
+  type TableRow as SharedTableRow,
+  type TableRow,
+} from "@/shared/SharedTable";
+import SharedModal from "@/shared/SharedModal";
+import { useGetTransferDetailsQuery } from "@/api/transferDetails.api";
+import { useBulkApproveRejectTransferMutation } from "@/api/pendingTransfer.api";
+import toast from "react-hot-toast";
 
 interface TransferTableRow {
   id: string;
@@ -30,26 +35,24 @@ interface TransferTableRow {
   other_consumption?: string;
 }
 
-
-
 export default function PendingAdjustmentsDetails() {
   const { id } = useParams<{ id: string }>();
   console.log(id);
-  
+
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  
+
   // Use the transaction ID from params, default to 82 for testing
-  const transactionId = id ;
+  const transactionId = id;
 
   // Fetch data from adjd-transfers API
-  const { 
-    data: apiData, 
-    error, 
-    isLoading 
+  const {
+    data: apiData,
+    error,
+    isLoading,
   } = useGetTransferDetailsQuery(String(transactionId));
-  
+
   // State for processed rows
   const [rows, setRows] = useState<TransferTableRow[]>([]);
 
@@ -119,32 +122,19 @@ export default function PendingAdjustmentsDetails() {
     }
   }, [apiData]);
 
-
   // Check if pagination should be shown
   const shouldShowPagination = rows.length > 10;
 
   const handleBack = () => {
-    navigate('/app/PendingAdjustments');
+    navigate("/app/PendingAdjustments");
   };
-
-
-
-
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-
-
-
-
-
-
-
-
   // Keep the old columns for the main transfer table
-   const columnsDetails: TableColumn[] = [
+  const columnsDetails: TableColumn[] = [
     {
       id: "to",
       header: "To",
@@ -414,39 +404,35 @@ export default function PendingAdjustmentsDetails() {
   const [selectedRow, setSelectedRow] = useState<TableRow | null>(null);
   const [bulkApproveRejectTransfer] = useBulkApproveRejectTransferMutation();
 
-
-   const [reason, setReason] = useState<string>('');
-
+  const [reason, setReason] = useState<string>("");
 
   const handleApprove = (row: TableRow) => {
-  console.log(row);
-  
+    console.log(row);
+
     setSelectedRow(row);
-    setReason(''); // Clear reason when opening modal
+    setReason(""); // Clear reason when opening modal
     setIsApproveModalOpen(true);
   };
 
   const handleReject = (row: TableRow) => {
-    
     setSelectedRow(row);
-    setReason(''); // Clear reason when opening modal
+    setReason(""); // Clear reason when opening modal
     setIsRejectModalOpen(true);
   };
-const confirmApprove = async () => {
-
+  const confirmApprove = async () => {
     if (id) {
       try {
         const ACTION_APPROVE = "approve";
-        await bulkApproveRejectTransfer({ 
+        await bulkApproveRejectTransfer({
           transaction_id: [parseInt(id)],
           decide: [ACTION_APPROVE],
           reason: reason ? [reason] : [],
-          other_user_id: []
+          other_user_id: [],
         }).unwrap();
         console.log("Transfer approved successfully:", selectedRow);
-        toast.success('Transfer approved successfully');
-        navigate('/app/PendingAdjustments');
-        setReason(''); // Clear reason after success
+        toast.success("Transfer approved successfully");
+        navigate("/app/PendingAdjustments");
+        setReason(""); // Clear reason after success
       } catch (error) {
         console.error("Error approving transfer:", error);
         // Handle error (show toast notification, etc.)
@@ -460,17 +446,17 @@ const confirmApprove = async () => {
     if (id) {
       try {
         const ACTION_REJECT = "reject";
-        await bulkApproveRejectTransfer({ 
+        await bulkApproveRejectTransfer({
           transaction_id: [parseInt(id)],
           decide: [ACTION_REJECT],
           reason: reason ? [reason] : [],
-          other_user_id: []
+          other_user_id: [],
         }).unwrap();
         console.log("Transfer rejected successfully:", id);
-        toast.success('Transfer rejected successfully');
-                navigate('/app/PendingAdjustments');
+        toast.success("Transfer rejected successfully");
+        navigate("/app/PendingAdjustments");
 
-        setReason(''); // Clear reason after success
+        setReason(""); // Clear reason after success
       } catch (error) {
         console.error("Error rejecting transfer:", error);
         // Handle error (show toast notification, etc.)
@@ -492,21 +478,20 @@ const confirmApprove = async () => {
 
   // Show error state
   if (error) {
-    const errorMessage = 'data' in error 
-      ? JSON.stringify(error.data) 
-      : 'message' in error 
-        ? error.message 
-        : 'Failed to load transfer details';
-    
+    const errorMessage =
+      "data" in error
+        ? JSON.stringify(error.data)
+        : "message" in error
+        ? error.message
+        : "Failed to load transfer details";
+
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-lg text-red-600">
-          Error: {errorMessage}
-        </div>
+        <div className="text-lg text-red-600">Error: {errorMessage}</div>
       </div>
     );
   }
-  
+
   return (
     <div>
       {/* Header with back button */}
@@ -515,155 +500,155 @@ const confirmApprove = async () => {
           onClick={handleBack}
           className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
         >
-         Pendeing Fund Adjustments
+          Pendeing Fund Adjustments
         </button>
-        <span className='text-[#737373] text-lg'>/</span>
-        <h1 className="text-lg  text-[#737373] font-light tracking-wide">Code</h1>
+        <span className="text-[#737373] text-lg">/</span>
+        <h1 className="text-lg  text-[#737373] font-light tracking-wide">
+          Code
+        </h1>
       </div>
 
-        <div>
-    
-          
-          <SharedTable
-            columns={columnsDetails}
-            data={rows as unknown as SharedTableRow[]}
-            showFooter={true}
-            maxHeight="600px"
-         
-            showPagination={shouldShowPagination}
-            currentPage={currentPage}
-            onPageChange={handlePageChange}
-            itemsPerPage={itemsPerPage}
-      
-            addRowButtonText="Add New Row"
-          />
-
- 
-        </div>
-    <div className="flex justify-end items-center bg-white rounded-md shadow-sm  mt-4 p-3 w-full">
-      {/* زرار Reject */}
-      <button 
-      onClick={() => handleReject(selectedRow!)}
-        className="px-4 py-1.5 border border-[#D44333] text-[#D44333] rounded-md hover:bg-red-50 transition"
-      >
-        Reject
-      </button>
-
-      {/* مسافة صغيرة */}
-      <div className="w-3" />
-
-      {/* زرار Approve */}
-      <button
-            onClick={() => handleApprove(selectedRow!)}
-        className="px-4 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
-      >
-        Approve
-      </button>
-    </div>
-   
-    {/* Approve Modal */}
-    <SharedModal
-      isOpen={isApproveModalOpen}
-      onClose={() => {
-        setIsApproveModalOpen(false);
-        setReason(''); // Clear reason when closing modal
-      }}
-      title="Approve Budget Request"
-      size="md"
-    >
-      <div className="p-4">
-        <div className="flex items-center gap-3 mb-4">
-       
-            <p className="text-sm text-[#282828]"> You're about to approve this budget request. Once approved, the requester will be notified, and the process will move to the next stage. Are you sure you want to continue?</p>
-        
-         
-        </div>
-        
-           <div>
-          <label className="block text-xs font-bold text-[#282828] mb-2">
-           Reason (Optional)
-          </label>
-          <textarea
-            rows={7}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
-            placeholder="Add any comments or notes (optional)..."
-          />
-        </div>
-     
-        
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => {
-              setIsApproveModalOpen(false);
-              setReason(''); // Clear reason when cancelling
-            }}
-            className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={confirmApprove}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#00A350]  border border-green-600 rounded-md hover:bg-green-700 transition-colors"
-          >
-            Approve
-          </button>
-        </div>
+      <div>
+        <SharedTable
+          columns={columnsDetails}
+          data={rows as unknown as SharedTableRow[]}
+          showFooter={true}
+          maxHeight="600px"
+          showPagination={shouldShowPagination}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          itemsPerPage={itemsPerPage}
+          addRowButtonText="Add New Row"
+          showColumnSelector={true}
+        />
       </div>
-    </SharedModal>
+      <div className="flex justify-end items-center bg-white rounded-md shadow-sm  mt-4 p-3 w-full">
+        {/* زرار Reject */}
+        <button
+          onClick={() => handleReject(selectedRow!)}
+          className="px-4 py-1.5 border border-[#D44333] text-[#D44333] rounded-md hover:bg-red-50 transition"
+        >
+          Reject
+        </button>
 
-    {/* Reject Modal */}
-    <SharedModal
-      isOpen={isRejectModalOpen}
-      onClose={() => {
-        setIsRejectModalOpen(false);
-        setReason(''); // Clear reason when closing modal
-      }}
-      title="Reject Transfer"
-      size="md"
-    >
-      <div className="p-4">
-        <div className="flex items-center gap-3 mb-4">
-          
+        {/* مسافة صغيرة */}
+        <div className="w-3" />
+
+        {/* زرار Approve */}
+        <button
+          onClick={() => handleApprove(selectedRow!)}
+          className="px-4 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+        >
+          Approve
+        </button>
+      </div>
+
+      {/* Approve Modal */}
+      <SharedModal
+        isOpen={isApproveModalOpen}
+        onClose={() => {
+          setIsApproveModalOpen(false);
+          setReason(""); // Clear reason when closing modal
+        }}
+        title="Approve Budget Request"
+        size="md"
+      >
+        <div className="p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <p className="text-sm text-[#282828]">
+              {" "}
+              You're about to approve this budget request. Once approved, the
+              requester will be notified, and the process will move to the next
+              stage. Are you sure you want to continue?
+            </p>
+          </div>
+
           <div>
-            <p className="text-sm text-[#282828]">You're about to reject this budget request. This action cannot be undone. Please provide a clear reason for rejection so the requester understands the next steps.</p>
+            <label className="block text-xs font-bold text-[#282828] mb-2">
+              Reason (Optional)
+            </label>
+            <textarea
+              rows={7}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
+              placeholder="Add any comments or notes (optional)..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setIsApproveModalOpen(false);
+                setReason(""); // Clear reason when cancelling
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmApprove}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#00A350]  border border-green-600 rounded-md hover:bg-green-700 transition-colors"
+            >
+              Approve
+            </button>
           </div>
         </div>
-        
+      </SharedModal>
+
+      {/* Reject Modal */}
+      <SharedModal
+        isOpen={isRejectModalOpen}
+        onClose={() => {
+          setIsRejectModalOpen(false);
+          setReason(""); // Clear reason when closing modal
+        }}
+        title="Reject Transfer"
+        size="md"
+      >
+        <div className="p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div>
+              <p className="text-sm text-[#282828]">
+                You're about to reject this budget request. This action cannot
+                be undone. Please provide a clear reason for rejection so the
+                requester understands the next steps.
+              </p>
+            </div>
+          </div>
+
           <div>
-          <label className="block text-xs font-bold text-[#282828] mb-2">
-           Reason for rejection (Optional)
-          </label>
-          <textarea
-            rows={7}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
-            placeholder="Describe the reason for rejection (optional)..."
-          />
+            <label className="block text-xs font-bold text-[#282828] mb-2">
+              Reason for rejection (Optional)
+            </label>
+            <textarea
+              rows={7}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
+              placeholder="Describe the reason for rejection (optional)..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setIsRejectModalOpen(false);
+                setReason(""); // Clear reason when cancelling
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmReject}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#D44333] border border-red-600 rounded-md hover:bg-red-700 transition-colors"
+            >
+              Reject Transfer
+            </button>
+          </div>
         </div>
-        
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => {
-              setIsRejectModalOpen(false);
-              setReason(''); // Clear reason when cancelling
-            }}
-            className="px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={confirmReject}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#D44333] border border-red-600 rounded-md hover:bg-red-700 transition-colors"
-          >
-            Reject Transfer
-          </button>
-        </div>
-      </div>
-    </SharedModal>
-    
+      </SharedModal>
     </div>
   );
 }
