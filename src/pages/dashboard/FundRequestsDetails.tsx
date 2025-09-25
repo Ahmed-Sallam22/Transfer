@@ -19,6 +19,7 @@ import { useGetBalanceReportQuery } from "@/api/balanceReport.api";
 import { toast } from "react-hot-toast";
 import { store } from "@/app/store";
 import Select from "react-select";
+import { formatNumber } from "@/utils/formatNumber";
 
 interface TransferTableRow {
   id: string;
@@ -879,6 +880,7 @@ export default function TransferDetails() {
     },
   ];
 
+  // Keep the old columns for the main transfer table
   const columnsDetails: TableColumn[] = [
     {
       id: "validation",
@@ -891,7 +893,9 @@ export default function TransferDetails() {
 
         return (
           <div className="flex items-center  gap-3 justify-center">
-            <button
+            {     apiData?.status.status === "not yet sent for approval" ||
+      apiData?.summary?.status === "not yet sent for approval"?
+           <button
               onClick={() => deleteRow(transferRow.id)}
               className="flex items-center justify-center w-6 h-6 bg-red-100 border border-red-300 rounded-full text-red-600 hover:bg-red-200 transition-colors"
               title="Delete row"
@@ -912,6 +916,8 @@ export default function TransferDetails() {
                 />
               </svg>
             </button>
+      : null}
+       
             {hasErrors ? (
               <button
                 onClick={() =>
@@ -977,7 +983,7 @@ export default function TransferDetails() {
 
         return isSubmitted ? (
           <span className={`text-sm text-gray-900 `}>
-            {transferRow.to.toFixed(2)}
+            {formatNumber(transferRow.to)}
           </span>
         ) : (
           <input
@@ -992,32 +998,31 @@ export default function TransferDetails() {
         );
       },
     },
-    // {
-    //   id: "from",
-    //   header: "From",
-    //   showSum: true,
+    {
+      id: "from",
+      header: "From",
+      showSum: true,
 
-    //   render: (_, row) => {
-    //     const transferRow = row as unknown as TransferTableRow;
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
 
-    //     return isSubmitted ? (
-    //       <span className={`text-sm text-gray-900 `}>
-    //         {transferRow.from.toFixed(2)}
-    //       </span>
-    //     ) : (
-    //       <input
-    //         type="number"
-
-    //         value={transferRow.from || ""}
-    //         onChange={(e) =>
-    //           updateRow(transferRow.id, "from", Number(e.target.value) || 0)
-    //         }
-    //         className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
-    //         placeholder="From"
-    //       />
-    //     );
-    //   },
-    // },
+        return isSubmitted ? (
+          <span className={`text-sm text-gray-900 `}>
+            {formatNumber(transferRow.from)}
+          </span>
+        ) : (
+          <input
+            type="number"
+            value={transferRow.from || ""}
+            onChange={(e) =>
+              updateRow(transferRow.id, "from", Number(e.target.value) || 0)
+            }
+            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
+            placeholder="From"
+          />
+        );
+      },
+    },
     {
       id: "encumbrance",
       header: "Encumbrance",
@@ -1027,7 +1032,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.encumbrance || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1040,7 +1045,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.availableBudget || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1053,7 +1058,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.actual || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1066,7 +1071,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.budget_adjustments) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1079,7 +1084,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.commitments) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1092,7 +1097,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.expenditures) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1105,7 +1110,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.initial_budget) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1118,7 +1123,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.obligations) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1131,7 +1136,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.other_consumption) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1144,7 +1149,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.approvedBudget || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1157,7 +1162,7 @@ export default function TransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.other_ytd || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -1172,7 +1177,6 @@ export default function TransferDetails() {
         );
       },
     },
-
     {
       id: "costCenterName",
       header: "Legal Entity",

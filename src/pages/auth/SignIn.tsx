@@ -38,13 +38,15 @@ export default function SignIn() {
         username: data.username,
         password: data.password,
       }).unwrap();
-      
-      dispatch(setCredentials(result));
-      toast.success(result.message || 'Sign in successful!');
-      
-      // Redirect to intended page or default to /app
-      const from = location.state?.from?.pathname || '/app';
-      navigate(from, { replace: true });
+dispatch(setCredentials(result));
+toast.success(result.message || 'Sign in successful!');
+
+const storedRedirect = sessionStorage.getItem('postLoginRedirect');
+const fromState = location.state?.from?.pathname;
+const target = storedRedirect || fromState || '/app';
+
+sessionStorage.removeItem('postLoginRedirect');
+navigate(target, { replace: true });
     } catch (error) {
       // Error is already handled by RTK Query and shown via toast
       console.error('Login error:', error);

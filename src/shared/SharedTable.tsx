@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/utils/cn";
+import { formatNumber } from "@/utils/formatNumber";
 
 // Arrow icons for pagination
 const ArrowLeftIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -269,7 +270,7 @@ export function SharedTable({
         typeof value === "number" ? value : parseFloat(String(value)) || 0;
       return sum + numValue;
     }, 0);
-    return sum.toFixed(2);
+    return formatNumber(sum);
   };
 
   // Function to calculate content-based width

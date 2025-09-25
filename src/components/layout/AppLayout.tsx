@@ -1,4 +1,3 @@
-// src/layouts/AppLayout.tsx
 import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
@@ -6,10 +5,11 @@ import Sidebar from '@/shared/Sidebar';
 import DashboardHeader from '@/shared/DashboardHeader';
 
 export default function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);      // mobile/tablet overlay
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // desktop: false => 2/10, true => 1/11
 
   return (
-    <div className="h-screen">
+    <div className="h-screen overflow-x-hidden">
       {/* Mobile & Tablet Backdrop */}
       {sidebarOpen && (
         <div
@@ -21,12 +21,23 @@ export default function AppLayout() {
       {/* Desktop Layout - Grid */}
       <div className="hidden lg:grid lg:grid-cols-12 h-full">
         {/* Desktop Sidebar */}
-        <div className='sticky top-0 col-span-2 h-[97.5vh] m-3 overflow-y-auto'>
-          <Sidebar onClose={() => setSidebarOpen(false)} />
+        <div
+          className={`sticky top-0 ${sidebarCollapsed ? 'col-span-1' : 'col-span-2'} h-[97.5vh] m-3 overflow-y-auto overflow-x-hidden`}
+        >
+          {/* Smooth feel (transform no-op but keeps timing consistent) */}
+          <div className="h-full transition-all duration-300 ease-in-out will-change-transform">
+            <Sidebar
+              onClose={() => setSidebarOpen(false)}
+              onToggle={() => setSidebarCollapsed(v => !v)}
+              desktopHidden={sidebarCollapsed}   // collapsed => icons only
+            />
+          </div>
         </div>
 
         {/* Desktop Main Content */}
-        <main className="col-span-10 h-full overflow-y-auto">
+        <main
+          className={`${sidebarCollapsed ? 'col-span-11' : 'col-span-10'} h-full overflow-y-auto overflow-x-hidden transition-[grid-column] duration-300`}
+        >
           <div className="p-6">
             <DashboardHeader />
             <div className="mt-8">
@@ -37,8 +48,7 @@ export default function AppLayout() {
       </div>
 
       {/* Mobile & Tablet Layout - Flexbox */}
-      <div className="lg:hidden h-full flex flex-col">
-        {/* Mobile Header */}
+      <div className="lg:hidden h-full flex flex-col overflow-x-hidden">
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -48,16 +58,20 @@ export default function AppLayout() {
           </button>
         </header>
 
-        {/* Mobile/Tablet Sidebar - Overlay */}
-        <div className={`
-          fixed inset-y-0 left-0 z-50 w-72 sm:w-80 max-w-[85vw] bg-white shadow-lg transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
-          <Sidebar onClose={() => setSidebarOpen(false)} />
+        <div
+          className={`
+            fixed inset-y-0 left-0 z-50 w-72 sm:w-80 max-w-[85vw] bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}
+        >
+          <Sidebar
+            onClose={() => setSidebarOpen(false)}
+            onToggle={() => setSidebarOpen(false)} // arrow also closes overlay
+            desktopHidden={false}
+          />
         </div>
 
-        {/* Mobile/Tablet Main Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-4 sm:p-6">
             <DashboardHeader />
             <div className="mt-6 sm:mt-8">

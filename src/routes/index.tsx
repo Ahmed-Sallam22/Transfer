@@ -48,44 +48,211 @@ export default function AppRoutes() {
           }
         >
           <Route index element={<Home />} />
-          <Route path="transfer" element={<Transfer />} />
-          <Route path="PendingTransfer" element={<PendingTransfer />} />
-          <Route
-            path="PendingTransfer/:id"
-            element={<PendingTransferDetails />}
-          />
-          <Route path="PendingAdjustments" element={<PendingAdjustments />} />
-          <Route
-            path="PendingAdjustments/:id"
-            element={<PendingAdjustmentsDetails />}
-          />
-          <Route path="PendingRequests" element={<PendingRequests />} />
-          <Route
-            path="PendingRequests/:id"
-            element={<PendingRequestsDetails />}
-          />
 
-          <Route path="transfer/:id" element={<TransferDetails />} />
-          <Route path="fund-requests" element={<FundRequests />} />
-          <Route path="FundAdjustments" element={<FundAdjustments />} />
+          {/* Level 1: Transfer, Transfer Details, Fund Requests, Fund Request Details, Adjustments, Adjustment Details */}
+          <Route
+            path="transfer"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[1]}
+              >
+                <Transfer />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="transfer/:id"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[1]}
+              >
+                <TransferDetails />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="fund-requests"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[1]}
+              >
+                <FundRequests />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="FundRequests/:id"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[1]}
+              >
+                <FundRequestsDetails />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="FundAdjustments"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[1]}
+              >
+                <FundAdjustments />
+              </RoleProtectedRoute>
+            }
+          />
           <Route
             path="FundAdjustments/:id"
-            element={<FundAdjustmentsDetails />}
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[1]}
+              >
+                <FundAdjustmentsDetails />
+              </RoleProtectedRoute>
+            }
           />
 
-          <Route path="FundRequests/:id" element={<FundRequestsDetails />} />
-          <Route path="projects-overview" element={<ProjectsOverview />} />
-          <Route path="accounts-projects" element={<AccountsProjects />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="envelope" element={<Envelope />} />
-          <Route path="WorkFlow" element={<WorkFlow />} />
-          <Route path="AddWorkFlow" element={<AddWorkFlow />} />
-          <Route path="EditWorkFlow/:id" element={<AddWorkFlow />} />
-          {/* Admin-only routes */}
+          {/* Level 2, 3, 4: All pending pages and pending details */}
+          <Route
+            path="PendingTransfer"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[2, 3, 4]}
+              >
+                <PendingTransfer />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="PendingTransfer/:id"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[2, 3, 4]}
+              >
+                <PendingTransferDetails />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="PendingAdjustments"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[2, 3, 4]}
+              >
+                <PendingAdjustments />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="PendingAdjustments/:id"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[2, 3, 4]}
+              >
+                <PendingAdjustmentsDetails />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="PendingRequests"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[2, 3, 4]}
+              >
+                <PendingRequests />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="PendingRequests/:id"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[2, 3, 4]}
+              >
+                <PendingRequestsDetails />
+              </RoleProtectedRoute>
+            }
+          />
+
+          {/* Level 4 + Super Admin: Envelope page */}
+          <Route
+            path="envelope"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={["superadmin"]}
+                allowedLevels={[4]}
+              >
+                <Envelope />
+              </RoleProtectedRoute>
+            }
+          />
+
+          {/* Super Admin only: Management pages */}
+          <Route
+            path="projects-overview"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <ProjectsOverview />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="accounts-projects"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <AccountsProjects />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <Reports />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="WorkFlow"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <WorkFlow />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="AddWorkFlow"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <AddWorkFlow />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="EditWorkFlow/:id"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <AddWorkFlow />
+              </RoleProtectedRoute>
+            }
+          />
+
+          {/* Super Admin only routes */}
           <Route
             path="users"
             element={
-              <RoleProtectedRoute allowedRoles={["admin", "superadmin"]}>
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
                 <Users />
               </RoleProtectedRoute>
             }

@@ -20,7 +20,7 @@ export default function ProtectedRoute({
   // If authentication is required but user is not authenticated
   if (requireAuth && !isAuthenticated) {
     // Save the attempted location for redirecting after login
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    return <Navigate to={redirectTo}  replace />;
   }
 
   // If user is authenticated but trying to access auth pages, redirect to app

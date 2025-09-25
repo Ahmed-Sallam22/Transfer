@@ -20,6 +20,7 @@ export interface EnvelopeResponse {
   message: string;
   initial_envelope: number;
   current_envelope: number;
+  estimated_envelope: number;
   data: EnvelopeProject[];
 }
 

@@ -20,8 +20,8 @@ interface EnvelopeTableRow {
 
 export default function Envelope() {
   const [selectedProject, setSelectedProject] = useState<string>("");
-  const [year, setYear] = useState<string>("");
-  const [month, setMonth] = useState<string>("");
+  // const [year, setYear] = useState<string>("");
+  // const [month, setMonth] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -37,8 +37,8 @@ export default function Envelope() {
   } = useGetActiveProjectsWithEnvelopeQuery(
     {
       project_code: selectedProject,
-      year: year || undefined,
-      month: month || undefined,
+      // year: year || undefined,
+      // month: month || undefined,
     },
     { skip: !selectedProject }
   );
@@ -110,25 +110,25 @@ export default function Envelope() {
     setCurrentPage(page);
   };
 
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
+  // const months = [
+  //   "Jan",
+  //   "Feb",
+  //   "Mar",
+  //   "Apr",
+  //   "May",
+  //   "Jun",
+  //   "Jul",
+  //   "Aug",
+  //   "Sep",
+  //   "Oct",
+  //   "Nov",
+  //   "Dec",
+  // ];
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 10 }, (_, i) =>
-    (currentYear - 5 + i).toString().slice(-2)
-  );
+  // const currentYear = new Date().getFullYear();
+  // const years = Array.from({ length: 10 }, (_, i) =>
+  //   (currentYear - 5 + i).toString().slice(-2)
+  // );
 
   return (
     <div className="space-y-6">
@@ -165,7 +165,7 @@ export default function Envelope() {
           </div>
 
           {/* Year Selection (Optional) */}
-          <div>
+          {/* <div>
             <SharedSelect
               title="Year (Optional)"
               value={year}
@@ -177,10 +177,10 @@ export default function Envelope() {
               }))}
               clearable={true}
             />
-          </div>
+          </div> */}
 
           {/* Month Selection (Optional) */}
-          <div>
+          {/* <div>
             <SharedSelect
               title="Month (Optional)"
               value={month}
@@ -192,7 +192,7 @@ export default function Envelope() {
               }))}
               clearable={true}
             />
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -202,7 +202,7 @@ export default function Envelope() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Envelope Summary
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="text-sm font-medium text-blue-600">
                 Initial Envelope
@@ -217,6 +217,14 @@ export default function Envelope() {
               </div>
               <div className="text-2xl font-bold text-green-900 mt-1">
                 {envelopeData.current_envelope.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-4">
+              <div className="text-sm font-medium text-orange-600">
+                Estimated Envelope
+              </div>
+              <div className="text-2xl font-bold text-green-900 mt-1">
+                {envelopeData?.estimated_envelope?.toLocaleString()}
               </div>
             </div>
           </div>

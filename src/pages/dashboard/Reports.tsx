@@ -459,7 +459,7 @@ export default function Reports() {
             data={transformedData}
             maxHeight="600px"
             className="shadow-lg"
-            showPagination={true}
+            showPagination={false}
             currentPage={currentPage}
             onPageChange={handlePageChange}
             itemsPerPage={itemsPerPage}

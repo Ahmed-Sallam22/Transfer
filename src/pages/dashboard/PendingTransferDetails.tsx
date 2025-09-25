@@ -10,6 +10,7 @@ import SharedModal from "@/shared/SharedModal";
 import { useGetTransferDetailsQuery } from "@/api/transferDetails.api";
 import { useBulkApproveRejectTransferMutation } from "@/api/pendingTransfer.api";
 import toast from "react-hot-toast";
+import { formatNumber } from "@/utils/formatNumber";
 
 interface TransferTableRow {
   id: string;
@@ -144,7 +145,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         return (
           <span className="text-sm text-gray-900">
-            {transferRow.to.toFixed(2)}
+               {formatNumber(transferRow.to)}
           </span>
         );
       },
@@ -158,7 +159,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         return (
           <span className="text-sm text-gray-900">
-            {transferRow.from.toFixed(2)}
+            {formatNumber(transferRow.from)}
           </span>
         );
       },
@@ -172,7 +173,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.encumbrance || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -185,7 +186,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.availableBudget || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -198,7 +199,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.actual || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -211,7 +212,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.budget_adjustments) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -224,7 +225,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.commitments) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -237,7 +238,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.expenditures) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -250,7 +251,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.initial_budget) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -263,7 +264,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.obligations) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -276,7 +277,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = Number(transferRow.other_consumption) || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -289,7 +290,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.approvedBudget || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
@@ -302,7 +303,7 @@ export default function PendingTransferDetails() {
         const transferRow = row as unknown as TransferTableRow;
         const value = transferRow.other_ytd || 0;
         return (
-          <span className="text-sm text-gray-900">{value.toFixed(2)}</span>
+          <span className="text-sm text-gray-900">{formatNumber(value)}</span>
         );
       },
     },
