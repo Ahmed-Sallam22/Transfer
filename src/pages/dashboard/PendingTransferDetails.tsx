@@ -319,6 +319,19 @@ export default function PendingTransferDetails() {
         );
       },
     },
+        {
+      id: "costCenterName",
+      header: "Legal Entity",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterName || ""}
+          </span>
+        );
+      },
+    },
     {
       id: "accountName",
       header: "Account Name",
@@ -345,15 +358,15 @@ export default function PendingTransferDetails() {
         );
       },
     },
-    {
-      id: "costCenterName",
-      header: "Cost Center Name",
+ {
+      id: "costCenterCode",
+      header: "Legal Entity",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return (
           <span className="text-sm text-gray-900">
-            {transferRow.costCenterName || ""}
+            {transferRow.costCenterCode || ""}
           </span>
         );
       },
@@ -385,19 +398,7 @@ export default function PendingTransferDetails() {
         );
       },
     },
-    {
-      id: "costCenterCode",
-      header: "Cost Center",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return (
-          <span className="text-sm text-gray-900">
-            {transferRow.costCenterCode || ""}
-          </span>
-        );
-      },
-    },
+   
   ];
   const [isApproveModalOpen, setIsApproveModalOpen] = useState<boolean>(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState<boolean>(false);
