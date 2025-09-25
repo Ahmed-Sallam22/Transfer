@@ -1,85 +1,28 @@
-import { useState } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useMemo, useState } from 'react';
 import { SharedTable } from '@/shared/SharedTable';
 import type { TableColumn, TableRow } from '@/shared/SharedTable';
 import SearchBar from '@/shared/SearchBar';
 import SharedModal from '@/shared/SharedModal';
 import { SharedSelect } from '@/shared/SharedSelect';
 import type { SelectOption } from '@/shared/SharedSelect';
+import { toast } from 'react-hot-toast';
+
 // Sample data for users
-const usersData: TableRow[] = [
-  {
-    id: 1,
-    username: 'ahmed.ali',
-    role: 'Admin',
-    userLevel: 'Level 1',
-    isActive: true
-  },
-  {
-    id: 2,
-    username: 'sara.mohamed',
-    role: 'User',
-    userLevel: 'Level 2',
-    isActive: true
-  },
-  {
-    id: 3,
-    username: 'omar.hassan',
-    role: 'User',
-    userLevel: 'Level 3',
-    isActive: false
-  },
-  {
-    id: 4,
-    username: 'fatima.alzahra',
-    role: 'Admin',
-    userLevel: 'Level 1',
-    isActive: true
-  },
-  {
-    id: 5,
-    username: 'hassan.mahmoud',
-    role: 'User',
-    userLevel: 'Level 2',
-    isActive: true
-  }
-];
+import {
+  useGetUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+  type UserListItem,
+} from '@/api/user.api';
+import { useGetLevelsQuery, type LevelItem } from '@/api/level.api';
 
-// Sample data for user levels
-const userLevelsData: TableRow[] = [
-  {
-    id: 1,
-    name: 'Level 1',
-    description: 'Super Admin - Full system access',
-    order: 1
-  },
-  {
-    id: 2,
-    name: 'Level 2',
-    description: 'Manager - Limited administrative access',
-    order: 2
-  },
-  {
-    id: 3,
-    name: 'Level 3',
-    description: 'Employee - Standard user access',
-    order: 3
-  },
-  {
-    id: 4,
-    name: 'Level 4',
-    description: 'Viewer - Read-only access',
-    order: 4
-  }
-];
+const toApiRole = (uiRole: string) =>
+  (uiRole || '').toLowerCase() === 'admin' ? 'admin' : 'user';
 
-// // Sample data for users by level distribution
-// const usersByLevelData = [
-//   { level: 'Level 1', count: 2 },
-//   { level: 'Level 2', count: 3 },
-//   { level: 'Level 3', count: 5 },
-//   { level: 'Level 4', count: 1 }
-// ];
-
+const fromApiRole = (apiRole: string) =>
+  (apiRole || '').toLowerCase() === 'admin' ? 'Admin' : 'User';
 // Role options
 const roleOptions: SelectOption[] = [
   { value: 'Admin', label: 'Admin' },
@@ -94,14 +37,7 @@ const userLevelOptions: SelectOption[] = [
   { value: 'Level 4', label: 'Level 4 - Viewer' }
 ];
 
-// User options for assignment
-const userOptions: SelectOption[] = [
-  { value: 'ahmed.ali', label: 'Ahmed Ali' },
-  { value: 'sara.mohamed', label: 'Sara Mohamed' },
-  { value: 'omar.hassan', label: 'Omar Hassan' },
-  { value: 'fatima.alzahra', label: 'Fatima Al-Zahra' },
-  { value: 'hassan.mahmoud', label: 'Hassan Mahmoud' }
-];
+
 
 function UserChip({ name }: { name: string }) {
   const initial = (name?.trim()?.[0] ?? '?').toUpperCase();
@@ -117,14 +53,44 @@ function UserChip({ name }: { name: string }) {
 export default function Users() {
   const [activeTab, setActiveTab] = useState<'users' | 'userLevels' | 'assignment'>('users');
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  
+  const { data: serverLevels } = useGetLevelsQuery();
+
+const userLevelsData: TableRow[] = useMemo(() => {
+  const list = serverLevels ?? [];
+  return list.map((lvl: LevelItem) => ({
+    id: lvl.id,
+    name: lvl.name,
+    description: lvl.description,
+    order: lvl.level_order,
+  }));
+}, [serverLevels]);
   // Modal states
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
   const [isUserLevelModalOpen, setIsUserLevelModalOpen] = useState<boolean>(false);
   const [editingUser, setEditingUser] = useState<TableRow | null>(null);
   const [editingUserLevel] = useState<TableRow | null>(null);
   
+    const { data: serverUsers, isLoading } = useGetUsersQuery();
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+
+   const usersData: TableRow[] = useMemo(() => {
+    const list = serverUsers ?? [];
+    return list.map((u: UserListItem) => ({
+      id: u.id,
+      username: u.username,
+      role: u.role === 'admin' ? 'Admin' : 'User',
+      userLevel: u.user_level || '-',
+      isActive: u.can_transfer_budget, // or any active flag you want
+    }));
+  }, [serverUsers]);
+   const userOptions: SelectOption[] = useMemo(
+    () => (serverUsers ?? []).map((u) => ({ value: u.username, label: u.username })),
+    [serverUsers]
+  );
+  
+
   // Form states for user
   const [userForm, setUserForm] = useState({
     username: '',
@@ -229,28 +195,65 @@ export default function Users() {
   const handleTabChange = (tab: 'users' | 'userLevels' | 'assignment') => {
     setActiveTab(tab);
     setSearchQuery("");
-    setCurrentPage(1);
   };
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
-    setCurrentPage(1);
   };
 
   const handleSearchSubmit = (text: string) => {
     console.log("Search submitted:", text);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
 
-  const handleAddUser = () => {
+    const handleAddUser = () => {
     setEditingUser(null);
-    setUserForm({ username: '', password: '', role: '' });
+    setUserForm({ username: '', password: '', role: 'user' });
     setIsUserModalOpen(true);
   };
+const handleSaveUser = async () => {
+  try {
+    if (editingUser) {
+      await updateUser({
+        pk: Number(editingUser.id),
+        data: {
+          username: userForm.username,
+          role: toApiRole(userForm.role), // ensure lowercase for API
+        },
+      }).unwrap();
+      toast.success('User updated');
+    } else {
+      await createUser({
+        username: userForm.username,
+        password: userForm.password,
+        role: toApiRole(userForm.role),   // ensure lowercase for API
+      }).unwrap();
+      toast.success('User created');
+    }
+    setIsUserModalOpen(false);
+  } catch (e: any) {
+    toast.error(e?.data?.message || 'Operation failed');
+  }
+};
 
+  const handleEdit = (row: TableRow) => {
+  setEditingUser(row);
+  setUserForm({
+    username: String(row.username ?? ''),
+    password: '',               // do not prefill; backend usually ignores on update
+    role: toApiRole(String(row.role ?? 'user')), // store api format in form
+  });
+  setIsUserModalOpen(true);
+};
+const handleDelete = async (row: TableRow) => {
+
+  try {
+    await deleteUser({ pk: Number(row.id) }).unwrap();
+    toast.success('User deleted');
+  } catch (e: any) {
+    toast.error(e?.data?.message || 'Delete failed');
+  }
+};
   // const handleEditUser = (user: TableRow) => {
   //   setEditingUser(user);
   //   setUserForm({
@@ -291,11 +294,7 @@ export default function Users() {
   //   }
   // };
 
-  const handleSaveUser = () => {
-    console.log(editingUser ? "Updating user:" : "Creating user:", userForm);
-    setIsUserModalOpen(false);
-    // Add save logic here
-  };
+
 
   const handleSaveUserLevel = () => {
     console.log(editingUserLevel ? "Updating user level:" : "Creating user level:", userLevelForm);
@@ -409,22 +408,30 @@ const groupedUsersByLevel = userLevelsData
 
           {/* Table */}
           <div>
-            <SharedTable
-              title={activeTab === 'users' ? 'Users' : 'User Levels'}
-              columns={activeTab === 'users' ? usersColumns : userLevelsColumns}
-              data={activeTab === 'users' ? filteredUsersData : filteredUserLevelsData}
-              maxHeight="600px"
+            {isLoading || isDeleting ? (
+              <div className="flex justify-center items-center h-64 bg-white rounded-lg">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">Loading transfers...</span>
+              </div>
+            ) : (
+              <SharedTable
+                title={activeTab === 'users' ? 'Users' : 'User Levels'}
+                columns={activeTab === 'users' ? usersColumns : userLevelsColumns}
+                data={activeTab === 'users' ? filteredUsersData : filteredUserLevelsData}
+                maxHeight="600px"
               className="shadow-lg"
-              showPagination={true}
-              currentPage={currentPage}
-              onPageChange={handlePageChange}
-              itemsPerPage={10}
-              showActions={true}
+              showPagination={false}
+              showActions={activeTab === "users" ? true : false}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
               showFooter={false}
               filterLabel={activeTab === 'userLevels' ? 'Add User Level' : undefined}
             />
+                  )}
+
           </div>
         </>
+        
       )}
 
       {/* Assignment Tab Content */}
@@ -538,28 +545,30 @@ Planning and Budgeting Department          </h3>
             />
           </div>
 
-          <div>
-            <label className="block text-xs  font-semibold  text-[#282828] mb-2">
-              Password 
-            </label>
-            <input
-              type="password"
-              value={userForm.password}
-              onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
-              className="w-full px-3 py-2 border border-[#E2E2E2] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter password"
-            />
-          </div>
+      {!editingUser && (
+  <div>
+    <label className="block text-xs  font-semibold  text-[#282828] mb-2">Password</label>
+    <input
+      type="password"
+      value={userForm.password}
+      onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
+      className="w-full px-3 py-2 border border-[#E2E2E2] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      placeholder="Enter password"
+    />
+  </div>
+)}
 
           <div>
-            <SharedSelect
-              title="Role"
-              options={roleOptions}
-              value={userForm.role}
-              onChange={(value) => setUserForm(prev => ({ ...prev, role: String(value) }))}
-              placeholder="Select role"
-              required
-            />
+       <SharedSelect
+  title="Role"
+  options={roleOptions} // has Admin/User labels
+  value={fromApiRole(userForm.role)} // show nice label
+  onChange={(value) =>
+    setUserForm(prev => ({ ...prev, role: toApiRole(String(value)) }))
+  }
+  placeholder="Select role"
+  required
+/>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
@@ -571,9 +580,15 @@ Planning and Budgeting Department          </h3>
             </button>
             <button
               onClick={handleSaveUser}
+              disabled={isCreating || isUpdating || !userForm.username.trim() || !userForm.role.trim() || (!editingUser && !userForm.password.trim())}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md hover:bg-blue-700 transition-colors"
             >
-              {editingUser ? 'Update User' : 'Add User'}
+               {(isCreating || isUpdating) && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              )}
+              {!isCreating && !isUpdating && (
+                <span>{editingUser ? 'Update User' : 'Add User'}</span>
+              )}
             </button>
           </div>
         </div>
