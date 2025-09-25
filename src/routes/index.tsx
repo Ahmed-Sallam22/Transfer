@@ -21,6 +21,7 @@ import Users from "@/pages/dashboard/Users";
 import Reports from "@/pages/dashboard/Reports";
 import AddWorkFlow from "@/pages/dashboard/AddWorkFlow";
 import WorkFlow from "@/pages/dashboard/WorkFlow";
+import Envelope from "@/pages/dashboard/Envelope";
 
 const SignIn = lazy(() => import("../pages/auth/SignIn"));
 const AppLayout = lazy(() => import("../components/layout/AppLayout"));
@@ -76,6 +77,7 @@ export default function AppRoutes() {
           <Route path="projects-overview" element={<ProjectsOverview />} />
           <Route path="accounts-projects" element={<AccountsProjects />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="envelope" element={<Envelope />} />
           <Route path="WorkFlow" element={<WorkFlow />} />
           <Route path="AddWorkFlow" element={<AddWorkFlow />} />
           <Route path="EditWorkFlow/:id" element={<AddWorkFlow />} />

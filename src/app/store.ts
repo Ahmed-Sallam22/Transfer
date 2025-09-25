@@ -12,6 +12,7 @@ import { balanceReportApi } from '../api/balanceReport.api';
 import { dashboardApi } from '../api/dashboard.api';
 import { adjdTransfersApi } from '../api/adjdTransfers.api';
 import { workflowApi } from '@/api/workflow.api';
+import { envelopeApi } from '../api/envelope.api';
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     [dashboardApi.reducerPath]: dashboardApi.reducer,
     [adjdTransfersApi.reducerPath]: adjdTransfersApi.reducer,
     [workflowApi.reducerPath]: workflowApi.reducer,
+    [envelopeApi.reducerPath]: envelopeApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -42,7 +44,8 @@ export const store = configureStore({
       balanceReportApi.middleware,
       dashboardApi.middleware,
       adjdTransfersApi.middleware,
-      workflowApi.middleware
+      workflowApi.middleware,
+      envelopeApi.middleware
     ),
 });
 
