@@ -11,6 +11,7 @@ import {
   type PendingTransferData 
 } from '@/api/pendingTransfer.api';
 import toast from 'react-hot-toast';
+import { useGetTransferStatusQuery } from '@/api/transfer.api';
 
 
 
@@ -88,6 +89,34 @@ export default function PendingTransfer() {
 
 
 
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [statusTransactionId, setStatusTransactionId] = useState<number | null>(null);
+   const { 
+      data: statusData, 
+      isLoading: isLoadingStatus,
+      error: statusError
+    } = useGetTransferStatusQuery(statusTransactionId!, {
+      skip: !statusTransactionId || !isStatusModalOpen
+    });
+  
+  const handleStatusClick = (row: TableRow) => {
+    const transactionId = Number(row.id);
+    // Clear any previous status data to prevent showing old data
+    setStatusTransactionId(null);
+    setIsStatusModalOpen(true);
+    // Set the transaction ID after modal is open to trigger fresh API call
+    setTimeout(() => {
+      setStatusTransactionId(transactionId);
+    }, 100);
+    console.log("Opening status pipeline for transaction:", transactionId);
+  };
+   const safeValue = (value: unknown, fallback: string = '-') => {
+    if (value === null || value === undefined || value === '') {
+      return fallback;
+    }
+    return String(value);
+  };
+
 // Table columns configuration
 const PendingTransferColumns: TableColumn[] = [
   {
@@ -118,19 +147,25 @@ const PendingTransferColumns: TableColumn[] = [
     accessor: 'status',
     width: 110,
     minWidth: 90,
-    render: (value) => {
-      const v = String(value).toLowerCase();
-      const cls = v === 'active' || v === 'approved'
-        ? 'bg-[#00A350] text-white'
-        : v === 'pending' || v === 'under approval'
-        ? 'bg-[#FFC043] text-white'
-        : 'bg-[#D44333] text-white';
-      return (
-        <span className={`px-2 py-1 rounded-lg text-sm font-medium cursor-pointer hover:opacity-80 transition ${cls}`}>
-          {String(value)}
+   render: (value, row) => (
+    
+        <span 
+          className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition ${
+            value === 'Approved' || value === 'approved' || value === 'active'
+              ? 'bg-green-100 text-green-800' 
+              : value === 'Pending' || value === 'pending'
+              ? 'bg-yellow-100 text-yellow-800'
+              : value === 'Rejected' || value === 'rejected'
+              ? 'bg-red-100 text-red-800'
+              : value === 'In Progress' || value === 'in_progress'
+              ? 'bg-blue-300 text-blue-800'
+              : 'bg-gray-100 text-gray-800'
+          }`}
+          onClick={() => handleStatusClick(row)}
+        >
+          {safeValue(value).charAt(0).toUpperCase() + safeValue(value).slice(1)}
         </span>
-      );
-    }
+      )
   },
   {
     id: 'transaction_date',
@@ -152,6 +187,7 @@ const PendingTransferColumns: TableColumn[] = [
     )
   },
 ];
+
 
 
 
@@ -430,6 +466,164 @@ const PendingTransferColumns: TableColumn[] = [
       </div>
     </SharedModal>
 
+    {/* Status Pipeline Modal */}
+    <SharedModal
+      isOpen={isStatusModalOpen}
+      onClose={() => {
+        setIsStatusModalOpen(false);
+        setStatusTransactionId(null); // Clear the transaction ID when closing
+      }}
+      title="Transfer Status Pipeline"
+      size="lg"
+    >
+      <div className="p-6">
+        {isLoadingStatus ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Loading status...</span>
+          </div>
+        ) : statusError ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-center">
+              <div className="text-red-500 text-lg mb-2">⚠️</div>
+              <p className="text-gray-600">Failed to load status</p>
+            </div>
+          </div>
+        ) : statusData ? (
+          <div className="space-y-6">
+          
+
+            {/* Approval Stages Pipeline */}
+            <div className="space-y-4">
+              <h4 className="text-md font-semibold text-gray-800 mb-4">Approval Stages</h4>
+              
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                
+                {statusData.stages?.map((stage) => (
+                  <div key={stage.order_index} className="relative flex items-start space-x-4 pb-8 last:pb-0">
+                    {/* Timeline dot */}
+                    <div className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full border-4 ${
+                      stage.status === 'approved' || stage.status === 'active'
+                        ? 'bg-green-500 border-green-200'
+                        : stage.status === 'pending'
+                        ? 'bg-yellow-500 border-yellow-200'
+                        : stage.status === 'rejected'
+                        ? 'bg-red-500 border-red-200'
+                        : 'bg-blue-500 border-blue-200'
+                    }`}>
+                      {stage.status === 'approved' || stage.status === 'active' ? (
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      ) : stage.status === 'pending' ? (
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      ) : stage.status === 'rejected' ? (
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                      <svg
+  className="w-6 h-6 text-white animate-spin"
+  viewBox="0 0 20 20"
+  fill="none"
+  role="status"
+  aria-label="In progress"
+>
+  {/* faint full ring */}
+  <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+  {/* leading arc */}
+  <path
+    d="M10 2 A 8 8 0 0 1 18 10"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+  />
+</svg>
+
+                      )}
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-white rounded-lg ">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="text-sm font-semibold text-gray-900">
+                            {stage.name}
+                          </h5>
+                          <span className="text-xs text-gray-500">
+                            Stage {stage.order_index}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <span>
+                            <span className="font-medium">Decision Policy:</span> {stage.decision_policy}
+                          </span>
+                      
+                        </div>
+                        
+                        {/* Stage Status Icon */}
+                        <div className="flex items-center mt-3 text-sm">
+                          {stage.status === 'approved' || stage.status === 'active' ? (
+                            <div className="flex items-center text-green-600">
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              <span className="font-medium">Approved</span>
+                            </div>
+                          ) : stage.status === 'pending' ? (
+                            <div className="flex items-center text-yellow-600">
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                              </svg>
+                              <span className="font-medium">Awaiting Approval</span>
+                            </div>
+                          ) : stage.status === 'rejected' ? (
+                            <div className="flex items-center text-red-600">
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                              <span className="font-medium">Rejected</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-blue-700">
+                              <div className="w-4 h-4 bg-blue-700 rounded-full mr-1"></div>
+                              <span className="font-medium">In Progress</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            <div className="text-gray-400 text-2xl mb-2">📋</div>
+            <p>No status information available</p>
+          </div>
+        )}
+        
+        {/* Close button */}
+        <div className="flex justify-end mt-6 pt-4  border-gray-200">
+          <button
+            onClick={() => {
+              setIsStatusModalOpen(false);
+              setStatusTransactionId(null); // Clear the transaction ID when closing
+            }}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </SharedModal>
     </div>
   )
 }

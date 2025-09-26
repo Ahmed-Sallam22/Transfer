@@ -3,7 +3,7 @@ import { SharedTable } from "@/shared/SharedTable";
 import type { TableColumn, TableRow } from "@/shared/SharedTable";
 import { SharedSelect } from "@/shared/SharedSelect";
 import type { SelectOption } from "@/shared/SharedSelect";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useGetBalanceReportQuery,
   type BalanceReportItem,
@@ -55,6 +55,7 @@ export default function Reports() {
   };
 
   // Transform API data to table format - no client-side filtering with server pagination
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const transformedData: TableRow[] =
     reportResponse?.data?.data?.map(
       (item: BalanceReportItem, index: number) => ({
@@ -296,7 +297,6 @@ export default function Reports() {
   // Event handlers
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
-    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleSearchSubmit = (text: string) => {
@@ -322,6 +322,56 @@ export default function Reports() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+// helpers (place above component return)
+const includesI = (hay: unknown, needle: string) =>
+  String(hay ?? '').toLowerCase().includes(needle.toLowerCase());
+
+// eslint-disable-next-line react-hooks/exhaustive-deps
+const numMatches = (n: unknown, q: string) => {
+  const v = Number(n);
+  if (Number.isNaN(v)) return false;
+  const raw = String(v);
+  const pretty = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(v);
+  return includesI(raw, q) || includesI(pretty, q);
+};
+
+const filteredData: TableRow[] = useMemo(() => {
+  const q = searchQuery.trim();
+  if (!q) return transformedData;
+
+  return transformedData.filter((r) => {
+    // text fields
+    const textHit =
+      includesI(r.control_budget_name, q) ||
+      includesI(r.ledger_name, q) ||
+      includesI(r.as_of_period, q) ||
+      includesI(r.segment1, q) ||
+      includesI(r.segment2, q) ||
+      includesI(r.segment3, q);
+
+    // numeric fields
+    const numHit =
+      numMatches(r.encumbrance_ytd, q) ||
+      numMatches(r.other_ytd, q) ||
+      numMatches(r.actual_ytd, q) ||
+      numMatches(r.funds_available_asof, q) ||
+      numMatches(r.budget_ytd, q) ||
+      numMatches(r.budget_adjustments, q) ||
+      numMatches(r.commitments, q) ||
+      numMatches(r.expenditures, q) ||
+      numMatches(r.initial_budget, q) ||
+      numMatches(r.obligations, q) ||
+      numMatches(r.other_consumption, q) ||
+      numMatches(r.total_budget, q) ||
+      numMatches(r.total_consumption, q);
+
+    return textHit || numHit;
+  });
+}, [numMatches, searchQuery, transformedData]);
+
 
   // Determine if we should show loading (initial load, refetching, or changing selection)
   const shouldShowLoading = isLoading || isFetching || isChangingSelection;
@@ -456,13 +506,12 @@ export default function Reports() {
           <SharedTable
             title="Balance Report"
             columns={reportColumns}
-            data={transformedData}
-            maxHeight="600px"
+ data={filteredData}   
+             maxHeight="600px"
+            
             className="shadow-lg"
             showPagination={false}
-            currentPage={currentPage}
-            onPageChange={handlePageChange}
-            itemsPerPage={itemsPerPage}
+         
             totalCount={
               reportResponse?.data?.total_records || reportResponse?.data?.count
             }

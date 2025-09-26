@@ -40,7 +40,6 @@ export const useLogout = () => {
       dispatch(reportsApi.util.resetApiState());
       dispatch(attachmentsApi.util.resetApiState());
       toast.success('Logged out successfully');
-      sessionStorage.setItem('postLoginRedirect', '/app'); // next login -> dashboard
 
       navigate('/auth/sign-in', { replace: true });
     }

@@ -311,9 +311,9 @@ export function SharedTable({
   );
 
   // Update visible columns when columns change
-  useEffect(() => {
-    setVisibleColumns(new Set(columns.map((col) => col.id)));
-  }, [columns]);
+  // useEffect(() => {
+  //   setVisibleColumns(new Set(columns.map((col) => col.id)));
+  // }, [columns]);
 
   // Click outside handler for column dropdown
   useEffect(() => {
