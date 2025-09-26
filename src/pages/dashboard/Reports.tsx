@@ -319,9 +319,9 @@ export default function Reports() {
     setTimeout(() => setIsChangingSelection(false), 100);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+  // const handlePageChange = (page: number) => {
+  //   setCurrentPage(page);
+  // };
 // helpers (place above component return)
 const includesI = (hay: unknown, needle: string) =>
   String(hay ?? '').toLowerCase().includes(needle.toLowerCase());
