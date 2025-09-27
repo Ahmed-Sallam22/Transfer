@@ -131,7 +131,7 @@ export default function AddWorkFlow() {
   // User level options from API
   const userLevelOptions: SelectOption[] =
     userLevelsData?.map((level) => ({
-      value: level.level_order,
+      value: level.id,
       label: `${level.name}`,
     })) || [];
 
