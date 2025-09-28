@@ -148,7 +148,9 @@ export interface SharedTableProps {
   hasPrevious?: boolean; // Whether there's a previous page
   // Action props
   showActions?: boolean;
+  transactions?: boolean; // Special mode for transactions
   onEdit?: (row: TableRow, index: number) => void;
+  onChat?: (row: TableRow, index: number) => void;
   onDelete?: (row: TableRow, index: number) => void;
   // Footer props
   showFooter?: boolean; // Add this property to enable footer
@@ -188,7 +190,10 @@ export function SharedTable({
   hasNext,
   hasPrevious,
   showActions = false,
+  transactions = false,
+
   onEdit,
+  onChat,
   onDelete,
   showFooter = false,
   onSave,
@@ -390,6 +395,11 @@ export function SharedTable({
       onEdit(row, index);
     }
   };
+  const handleChat = (row: TableRow, index: number) => {
+    if (onChat) {
+      onChat(row, index);
+    }
+  };
 
   const handleDeleteClick = (row: TableRow, index: number) => {
     setDeleteItem({ row, index });
@@ -541,7 +551,9 @@ export function SharedTable({
   const canGoPrevious = isServerSidePagination ? hasPrevious : currentPage > 1;
   const canGoNext = isServerSidePagination ? hasNext : currentPage < totalPages;
   const canGoLast = isServerSidePagination ? hasNext : currentPage < totalPages;
-
+const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+<svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g clip-path="url(#clip0_15_90)"> <rect width="24" height="24" fill="transparent"></rect> <path d="M20 12C20 16.4183 16.4183 20 12 20C10.5937 20 9.27223 19.6372 8.12398 19C7.53267 18.6719 4.48731 20.4615 3.99998 20C3.44096 19.4706 5.4583 16.6708 5.07024 16C4.38956 14.8233 3.99999 13.4571 3.99999 12C3.99999 7.58172 7.58171 4 12 4C16.4183 4 20 7.58172 20 12Z" stroke="#757575" stroke-linejoin="round"></path> </g> <defs> <clipPath id="clip0_15_90"> <rect width="24" height="24" fill="#757575"></rect> </clipPath> </defs> </g></svg>
+);
   return (
     <>
       <div
@@ -802,6 +814,18 @@ export function SharedTable({
                           {!pending ? (
                             // Default mode: Edit and Delete buttons
                             <div className="flex items-center justify-center gap-2">
+                              {transactions && (
+                                    <button
+                                onClick={() =>
+                                  handleChat(row, globalIndex)
+                                }
+                                className="p-1.5   hover:bg-green-200    border rounded-full border-[#EEEEEE] cursor-pointer  transition-colors"
+                                title="Chat"
+                              >
+                                 <ChatIcon />
+                              </button>
+                               
+                              )}
                               <button
                                 onClick={() => handleEdit(row, globalIndex)}
                                 className="p-1.5  hover:bg-blue-200 border rounded-full border-[#EEEEEE] cursor-pointer hover:text-blue-700 transition-colors"
@@ -876,6 +900,7 @@ export function SharedTable({
                                   />
                                 </svg>
                               </button>
+                          
                             </div>
                           ) : (
                             // Pending mode: Approve, Reject, and Delete buttons
@@ -904,6 +929,19 @@ export function SharedTable({
                                   />
                                 </svg>
                               </button>
+                             
+                                  {transactions && (
+                                    <button
+                                onClick={() =>
+                                  handleChat(row, globalIndex)
+                                }
+                                className="p-1.5   hover:bg-green-200    border rounded-full border-[#EEEEEE] cursor-pointer  transition-colors"
+                                title="Chat"
+                              >
+                                 <ChatIcon />
+                              </button>
+                               
+                              )}
                               <button
                                 onClick={() => handleApprove(row, globalIndex)}
                                 className="p-1.5 hover:bg-green-200 border rounded-full border-[#EEEEEE] cursor-pointer hover:text-green-700 transition-colors"

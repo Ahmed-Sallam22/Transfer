@@ -15,6 +15,7 @@ import { workflowApi } from '@/api/workflow.api';
 import { envelopeApi } from '../api/envelope.api';
 import { userApi } from '@/api/user.api';
 import { levelApi } from '@/api/level.api';
+import { chatApi } from '@/api/chatApi';
 
 export const store = configureStore({
   reducer: {
@@ -34,6 +35,7 @@ export const store = configureStore({
     [envelopeApi.reducerPath]: envelopeApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
     [levelApi.reducerPath]: levelApi.reducer,
+    [chatApi.reducerPath]: chatApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -51,7 +53,8 @@ export const store = configureStore({
       workflowApi.middleware,
       envelopeApi.middleware,
       userApi.middleware,
-      levelApi.middleware
+      levelApi.middleware,
+      chatApi.middleware,
     ),
 });
 

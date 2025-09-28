@@ -565,6 +565,10 @@ export default function Transfer() {
     { value: 'Nov', label: 'November' },
     { value: 'Dec', label: 'December' }
   ];
+const handleChat = (row: TableRow) => {
+  // Navigate to chat page with transaction/request ID
+  navigate(`/app/chat/${row.id}`);
+}
 
   return (
     <div>
@@ -625,6 +629,7 @@ export default function Transfer() {
           maxHeight="600px"
           className="shadow-lg"
           showPagination={true}
+          transactions={true}
           currentPage={currentPage}
           onPageChange={handlePageChange}
           itemsPerPage={10}
@@ -634,6 +639,7 @@ export default function Transfer() {
           showActions={true}
           showFooter={true}
           onEdit={handleEdit}
+          onChat={handleChat}
           onDelete={handleDelete}
           onFilter={handleFilter}
           filterLabel="Filter Transfers"
