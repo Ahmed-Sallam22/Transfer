@@ -272,7 +272,10 @@ const PendingTransferColumns: TableColumn[] = [
     setSelectedRow(null);
   };
 
-
+const handleChat = (row: TableRow) => {
+  // Navigate to chat page with transaction/request ID
+  navigate(`/app/chat/${row.id}`, { state: { txCode: row.code } });
+}
 
  
   return (
@@ -355,6 +358,8 @@ const PendingTransferColumns: TableColumn[] = [
           onApprove={handleApprove}
           onReject={handleReject}
           onView={handleView}
+            transactions={true}
+          onChat={handleChat}
           showFooter={true}
         />
       )}

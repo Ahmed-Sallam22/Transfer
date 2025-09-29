@@ -277,7 +277,11 @@ const PendingTransferColumns: TableColumn[] = [
 
 
 
- 
+ const handleChat = (row: TableRow) => {
+  // Navigate to chat page with transaction/request ID
+  navigate(`/app/chat/${row.id}`, { state: { txCode: row.code } });
+}
+
   return (
     <div>
         <div className='flex justify-between items-center'>
@@ -359,6 +363,8 @@ const PendingTransferColumns: TableColumn[] = [
           onReject={handleReject}
           onView={handleView}
           showFooter={true}
+            transactions={true}
+          onChat={handleChat}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   SharedTable,
   type TableColumn,
@@ -122,11 +122,11 @@ export default function TransferDetails() {
         accountName:
           transfer.account_name && transfer.account_name.trim() !== ""
             ? transfer.account_name
-            : transfer.account_code.toString(),
+            : transfer.account_name.toString(),
         projectName:
           transfer.project_name && transfer.project_name.trim() !== ""
             ? transfer.project_name
-            : transfer.project_code,
+            : transfer.project_name,
         accountCode: transfer.account_code.toString(),
         projectCode: transfer.project_code,
         approvedBudget: parseFloat(transfer.approved_budget),
@@ -134,7 +134,7 @@ export default function TransferDetails() {
         costCenterName:
           transfer.cost_center_name && transfer.cost_center_name.trim() !== ""
             ? transfer.cost_center_name
-            : transfer.cost_center_code.toString(),
+            : transfer.cost_center_name.toString(),
         other_ytd: 0,
         period: apiData?.summary.period || "",
         validation_errors: transfer.validation_errors,
@@ -151,10 +151,21 @@ export default function TransferDetails() {
       setEditedRows([createDefaultRow()]);
     }
   }, [apiData]);
+const sameLine = (a: TransferTableRow, b: TransferTableRow) =>
+  (a.costCenterCode || "") === (b.costCenterCode || "") &&
+  (a.accountCode || "") === (b.accountCode || "") &&
+  (a.projectCode || "") === (b.projectCode || "") &&
+  Number(a.to || 0) === Number(b.to || 0) &&
+  Number(a.from || 0) === Number(b.from || 0);
 
   // Combine edited API rows with local rows for display
-  const rows = [...editedRows, ...localRows];
-  useEffect(() => {
+const rows = useMemo(() => {
+  // Show API rows, plus only the local rows that don’t match any API row
+  const prunedLocal = localRows.filter(
+    (lr) => !editedRows.some((er) => sameLine(er, lr))
+  );
+  return [...editedRows, ...prunedLocal];
+}, [editedRows, localRows]);  useEffect(() => {
     const savedLocalRows = localStorage.getItem(`localRows_${transactionId}`);
     if (savedLocalRows) {
       try {
@@ -180,85 +191,80 @@ export default function TransferDetails() {
     }
   }, [localRows, transactionId]);
 
-  // Cleanup function to remove empty rows from localStorage when leaving the page
-  useEffect(() => {
-    const cleanupEmptyRows = () => {
-      // Filter out empty rows (rows with no meaningful data)
-      const nonEmptyRows = localRows.filter(
-        (row) =>
-          row.costCenterCode !== "" ||
-          row.accountCode !== "" ||
-          row.projectCode !== "" ||
-          row.to > 0 ||
-          row.from > 0
-      );
+useEffect(() => {
+  const cleanupEmptyRows = () => {
+    const nonEmptyRows = localRows.filter(isNonEmpty);
+    if (nonEmptyRows.length > 0) {
+      localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(nonEmptyRows));
+    } else {
+      localStorage.removeItem(`localRows_${transactionId}`);
+    }
+  };
+  const handleBeforeUnload = () => cleanupEmptyRows();
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  return () => {
+    cleanupEmptyRows();
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [localRows, transactionId]);
 
-      // Update localStorage with only non-empty rows
-      if (nonEmptyRows.length > 0) {
-        localStorage.setItem(
-          `localRows_${transactionId}`,
-          JSON.stringify(nonEmptyRows)
-        );
-      } else {
-        localStorage.removeItem(`localRows_${transactionId}`);
-      }
+type Option = { value: string; label: string; name: string };
 
-      console.log("Cleaned up empty rows from localStorage");
-    };
+const toOptions = (arr: Array<string | { code: string; name?: string }>): Option[] =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  arr.map((x: any) =>
+    typeof x === "string"
+      ? { value: x, label: x, name: x }
+      : { value: String(x.code), label: String(x.code), name: x.name ?? String(x.code) }
+  );
 
-    // Handle page refresh, browser close, or navigation away
-    const handleBeforeUnload = () => {
-      cleanupEmptyRows();
-    };
+const dedupeByValue = (opts: Option[]) =>
+  Array.from(new Map(opts.map(o => [o.value, o])).values());
 
-    // Add event listener for page unload
-    window.addEventListener("beforeunload", handleBeforeUnload);
+const accountOptions: Option[] = (() => {
+  if (balanceReportData?.data?.Account?.length) {
+    return toOptions(balanceReportData.data.Account);
+  }
+  if (apiData?.transfers?.length) {
+    const opts = apiData.transfers.map(t => ({
+      value: String(t.account_code),
+      label: String(t.account_code),              // show CODE in the Select
+      name: t.account_name?.trim() || String(t.account_code), // store friendly name
+    }));
+    return dedupeByValue(opts);
+  }
+  return [];
+})();
 
-    // Cleanup when component unmounts (user leaves the page)
-    return () => {
-      cleanupEmptyRows();
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [localRows, transactionId]);
+const projectOptions: Option[] = (() => {
+  if (balanceReportData?.data?.Project?.length) {
+    return toOptions(balanceReportData.data.Project);
+  }
+  if (apiData?.transfers?.length) {
+    const opts = apiData.transfers.map(t => ({
+      value: t.project_code,
+      label: t.project_code,
+      name: t.project_name?.trim() || t.project_code,
+    }));
+    return dedupeByValue(opts);
+  }
+  return [];
+})();
 
-  // Get unique account codes, project codes, and cost center codes from the balance report API
-  const accountCodes =
-    balanceReportData?.data?.Account &&
-    balanceReportData.data.Account.length > 0
-      ? balanceReportData.data.Account
-      : apiData?.transfers && apiData.transfers.length > 0
-      ? Array.from(
-          new Set(
-            apiData.transfers.map((transfer) =>
-              transfer.account_code.toString()
-            )
-          )
-        )
-      : [""];
-
-  const projectCodes =
-    balanceReportData?.data?.Project &&
-    balanceReportData.data.Project.length > 0
-      ? balanceReportData.data.Project
-      : apiData?.transfers && apiData.transfers.length > 0
-      ? Array.from(
-          new Set(apiData.transfers.map((transfer) => transfer.project_code))
-        )
-      : [""];
-
-  const costCenterCodes =
-    balanceReportData?.data?.Cost_Center &&
-    balanceReportData.data.Cost_Center.length > 0
-      ? balanceReportData.data.Cost_Center
-      : apiData?.transfers && apiData.transfers.length > 0
-      ? Array.from(
-          new Set(
-            apiData.transfers.map((transfer) =>
-              transfer.cost_center_code.toString()
-            )
-          )
-        )
-      : [""];
+const costCenterOptions: Option[] = (() => {
+  if (balanceReportData?.data?.Cost_Center?.length) {
+    return toOptions(balanceReportData.data.Cost_Center);
+  }
+  if (apiData?.transfers?.length) {
+    const opts = apiData.transfers.map(t => ({
+      value: String(t.cost_center_code),
+      label: String(t.cost_center_code),
+      name: t.cost_center_name?.trim() || String(t.cost_center_code),
+    }));
+    return dedupeByValue(opts);
+  }
+  return [];
+})();
 
   // Create a default row for when there's no data
   const createDefaultRow = (): TransferTableRow => ({
@@ -278,6 +284,12 @@ export default function TransferDetails() {
     other_ytd: 0,
     period: "",
     validation_errors: [], // Explicitly set as empty array (no errors)
+    budget_adjustments: "0",
+    commitments: "0",
+    expenditures: "0",
+    initial_budget: "0",
+    obligations: "0",
+    other_consumption: "0",
   });
 
   // Set submission status based on API status
@@ -339,90 +351,102 @@ export default function TransferDetails() {
   const shouldShowPagination = rows.length > 10;
 
   const handleBack = () => {
-    navigate("/app/FundAdjustments");
+    navigate("/app/transfer");
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      // Filter out empty rows before saving
-      const nonEmptyEditedRows = editedRows.filter(
-        (row) =>
-          row.costCenterCode !== "" ||
-          row.accountCode !== "" ||
-          row.projectCode !== "" ||
-          row.to > 0 ||
-          row.from > 0
-      );
+  const [pendingSavedLocalIds, setPendingSavedLocalIds] = useState<string[]>([]);
+const [awaitingSync, setAwaitingSync] = useState(false);
+const isNonEmpty = (row: TransferTableRow) =>
+  row.costCenterCode !== "" ||
+  row.accountCode !== "" ||
+  row.projectCode !== "" ||
+  row.to > 0 ||
+  row.from > 0;
 
-      const nonEmptyLocalRows = localRows.filter(
-        (row) =>
-          row.costCenterCode !== "" ||
-          row.accountCode !== "" ||
-          row.projectCode !== "" ||
-          row.to > 0 ||
-          row.from > 0
-      );
 
-      // Combine all non-empty rows: edited API rows + local rows
-      const allRows = [...nonEmptyEditedRows, ...nonEmptyLocalRows];
+const handleSave = async () => {
+  setIsSaving(true);
+  try {
+    const nonEmptyEditedRows = editedRows.filter(isNonEmpty);
+    const nonEmptyLocalRows  = localRows.filter(isNonEmpty);
 
-      // Transform table rows to API transfer data format with business logic
-      const transfersToSave: CreateTransferData[] = allRows.map((row) => {
-        let fromCenter = row.from || 0;
-        let toCenter = row.to || 0;
+    const allRows = [...nonEmptyEditedRows, ...nonEmptyLocalRows];
 
-        // Business logic: Handle from_center and to_center mutual exclusivity
-        // If user writes any number in from, to must be 0
-        // If user writes any number in to, from must be 0
-        if (fromCenter > 0) {
-          toCenter = 0; // If from_center has a number, set to_center to 0
-        } else if (toCenter > 0) {
-          fromCenter = 0; // If to_center has a number, set from_center to 0
-        }
+    const transfersToSave: CreateTransferData[] = allRows.map((row) => {
+      let fromCenter = row.from || 0;
+      let toCenter   = row.to   || 0;
+      if (fromCenter > 0) toCenter = 0;
+      else if (toCenter > 0) fromCenter = 0;
 
-        return {
-          transaction: parseInt(transactionId),
-          cost_center_code: row.costCenterCode || "",
-          cost_center_name: row.costCenterName || "",
-          account_code: row.accountCode || "",
-          account_name: row.accountName || "",
-          project_code: row.projectCode || "-",
-          project_name: row.projectName || "-",
-          approved_budget: row.approvedBudget || 0,
-          available_budget: row.availableBudget || 0,
-          to_center: toCenter,
-          encumbrance: row.encumbrance || 0,
-          actual: row.actual || 0,
-          done: 1,
-          from_center: fromCenter,
-        };
-      });
+      return {
+        transaction: parseInt(transactionId),
+        cost_center_code: row.costCenterCode || "",
+        cost_center_name: row.costCenterName || "",
+        account_code: row.accountCode || "",
+        account_name: row.accountName || "",
+        project_code: row.projectCode || "-",
+        project_name: row.projectName || "-",
+        approved_budget: row.approvedBudget || 0,
+        available_budget: row.availableBudget || 0,
+        to_center: toCenter,
+        encumbrance: row.encumbrance || 0,
+        actual: row.actual || 0,
+        done: 1,
+        from_center: fromCenter,
+      };
+    });
 
-      // Save to API
-      const result = await createTransfer(transfersToSave).unwrap();
-      console.log("Transfers saved successfully:", transfersToSave);
-      console.log("API Response:", result);
+    // Save
+    await createTransfer(transfersToSave).unwrap();
 
-      // Refetch transfer details after save to update the table
-      store.dispatch(
-        transferDetailsApi.util.invalidateTags(["TransferDetails"])
-      );
+    // ✅ Immediately remove only the local rows that were saved
+    // const savedLocalIds = nonEmptyLocalRows.map((r) => r.id);
+    // setLocalRows((prev) => {
+    //   const next = prev.filter((r) => !savedLocalIds.includes(r.id));
+    //   if (next.length > 0) {
+    //     localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(next));
+    //   } else {
+    //     localStorage.removeItem(`localRows_${transactionId}`);
+    //   }
+    //   return next;
+    // });
 
-      // Clear localStorage only after successful save
+    // Ask RTK to refetch API rows
+    store.dispatch(transferDetailsApi.util.invalidateTags(["TransferDetails"]));
+
+    toast.success("Transfers saved successfully!");
+  } catch (err) {
+    console.error("Error saving transfers:", err);
+    toast.error("Error saving transfers. Please try again.");
+    // (no local deletion on error)
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+useEffect(() => {
+  if (!awaitingSync) return;
+  if (!apiData?.transfers) return;
+
+  // We assume the refetch has brought back the rows we just created.
+  // Remove only the local rows that were part of this save.
+  setLocalRows((prev) => {
+    const next = prev.filter((r) => !pendingSavedLocalIds.includes(r.id));
+    // Update localStorage accordingly
+    if (next.length > 0) {
+      localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(next));
+    } else {
       localStorage.removeItem(`localRows_${transactionId}`);
-      setLocalRows([]);
-
-      // Show success toast
-      toast.success("Transfers saved successfully!");
-    } catch (error) {
-      console.error("Error saving transfers:", error);
-      // Show error toast
-      toast.error("Error saving transfers. Please try again.");
-    } finally {
-      setIsSaving(false);
     }
-  };
+    return next;
+  });
+
+  // done syncing
+  setPendingSavedLocalIds([]);
+  setAwaitingSync(false);
+}, [apiData, awaitingSync, pendingSavedLocalIds, transactionId]);
+
+
 
   // Check if submit should be disabled
   const isSubmitDisabled = () => {
@@ -566,6 +590,12 @@ export default function TransferDetails() {
       other_ytd: 0,
       period: "",
       validation_errors: [], // Explicitly set as empty array (no errors)
+      budget_adjustments: "0",
+      commitments: "0",
+      expenditures: "0",
+      initial_budget: "0",
+      obligations: "0",
+      other_consumption: "0",
     };
 
     setLocalRows((prevRows) => {
@@ -974,56 +1004,184 @@ export default function TransferDetails() {
         );
       },
     },
+    
     {
-      id: "to",
-      header: "To",
-      showSum: true,
+      id: "costCenterCode",
+      header: "Legal Entity",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-
         return isSubmitted ? (
-          <span className={`text-sm text-gray-900 `}>
-            {formatNumber(transferRow.to)}
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterCode}
           </span>
         ) : (
-          <input
-            type="number"
-            value={transferRow.to || ""}
-            onChange={(e) =>
-              updateRow(transferRow.id, "to", Number(e.target.value) || 0)
-            }
-            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
-            placeholder="To"
+          <Select
+           value={costCenterOptions.find(o => o.value === transferRow.costCenterCode) ?? null}
+  onChange={(opt) => {
+    updateRow(transferRow.id, "costCenterCode", opt?.value || "");
+    if (opt) updateRow(transferRow.id, "costCenterName", opt.name);
+  }}
+            options={costCenterOptions}
+            placeholder="Select Legal"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
           />
         );
       },
     },
     {
-      id: "from",
-      header: "From",
-      showSum: true,
+      id: "accountCode",
+      header: "Account",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-
         return isSubmitted ? (
-          <span className={`text-sm text-gray-900 `}>
-            {formatNumber(transferRow.from)}
+          <span className="text-sm text-gray-900">
+            {transferRow.accountCode}
           </span>
         ) : (
-          <input
-            type="number"
-            value={transferRow.from || ""}
-            onChange={(e) =>
-              updateRow(transferRow.id, "from", Number(e.target.value) || 0)
-            }
-            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
-            placeholder="From"
+          <Select
+            value={accountOptions.find(o => o.value === transferRow.accountCode) ?? null}
+            onChange={(opt) => {
+              updateRow(transferRow.id, "accountCode", opt?.value || "");
+              if (opt) updateRow(transferRow.id, "accountName", opt.name);
+            }}
+            options={accountOptions}
+            placeholder="Select account"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
           />
         );
       },
     },
+
+    {
+      id: "projectCode",
+      header: "Project",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return isSubmitted ? (
+          <span className="text-sm text-gray-900">
+            {transferRow.projectCode}
+          </span>
+        ) : (
+          <Select
+            value={projectOptions.find(o => o.value === transferRow.projectCode) ?? null}
+            onChange={(opt) => {
+              updateRow(transferRow.id, "projectCode", opt?.value || "");
+              if (opt) updateRow(transferRow.id, "projectName", opt.name);
+            }}
+            options={projectOptions}
+            placeholder="Select project"
+            isSearchable
+            isClearable
+            className="w-full"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                border: "1px solid #E2E2E2",
+                borderRadius: "6px",
+                minHeight: "38px",
+                fontSize: "12px",
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+              menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+              }),
+            }}
+            menuPortalTarget={document.body}
+          />
+        );
+      },
+    },
+      {
+      id: "costCenterName",
+      header: "Legal Entity",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.costCenterName}
+          </span>
+        );
+      },
+    },
+    {
+      id: "accountName",
+      header: "Account ",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.accountName}
+          </span>
+        );
+      },
+    },
+    {
+      id: "projectName",
+      header: "Project ",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.projectName}
+          </span>
+        );
+      },
+    },
+
+ 
     {
       id: "encumbrance",
       header: "Encumbrance",
@@ -1178,205 +1336,52 @@ export default function TransferDetails() {
         );
       },
     },
-    {
-      id: "costCenterName",
-      header: "Legal Entity",
+     {
+      id: "to",
+      header: "To",
+      showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
-        return (
-          <span className="text-sm text-gray-900">
-            {transferRow.costCenterName}
-          </span>
-        );
-      },
-    },
-    {
-      id: "accountName",
-      header: "Account ",
 
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return (
-          <span className="text-sm text-gray-900">
-            {transferRow.accountName}
-          </span>
-        );
-      },
-    },
-    {
-      id: "projectName",
-      header: "Project ",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return (
-          <span className="text-sm text-gray-900">
-            {transferRow.projectName}
-          </span>
-        );
-      },
-    },
-
-    {
-      id: "costCenterCode",
-      header: "Legal Entity",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
         return isSubmitted ? (
-          <span className="text-sm text-gray-900">
-            {transferRow.costCenterCode}
+          <span className={`text-sm text-gray-900 `}>
+            {formatNumber(transferRow.to)}
           </span>
         ) : (
-          <Select
-            value={
-              transferRow.costCenterCode
-                ? {
-                    value: transferRow.costCenterCode,
-                    label: transferRow.costCenterCode,
-                  }
-                : null
+          <input
+            type="number"
+            value={transferRow.to || ""}
+            onChange={(e) =>
+              updateRow(transferRow.id, "to", Number(e.target.value) || 0)
             }
-            onChange={(option) =>
-              updateRow(transferRow.id, "costCenterCode", option?.value || "")
-            }
-            options={costCenterCodes.map((code) => ({
-              value: code,
-              label: code,
-            }))}
-            placeholder="Select Legal"
-            isSearchable
-            isClearable
-            className="w-full"
-            classNamePrefix="react-select"
-            styles={{
-              control: (base) => ({
-                ...base,
-                border: "1px solid #E2E2E2",
-                borderRadius: "6px",
-                minHeight: "38px",
-                fontSize: "12px",
-              }),
-              menu: (base) => ({
-                ...base,
-                zIndex: 9999,
-              }),
-              menuPortal: (base) => ({
-                ...base,
-                zIndex: 9999,
-              }),
-            }}
-            menuPortalTarget={document.body}
+            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
+            placeholder="To"
           />
         );
       },
     },
     {
-      id: "accountCode",
-      header: "Account",
+      id: "from",
+      header: "From",
+      showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
+
         return isSubmitted ? (
-          <span className="text-sm text-gray-900">
-            {transferRow.accountCode}
+          <span className={`text-sm text-gray-900 `}>
+            {formatNumber(transferRow.from)}
           </span>
         ) : (
-          <Select
-            value={
-              transferRow.accountCode
-                ? {
-                    value: transferRow.accountCode,
-                    label: transferRow.accountCode,
-                  }
-                : null
+          <input
+            type="number"
+            value={transferRow.from || ""}
+            onChange={(e) =>
+              updateRow(transferRow.id, "from", Number(e.target.value) || 0)
             }
-            onChange={(option) =>
-              updateRow(transferRow.id, "accountCode", option?.value || "")
-            }
-            options={accountCodes.map((code) => ({
-              value: code,
-              label: code,
-            }))}
-            placeholder="Select account"
-            isSearchable
-            isClearable
-            className="w-full"
-            classNamePrefix="react-select"
-            styles={{
-              control: (base) => ({
-                ...base,
-                border: "1px solid #E2E2E2",
-                borderRadius: "6px",
-                minHeight: "38px",
-                fontSize: "12px",
-              }),
-              menu: (base) => ({
-                ...base,
-                zIndex: 9999,
-              }),
-              menuPortal: (base) => ({
-                ...base,
-                zIndex: 9999,
-              }),
-            }}
-            menuPortalTarget={document.body}
-          />
-        );
-      },
-    },
-
-    {
-      id: "projectCode",
-      header: "Project",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return isSubmitted ? (
-          <span className="text-sm text-gray-900">
-            {transferRow.projectCode}
-          </span>
-        ) : (
-          <Select
-            value={
-              transferRow.projectCode
-                ? {
-                    value: transferRow.projectCode,
-                    label: transferRow.projectCode,
-                  }
-                : null
-            }
-            onChange={(option) =>
-              updateRow(transferRow.id, "projectCode", option?.value || "")
-            }
-            options={projectCodes.map((code) => ({
-              value: code,
-              label: code,
-            }))}
-            placeholder="Select project"
-            isSearchable
-            isClearable
-            className="w-full"
-            classNamePrefix="react-select"
-            styles={{
-              control: (base) => ({
-                ...base,
-                border: "1px solid #E2E2E2",
-                borderRadius: "6px",
-                minHeight: "38px",
-                fontSize: "12px",
-              }),
-              menu: (base) => ({
-                ...base,
-                zIndex: 9999,
-              }),
-              menuPortal: (base) => ({
-                ...base,
-                zIndex: 9999,
-              }),
-            }}
-            menuPortalTarget={document.body}
+            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
+            placeholder="From"
           />
         );
       },

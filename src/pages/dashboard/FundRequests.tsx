@@ -564,6 +564,11 @@ export default function FundRequests() {
     { value: 'Nov', label: 'November' },
     { value: 'Dec', label: 'December' }
   ];
+  const handleChat = (row: TableRow) => {
+  // Navigate to chat page with transaction/request ID
+  navigate(`/app/chat/${row.id}`, { state: { txCode: row.code } });
+}
+
 
   return (
     <div>
@@ -632,7 +637,8 @@ export default function FundRequests() {
           hasPrevious={!!FundAdjumentsResponse?.previous}
           showActions={true}
           showFooter={true}
-          onEdit={handleEdit}
+          onEdit={handleEdit}  transactions={true}
+          onChat={handleChat}
           onDelete={handleDelete}
           onFilter={handleFilter}
           filterLabel="Filter Fund Adjuments"

@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import { useState } from 'react';
 import Sidebar from '@/shared/Sidebar';
 import DashboardHeader from '@/shared/DashboardHeader';
+import ChatBot from '@/pages/dashboard/ChatBot';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);      // mobile/tablet overlay
@@ -79,7 +80,11 @@ export default function AppLayout() {
             </div>
           </div>
         </main>
+      
       </div>
+        <div className='absolute bottom-4 right-4'>
+          <ChatBot></ChatBot>
+        </div>
     </div>
   );
 }

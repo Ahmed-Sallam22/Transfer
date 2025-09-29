@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import {
   useGetParticipantsByTransactionQuery,
@@ -27,7 +27,8 @@ export default function Chat({
   const params = useParams();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const composeInputRef = useRef<HTMLInputElement | null>(null); // NEW
-
+const location = useLocation();
+const transactionCode = (location.state as { txCode?: string })?.txCode || "";
   // Modal state (NEW)
   const [showNewChat, setShowNewChat] = useState(false);
   const [userSearch, setUserSearch] = useState("");
@@ -46,8 +47,6 @@ export default function Chat({
   const {
     data: participantsData,
     isLoading: participantsLoading,
-    isError: participantsError,
-    error: participantsErrorObj,
   } = useGetParticipantsByTransactionQuery(
     { transactionId },
     { skip: !transactionId }
@@ -88,8 +87,7 @@ export default function Chat({
   const {
     data: threadData,
     isFetching: threadFetching,
-    isError: threadError,
-    error: threadErrorObj,
+
   } = useGetThreadInfiniteQuery(
     {
       transactionId: transactionId as string | number,
@@ -264,11 +262,35 @@ const selectedUserName = useMemo(() => {
 }, [selectedParticipant?.username, selectedUserFromAll?.username, selectedUserId]);
 
 
+const messagesAsc = useMemo<ThreadMessage[]>(
+  () =>
+    [...(messages ?? [])].sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    ),
+  [messages]
+);
+const prevHeightRef = useRef(0);
+
+function handleLoadOlder() {
+  if (scrollRef.current) prevHeightRef.current = scrollRef.current.scrollHeight;
+  setPage((p) => p + 1);
+}
+
+// After messages change and fetch finishes, adjust scroll by the delta height
+useEffect(() => {
+  if (!threadFetching && prevHeightRef.current && scrollRef.current) {
+    const el = scrollRef.current;
+    const delta = el.scrollHeight - prevHeightRef.current;
+    el.scrollTop = el.scrollTop + delta; // maintain viewport
+    prevHeightRef.current = 0;
+  }
+}, [messagesAsc.length, threadFetching]);
   return (
     <div className="flex h-[85vh] bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
       {/* Left Sidebar: Participants */}
       <div className="w-1/3 bg-gray-50 border-r border-gray-200">
-        <div className="p-6 border-b border-gray-200 bg-white flex items-center justify-between">
+        <div className="p-5 border-b border-gray-200 bg-white flex items-center justify-between">
           <h2 className="font-bold text-xl text-gray-800">Conversations</h2>
           {/* + button (NEW) */}
           <button
@@ -281,11 +303,7 @@ const selectedUserName = useMemo(() => {
         </div>
 
         <div className="p-4 space-y-1 overflow-y-auto max-h-[calc(100%-5rem)]">
-          {participantsError && (
-            <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
-              {String((participantsErrorObj as any)?.data?.detail || "Failed to load participants")}
-            </div>
-          )}
+        
 
           {(!participantsLoading && participants.length === 0) && (
             <div className="p-8 text-center">
@@ -310,11 +328,7 @@ const selectedUserName = useMemo(() => {
                 onClick={() => handleSelectParticipant(p)}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${
-                    isActive ? "bg-white/20 text-white" : "bg-blue-500 text-white"
-                  }`}>
-                    {(p.username )}
-                  </div>
+                 
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
@@ -350,162 +364,169 @@ const selectedUserName = useMemo(() => {
       <div className="w-2/3 flex flex-col bg-white">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center  justify-between">
             <div className="flex items-center gap-4">
-              {selectedParticipant && (
-                <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold text-sm">
-                  {(selectedParticipant.username )}
-                </div>
-              )}
+          
               <div>
+                <div className=" flex items-center  w-full gap-2 justify-between">
+<div>
+
                 <h2 className="font-bold text-xl text-gray-900">
                   {selectedUserId ? selectedUserName : "Select a conversation"}
                 </h2>
+                </div>
+
+
+
+                </div>
+
                 {threadFetching && (
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 ">
                     <span className="text-xs text-blue-600 font-medium">Syncing messages…</span>
                   </div>
                 )}
               </div>
             </div>
+            <div>
+
+                {transactionCode && (
+  <div className="text-md text-gray-500 mt-1">
+    Transaction: {transactionCode}
+  </div>
+)}
+</div>
           </div>
         </div>
 
         {/* Messages Area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-          {hasMore && (
-            <div className="text-center">
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                className="px-6 py-2 bg-white rounded-full border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all duration-200 text-sm font-medium text-gray-700 disabled:opacity-50"
-                disabled={threadFetching}
-              >
-                {threadFetching ? "Loading older messages" : "Load older messages"}
-              </button>
-            </div>
-          )}
+     {/* Messages Area */}
+<div ref={scrollRef} className="flex-1 overflow-y-auto p-0 bg-gray-50">
+  {/* Inner flex column that keeps content anchored to the bottom */}
+  <div className="min-h-full flex flex-col justify-end p-6 space-y-4">
+    {/* Load older button stays above the messages (like WhatsApp) */}
+    {hasMore && (
+      <div className="text-center">
+   <button onClick={() => handleLoadOlder()} className="px-6 py-2 ...">
+          {threadFetching ? "Loading older messages" : "Load older messages"}
+        </button>
+      </div>
+    )}
 
-          {threadError && (
-            <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
-              {String((threadErrorObj as any)?.data?.detail || "Failed to load messages")}
-            </div>
-          )}
+    {/* Thread errors */}
 
-          {(messages || []).map((msg) => {
-            const isOwn = currentUserId != null ? msg.user_from === currentUserId : !(msg.user_from === selectedUserId);
-            const align = isOwn ? "justify-end" : "justify-start";
-            const canModify = canModifyMessage(msg) && isOwn && !msg.is_deleted;
-            const isEdited = msg.edit_history_display?.length > 0 || msg.is_edited;
-            const time = formatTime(msg.timestamp);
+    {/* Messages (keep your current map) */}
+    {messagesAsc.map((msg) => {
+      const isOwn = currentUserId != null ? msg.user_from === currentUserId : !(msg.user_from === selectedUserId);
+      const align = isOwn ? "justify-end" : "justify-start";
+      const canModify = canModifyMessage(msg) && isOwn && !msg.is_deleted;
+      const isEdited = msg.edit_history_display?.length > 0 || msg.is_edited;
+      const time = formatTime(msg.timestamp);
 
-            return (
-              <div key={msg.id} className={`flex ${align} group`}>
-                <div className={`relative max-w-[75%] transition-all duration-200`}>
-                  <div className={`relative rounded-2xl px-2 py-3 shadow-sm ${
-                    isOwn ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
-                  }`}>
-                    {menuOpenForId === msg.id && canModify && (
-                      <div className="absolute right-0 top-8 z-50 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
-                        <button
-                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-t-lg flex items-center gap-2"
-                          onClick={() => startEdit(msg)}
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-lg flex items-center gap-2"
-                          onClick={() => handleDelete(msg.id)}
-                        >
-                          ✕ Delete
-                        </button>
-                      </div>
-                    )}
+      return (
+        <div key={msg.id} className={`flex ${align} group`}>
+          <div className={`relative max-w-[75%] transition-all duration-200`}>
+            <div className={`relative rounded-2xl px-2 py-3 shadow-sm ${
+              isOwn ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
+            }`}>
+              {menuOpenForId === msg.id && canModify && (
+                <div className="absolute right-0 top-8 z-50 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <button
+                    className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-t-lg flex items-center gap-2"
+                    onClick={() => startEdit(msg)}
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-lg flex items-center gap-2"
+                    onClick={() => handleDelete(msg.id)}
+                  >
+                    ✕ Delete
+                  </button>
+                </div>
+              )}
 
-                    <div className={`flex items-center justify-between text-xs font-semibold mb-1 ${isOwn ? "text-white/80" : "text-gray-600"}`}>
-                      {isOwn ? (msg.user_from_username || "You") : (msg.user_from_username || "User")}
-                {isOwn && canModify && !msg.is_deleted && (
-    <button
-      type="button"
-      className={`w-6 h-6 rounded-full opacity-70 hover:opacity-100 ${
-        isOwn ? "bg-white/30 text-white" : "bg-gray-200 text-gray-600"
-      }`}
-      onClick={(e) => {
-        e.stopPropagation();
-        openMenu(msg.id);
-      }}
-      title="More options"
-      aria-label="More options"
-    >
-      ⋮
-    </button>
-  )}
+          
 
-                    </div>
-
-                    {editingId === msg.id ? (
-                      <div className="space-y-3">
-                        <textarea
-                          value={editingText}
-                          onChange={(e) => setEditingText(e.target.value)}
-                          className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                          rows={2}
-                          autoFocus
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            className="px-4 py-2 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600 disabled:opacity-60"
-                            onClick={saveEdit}
-                            disabled={updating || !editingText.trim()}
-                          >
-                            {updating ? "Saving..." : "Save"}
-                          </button>
-                          <button
-                            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50"
-                            onClick={() => { setEditingId(null); setEditingText(""); }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {msg.is_deleted ? (
-                          <div className={`italic text-sm ${isOwn ? "text-white/60" : "text-gray-500"}`}>
-                            This message was deleted
-                          </div>
-                        ) : (
-                          <div className="text-sm break-words">
-                            <span>{msg.message}</span>
-                            {isEdited && (
-                              <span className={`ml-2 text-xs italic ${isOwn ? "text-white/60" : "text-gray-500"}`}>
-                                (edited)
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    <div className={`mt-2 flex items-center gap-2 text-xs ${isOwn ? "text-white/60" : "text-gray-500"}`}>
-                      <span>{time}</span>
-                      {msg.seen_status?.is_seen && isOwn && <span>· ✓✓</span>}
-                    </div>
+              {editingId === msg.id ? (
+                <div className="space-y-3">
+                  <textarea
+                    value={editingText}
+                    onChange={(e) => setEditingText(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={2}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      className="px-4 py-2 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600 disabled:opacity-60"
+                      onClick={saveEdit}
+                      disabled={updating || !editingText.trim()}
+                    >
+                      {updating ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50"
+                      onClick={() => { setEditingId(null); setEditingText(""); }}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              ) : (
+                <>
+                  {msg.is_deleted ? (
+                    <div className={`italic text-sm ${isOwn ? "text-white/60" : "text-gray-500"}`}>
+                      This message was deleted
+                    </div>
+                  ) : (
+                    <div className="text-sm break-words">
+                        <div className="flex justify-between items-center">
+                            
+                      <span>{msg.message}</span>
+                          {isOwn && canModify && !msg.is_deleted && (
+                  <button
+                    type="button"
+                    className={`w-6 h-6 rounded-full opacity-70 hover:opacity-100 ${isOwn ? "bg-white/30 text-white" : "bg-gray-200 text-gray-600"}`}
+                    onClick={(e) => { e.stopPropagation(); openMenu(msg.id); }}
+                    title="More options"
+                    aria-label="More options"
+                  >
+                    ⋮
+                  </button>
+                )}
+                                        </div>
 
-          {!threadFetching && messages.length === 0 && selectedUserId && (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">💬</span>
+                      {isEdited && (
+                        <span className={`ml-2 text-xs italic ${isOwn ? "text-white/60" : "text-gray-500"}`}>
+                          (edited)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className={`mt-2 flex items-center gap-2 text-xs ${isOwn ? "text-white/60" : "text-gray-500"}`}>
+                <span>{time}</span>
+                {msg.seen_status?.is_seen && isOwn && <span>· ✓✓</span>}
               </div>
-              <div className="text-gray-500 font-medium">No messages yet</div>
-              <div className="text-sm text-gray-400 mt-1">Start the conversation!</div>
             </div>
-          )}
+          </div>
         </div>
+      );
+    })}
+
+    {!threadFetching && messages.length === 0 && selectedUserId && (
+      <div className="text-center py-16">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">💬</span>
+        </div>
+        <div className="text-gray-500 font-medium">No messages yet</div>
+        <div className="text-sm text-gray-400 mt-1">Start the conversation!</div>
+      </div>
+    )}
+  </div>
+</div>
 
         {/* Composer */}
         {selectedUserId && (

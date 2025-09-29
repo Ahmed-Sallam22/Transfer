@@ -567,7 +567,7 @@ export default function Transfer() {
   ];
 const handleChat = (row: TableRow) => {
   // Navigate to chat page with transaction/request ID
-  navigate(`/app/chat/${row.id}`);
+  navigate(`/app/chat/${row.id}`, { state: { txCode: row.code } });
 }
 
   return (
@@ -629,7 +629,6 @@ const handleChat = (row: TableRow) => {
           maxHeight="600px"
           className="shadow-lg"
           showPagination={true}
-          transactions={true}
           currentPage={currentPage}
           onPageChange={handlePageChange}
           itemsPerPage={10}
@@ -639,6 +638,7 @@ const handleChat = (row: TableRow) => {
           showActions={true}
           showFooter={true}
           onEdit={handleEdit}
+          transactions={true}
           onChat={handleChat}
           onDelete={handleDelete}
           onFilter={handleFilter}

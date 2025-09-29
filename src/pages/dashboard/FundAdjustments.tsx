@@ -564,6 +564,10 @@ export default function FundAdjustments() {
 
   // Check if form has data
   const hasData = time_period.trim() || reason.trim();
+const handleChat = (row: TableRow) => {
+  // Navigate to chat page with transaction/request ID
+  navigate(`/app/chat/${row.id}`, { state: { txCode: row.code } });
+}
 
   return (
     <div className="p-6 space-y-6">
@@ -634,6 +638,8 @@ export default function FundAdjustments() {
           showFooter={true}
           onEdit={handleEdit}
           onDelete={handleDelete}
+            transactions={true}
+          onChat={handleChat}
           onFilter={handleFilter}
           filterLabel="Filter Transfers"
         />

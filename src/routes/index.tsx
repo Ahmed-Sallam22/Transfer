@@ -15,8 +15,8 @@ import PendingAdjustments from "@/pages/dashboard/PendingAdjustments";
 import PendingAdjustmentsDetails from "@/pages/dashboard/PendingAdjustmentsDetails";
 import PendingRequests from "@/pages/dashboard/PendingRequests";
 import PendingRequestsDetails from "@/pages/dashboard/PendingRequestsDetails";
-import ProjectsOverview from "@/pages/dashboard/ProjectsOverview";
-import AccountsProjects from "@/pages/dashboard/AccountsProjects";
+// import ProjectsOverview from "@/pages/dashboard/ProjectsOverview";
+// import AccountsProjects from "@/pages/dashboard/AccountsProjects";
 import Users from "@/pages/dashboard/Users";
 import Reports from "@/pages/dashboard/Reports";
 import AddWorkFlow from "@/pages/dashboard/AddWorkFlow";
@@ -207,7 +207,7 @@ export default function AppRoutes() {
           />
 
           {/* Super Admin only: Management pages */}
-          <Route
+          {/* <Route
             path="projects-overview"
             element={
               <RoleProtectedRoute allowedRoles={["superadmin"]}>
@@ -222,7 +222,7 @@ export default function AppRoutes() {
                 <AccountsProjects />
               </RoleProtectedRoute>
             }
-          />
+          /> */}
           <Route
             path="reports"
             element={
