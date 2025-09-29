@@ -1,6 +1,6 @@
 // RTK Query endpoint configured like your example (attachmentsApi)
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { customBaseQuery } from './baseQuery';
+import { customBaseQuery } from './baseQuery2';
 
 export interface ChatbotRequest {
   user_input: string;
