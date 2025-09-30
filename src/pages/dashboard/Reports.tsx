@@ -322,56 +322,57 @@ export default function Reports() {
   // const handlePageChange = (page: number) => {
   //   setCurrentPage(page);
   // };
-// helpers (place above component return)
-const includesI = (hay: unknown, needle: string) =>
-  String(hay ?? '').toLowerCase().includes(needle.toLowerCase());
+  // helpers (place above component return)
+  const includesI = (hay: unknown, needle: string) =>
+    String(hay ?? "")
+      .toLowerCase()
+      .includes(needle.toLowerCase());
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
-const numMatches = (n: unknown, q: string) => {
-  const v = Number(n);
-  if (Number.isNaN(v)) return false;
-  const raw = String(v);
-  const pretty = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(v);
-  return includesI(raw, q) || includesI(pretty, q);
-};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const numMatches = (n: unknown, q: string) => {
+    const v = Number(n);
+    if (Number.isNaN(v)) return false;
+    const raw = String(v);
+    const pretty = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(v);
+    return includesI(raw, q) || includesI(pretty, q);
+  };
 
-const filteredData: TableRow[] = useMemo(() => {
-  const q = searchQuery.trim();
-  if (!q) return transformedData;
+  const filteredData: TableRow[] = useMemo(() => {
+    const q = searchQuery.trim();
+    if (!q) return transformedData;
 
-  return transformedData.filter((r) => {
-    // text fields
-    const textHit =
-      includesI(r.control_budget_name, q) ||
-      includesI(r.ledger_name, q) ||
-      includesI(r.as_of_period, q) ||
-      includesI(r.segment1, q) ||
-      includesI(r.segment2, q) ||
-      includesI(r.segment3, q);
+    return transformedData.filter((r) => {
+      // text fields
+      const textHit =
+        includesI(r.control_budget_name, q) ||
+        includesI(r.ledger_name, q) ||
+        includesI(r.as_of_period, q) ||
+        includesI(r.segment1, q) ||
+        includesI(r.segment2, q) ||
+        includesI(r.segment3, q);
 
-    // numeric fields
-    const numHit =
-      numMatches(r.encumbrance_ytd, q) ||
-      numMatches(r.other_ytd, q) ||
-      numMatches(r.actual_ytd, q) ||
-      numMatches(r.funds_available_asof, q) ||
-      numMatches(r.budget_ytd, q) ||
-      numMatches(r.budget_adjustments, q) ||
-      numMatches(r.commitments, q) ||
-      numMatches(r.expenditures, q) ||
-      numMatches(r.initial_budget, q) ||
-      numMatches(r.obligations, q) ||
-      numMatches(r.other_consumption, q) ||
-      numMatches(r.total_budget, q) ||
-      numMatches(r.total_consumption, q);
+      // numeric fields
+      const numHit =
+        numMatches(r.encumbrance_ytd, q) ||
+        numMatches(r.other_ytd, q) ||
+        numMatches(r.actual_ytd, q) ||
+        numMatches(r.funds_available_asof, q) ||
+        numMatches(r.budget_ytd, q) ||
+        numMatches(r.budget_adjustments, q) ||
+        numMatches(r.commitments, q) ||
+        numMatches(r.expenditures, q) ||
+        numMatches(r.initial_budget, q) ||
+        numMatches(r.obligations, q) ||
+        numMatches(r.other_consumption, q) ||
+        numMatches(r.total_budget, q) ||
+        numMatches(r.total_consumption, q);
 
-    return textHit || numHit;
-  });
-}, [numMatches, searchQuery, transformedData]);
-
+      return textHit || numHit;
+    });
+  }, [numMatches, searchQuery, transformedData]);
 
   // Determine if we should show loading (initial load, refetching, or changing selection)
   const shouldShowLoading = isLoading || isFetching || isChangingSelection;
@@ -466,7 +467,7 @@ const filteredData: TableRow[] = useMemo(() => {
             <div className="text-red-500 text-lg mb-2">⚠️</div>
             <p className="text-gray-600">Failed to load report data</p>
             <button
-              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="mt-2 px-4 py-2 bg-[#00B7AD] text-white rounded hover:bg-blue-700"
               onClick={() => window.location.reload()}
             >
               Retry
@@ -506,12 +507,10 @@ const filteredData: TableRow[] = useMemo(() => {
           <SharedTable
             title="Balance Report"
             columns={reportColumns}
- data={filteredData}   
-             maxHeight="600px"
-            
+            data={filteredData}
+            maxHeight="600px"
             className="shadow-lg"
             showPagination={false}
-         
             totalCount={
               reportResponse?.data?.total_records || reportResponse?.data?.count
             }

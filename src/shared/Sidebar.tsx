@@ -28,8 +28,8 @@ import { useUserRole, useUserLevel } from "../features/auth/hooks";
 type SidebarProps = {
   open?: boolean;
   onClose?: () => void;
-  onToggle?: () => void;           // desktop arrow toggler
-  desktopHidden?: boolean;         // controls arrow direction
+  onToggle?: () => void; // desktop arrow toggler
+  desktopHidden?: boolean; // controls arrow direction
 };
 
 const getSections = (userRole: string | null, userLevel: number | null) =>
@@ -210,7 +210,11 @@ const getSections = (userRole: string | null, userLevel: number | null) =>
     },
   ].filter((section) => section.items.length > 0);
 
-export default function Sidebar({ onClose, onToggle, desktopHidden }: SidebarProps) {
+export default function Sidebar({
+  onClose,
+  onToggle,
+  desktopHidden,
+}: SidebarProps) {
   const logout = useLogout();
   const userRole = useUserRole();
   const userLevel = useUserLevel();
@@ -257,7 +261,7 @@ export default function Sidebar({ onClose, onToggle, desktopHidden }: SidebarPro
       <nav className="px-3 sm:px-4 flex-1 overflow-y-auto overflow-x-hidden">
         {sections.map((sec, i) => (
           <div key={i} className="sm:mb-1">
-           {!desktopHidden && sec.title && (
+            {!desktopHidden && sec.title && (
               <div className="px-2 sm:px-3 pb-1 sm:pb-2 text-[11px] sm:text-[12px] font-meduim tracking-wider text-[#AFAFAF] uppercase">
                 {sec.title}
               </div>
@@ -266,19 +270,23 @@ export default function Sidebar({ onClose, onToggle, desktopHidden }: SidebarPro
               {sec.items.map(({ to, label, icon: Icon }) => (
                 <li key={to}>
                   {to === "/logout" ? (
-                      <button
+                    <button
                       onClick={() => {
                         logout();
                         onClose?.();
                       }}
-                      className={`flex items-center ${desktopHidden ? "justify-center" : "gap-2 sm:gap-3"} px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors text-[#545454] hover:bg-gray-50 hover:text-gray-900 w-full text-left`}
+                      className={`flex items-center ${
+                        desktopHidden ? "justify-center" : "gap-2 sm:gap-3"
+                      } px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors text-[#545454] hover:bg-gray-50 hover:text-gray-900 w-full text-left`}
                     >
                       <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       {/* hide label when collapsed */}
-                      {!desktopHidden && <span className="truncate min-w-0">{label}</span>}
+                      {!desktopHidden && (
+                        <span className="truncate min-w-0">{label}</span>
+                      )}
                     </button>
                   ) : (
-                 <NavLink
+                    <NavLink
                       to={to}
                       className={({ isActive }) => {
                         let finalIsActive = false;
@@ -288,15 +296,19 @@ export default function Sidebar({ onClose, onToggle, desktopHidden }: SidebarPro
                         } else if (to === "/app/transfer") {
                           finalIsActive =
                             window.location.pathname === "/app/transfer" ||
-                            window.location.pathname.startsWith("/app/transfer/");
+                            window.location.pathname.startsWith(
+                              "/app/transfer/"
+                            );
                         } else {
                           finalIsActive = isActive;
                         }
 
-                        return `flex items-center ${desktopHidden ? "justify-center" : "gap-2 sm:gap-3"} px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors
+                        return `flex items-center ${
+                          desktopHidden ? "justify-center" : "gap-2 sm:gap-3"
+                        } px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors
                           ${
                             finalIsActive
-                              ? "bg-blue-50 text-[#0052FF] border-r-2 sm:border-r-4 border-[#0052FF]"
+                              ? "bg=[#19efe4] text-[#00B7AD] border-r-2 sm:border-r-4 border-[#00B7AD]"
                               : "text-[#545454] hover:bg-gray-50 hover:text-gray-900"
                           }`;
                       }}
@@ -304,9 +316,10 @@ export default function Sidebar({ onClose, onToggle, desktopHidden }: SidebarPro
                     >
                       <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       {/* hide label when collapsed */}
-                      {!desktopHidden && <span className="truncate min-w-0">{label}</span>}
+                      {!desktopHidden && (
+                        <span className="truncate min-w-0">{label}</span>
+                      )}
                     </NavLink>
-
                   )}
                 </li>
               ))}

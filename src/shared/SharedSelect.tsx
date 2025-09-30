@@ -1,23 +1,55 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { cn } from '@/utils/cn';
+import React, { useState, useRef, useEffect } from "react";
+import { cn } from "@/utils/cn";
 
 // Chevron down icon
 const ChevronDownIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M6 9L12 15L18 9"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
-
 const XIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M18 6L6 18M6 6L18 18"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 // Check icon for selected option
 const CheckIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M20 6L9 17L4 12"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -39,9 +71,8 @@ export interface SharedSelectProps {
   className?: string;
   error?: string;
   required?: boolean;
-    clearable?: boolean;
-    size?: 'text-sm' | 'text-md' | 'text-lg'| 'text-xl';
-
+  clearable?: boolean;
+  size?: "text-sm" | "text-md" | "text-lg" | "text-xl";
 }
 
 export function SharedSelect({
@@ -56,8 +87,8 @@ export function SharedSelect({
   className = "",
   error,
   required = false,
-  size = 'text-sm',
-  clearable = true
+  size = "text-sm",
+  clearable = true,
 }: SharedSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -65,24 +96,27 @@ export function SharedSelect({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Filter options based on search term
-  const filteredOptions = options.filter(option =>
+  const filteredOptions = options.filter((option) =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Get selected option
-  const selectedOption = options.find(option => option.value === value);
+  const selectedOption = options.find((option) => option.value === value);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
         setSearchTerm("");
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Focus search input when dropdown opens
@@ -109,9 +143,9 @@ export function SharedSelect({
     setSearchTerm(e.target.value);
   };
 
-   const handleClear = (e: React.MouseEvent) => {
+  const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onChange('');
+    onChange("");
   };
 
   return (
@@ -133,20 +167,22 @@ export function SharedSelect({
           disabled={disabled}
           className={cn(
             "relative w-full px-3 py-4  text-left bg-white border border-[#E2E2E2] rounded-md  cursor-pointer",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+            "focus:outline-none focus:ring-2 focus:ring-[#00B7AD] focus:border-transparent",
             "disabled:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50",
             error ? "border-red-300" : "border-gray-300",
-            isOpen && !error && "ring-2 ring-blue-500 border-transparent"
+            isOpen && !error && "ring-2 ring-[#00B7AD] border-transparent"
           )}
         >
-          <span className={cn(
-            "block truncate relative text-sm font-medium text-[#282828]",
-            !selectedOption && "text-[#282828]"
-          )}>
+          <span
+            className={cn(
+              "block truncate relative text-sm font-medium text-[#282828]",
+              !selectedOption && "text-[#282828]"
+            )}
+          >
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          
-    <span className="absolute inset-y-0 right-0 flex items-center pr-2">
+
+          <span className="absolute inset-y-0 right-0 flex items-center pr-2">
             {selectedOption && clearable ? (
               <button
                 type="button"
@@ -156,11 +192,11 @@ export function SharedSelect({
                 <XIcon className="w-4 h-4 text-gray-400 hover:text-gray-600" />
               </button>
             ) : (
-              <ChevronDownIcon 
+              <ChevronDownIcon
                 className={cn(
                   "w-4 h-4 text-gray-400 transition-transform duration-200 pointer-events-none",
                   isOpen && "transform rotate-180"
-                )} 
+                )}
               />
             )}
           </span>
@@ -179,7 +215,7 @@ export function SharedSelect({
                     value={searchTerm}
                     onChange={handleSearchChange}
                     placeholder={searchPlaceholder}
-                    className="w-full pl-1 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-1 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00B7AD] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -202,14 +238,14 @@ export function SharedSelect({
                       "relative w-full px-3 py-2 text-left text-sm hover:bg-gray-100",
                       "focus:outline-none focus:bg-gray-100",
                       "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
-                      value === option.value && "bg-blue-50 text-blue-600"
+                      value === option.value && "bg-[#f7f7f7] text-[#00B7AD]"
                     )}
                   >
                     <span className="block truncate">{option.label}</span>
-                    
+
                     {value === option.value && (
                       <span className="absolute inset-y-0 right-0 flex items-center pr-3">
-                        <CheckIcon className="text-blue-600" />
+                        <CheckIcon className="text-[#00B7AD" />
                       </span>
                     )}
                   </button>
@@ -221,9 +257,7 @@ export function SharedSelect({
       </div>
 
       {/* Error message */}
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
   );
 }

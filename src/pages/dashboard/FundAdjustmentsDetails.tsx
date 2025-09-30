@@ -151,21 +151,22 @@ export default function TransferDetails() {
       setEditedRows([createDefaultRow()]);
     }
   }, [apiData]);
-const sameLine = (a: TransferTableRow, b: TransferTableRow) =>
-  (a.costCenterCode || "") === (b.costCenterCode || "") &&
-  (a.accountCode || "") === (b.accountCode || "") &&
-  (a.projectCode || "") === (b.projectCode || "") &&
-  Number(a.to || 0) === Number(b.to || 0) &&
-  Number(a.from || 0) === Number(b.from || 0);
+  const sameLine = (a: TransferTableRow, b: TransferTableRow) =>
+    (a.costCenterCode || "") === (b.costCenterCode || "") &&
+    (a.accountCode || "") === (b.accountCode || "") &&
+    (a.projectCode || "") === (b.projectCode || "") &&
+    Number(a.to || 0) === Number(b.to || 0) &&
+    Number(a.from || 0) === Number(b.from || 0);
 
   // Combine edited API rows with local rows for display
-const rows = useMemo(() => {
-  // Show API rows, plus only the local rows that don’t match any API row
-  const prunedLocal = localRows.filter(
-    (lr) => !editedRows.some((er) => sameLine(er, lr))
-  );
-  return [...editedRows, ...prunedLocal];
-}, [editedRows, localRows]);  useEffect(() => {
+  const rows = useMemo(() => {
+    // Show API rows, plus only the local rows that don’t match any API row
+    const prunedLocal = localRows.filter(
+      (lr) => !editedRows.some((er) => sameLine(er, lr))
+    );
+    return [...editedRows, ...prunedLocal];
+  }, [editedRows, localRows]);
+  useEffect(() => {
     const savedLocalRows = localStorage.getItem(`localRows_${transactionId}`);
     if (savedLocalRows) {
       try {
@@ -191,80 +192,89 @@ const rows = useMemo(() => {
     }
   }, [localRows, transactionId]);
 
-useEffect(() => {
-  const cleanupEmptyRows = () => {
-    const nonEmptyRows = localRows.filter(isNonEmpty);
-    if (nonEmptyRows.length > 0) {
-      localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(nonEmptyRows));
-    } else {
-      localStorage.removeItem(`localRows_${transactionId}`);
+  useEffect(() => {
+    const cleanupEmptyRows = () => {
+      const nonEmptyRows = localRows.filter(isNonEmpty);
+      if (nonEmptyRows.length > 0) {
+        localStorage.setItem(
+          `localRows_${transactionId}`,
+          JSON.stringify(nonEmptyRows)
+        );
+      } else {
+        localStorage.removeItem(`localRows_${transactionId}`);
+      }
+    };
+    const handleBeforeUnload = () => cleanupEmptyRows();
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      cleanupEmptyRows();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [localRows, transactionId]);
+
+  type Option = { value: string; label: string; name: string };
+
+  const toOptions = (
+    arr: Array<string | { code: string; name?: string }>
+  ): Option[] =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    arr.map((x: any) =>
+      typeof x === "string"
+        ? { value: x, label: x, name: x }
+        : {
+            value: String(x.code),
+            label: String(x.code),
+            name: x.name ?? String(x.code),
+          }
+    );
+
+  const dedupeByValue = (opts: Option[]) =>
+    Array.from(new Map(opts.map((o) => [o.value, o])).values());
+
+  const accountOptions: Option[] = (() => {
+    if (balanceReportData?.data?.Account?.length) {
+      return toOptions(balanceReportData.data.Account);
     }
-  };
-  const handleBeforeUnload = () => cleanupEmptyRows();
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  return () => {
-    cleanupEmptyRows();
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-  };
-}, [localRows, transactionId]);
+    if (apiData?.transfers?.length) {
+      const opts = apiData.transfers.map((t) => ({
+        value: String(t.account_code),
+        label: String(t.account_code), // show CODE in the Select
+        name: t.account_name?.trim() || String(t.account_code), // store friendly name
+      }));
+      return dedupeByValue(opts);
+    }
+    return [];
+  })();
 
-type Option = { value: string; label: string; name: string };
+  const projectOptions: Option[] = (() => {
+    if (balanceReportData?.data?.Project?.length) {
+      return toOptions(balanceReportData.data.Project);
+    }
+    if (apiData?.transfers?.length) {
+      const opts = apiData.transfers.map((t) => ({
+        value: t.project_code,
+        label: t.project_code,
+        name: t.project_name?.trim() || t.project_code,
+      }));
+      return dedupeByValue(opts);
+    }
+    return [];
+  })();
 
-const toOptions = (arr: Array<string | { code: string; name?: string }>): Option[] =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  arr.map((x: any) =>
-    typeof x === "string"
-      ? { value: x, label: x, name: x }
-      : { value: String(x.code), label: String(x.code), name: x.name ?? String(x.code) }
-  );
-
-const dedupeByValue = (opts: Option[]) =>
-  Array.from(new Map(opts.map(o => [o.value, o])).values());
-
-const accountOptions: Option[] = (() => {
-  if (balanceReportData?.data?.Account?.length) {
-    return toOptions(balanceReportData.data.Account);
-  }
-  if (apiData?.transfers?.length) {
-    const opts = apiData.transfers.map(t => ({
-      value: String(t.account_code),
-      label: String(t.account_code),              // show CODE in the Select
-      name: t.account_name?.trim() || String(t.account_code), // store friendly name
-    }));
-    return dedupeByValue(opts);
-  }
-  return [];
-})();
-
-const projectOptions: Option[] = (() => {
-  if (balanceReportData?.data?.Project?.length) {
-    return toOptions(balanceReportData.data.Project);
-  }
-  if (apiData?.transfers?.length) {
-    const opts = apiData.transfers.map(t => ({
-      value: t.project_code,
-      label: t.project_code,
-      name: t.project_name?.trim() || t.project_code,
-    }));
-    return dedupeByValue(opts);
-  }
-  return [];
-})();
-
-const costCenterOptions: Option[] = (() => {
-  if (balanceReportData?.data?.Cost_Center?.length) {
-    return toOptions(balanceReportData.data.Cost_Center);
-  }
-  if (apiData?.transfers?.length) {
-    const opts = apiData.transfers.map(t => ({
-      value: String(t.cost_center_code),
-      label: String(t.cost_center_code),
-      name: t.cost_center_name?.trim() || String(t.cost_center_code),
-    }));
-    return dedupeByValue(opts);
-  }
-  return [];
-})();
+  const costCenterOptions: Option[] = (() => {
+    if (balanceReportData?.data?.Cost_Center?.length) {
+      return toOptions(balanceReportData.data.Cost_Center);
+    }
+    if (apiData?.transfers?.length) {
+      const opts = apiData.transfers.map((t) => ({
+        value: String(t.cost_center_code),
+        label: String(t.cost_center_code),
+        name: t.cost_center_name?.trim() || String(t.cost_center_code),
+      }));
+      return dedupeByValue(opts);
+    }
+    return [];
+  })();
 
   // Create a default row for when there's no data
   const createDefaultRow = (): TransferTableRow => ({
@@ -354,99 +364,103 @@ const costCenterOptions: Option[] = (() => {
     navigate("/app/transfer");
   };
 
-  const [pendingSavedLocalIds, setPendingSavedLocalIds] = useState<string[]>([]);
-const [awaitingSync, setAwaitingSync] = useState(false);
-const isNonEmpty = (row: TransferTableRow) =>
-  row.costCenterCode !== "" ||
-  row.accountCode !== "" ||
-  row.projectCode !== "" ||
-  row.to > 0 ||
-  row.from > 0;
+  const [pendingSavedLocalIds, setPendingSavedLocalIds] = useState<string[]>(
+    []
+  );
+  const [awaitingSync, setAwaitingSync] = useState(false);
+  const isNonEmpty = (row: TransferTableRow) =>
+    row.costCenterCode !== "" ||
+    row.accountCode !== "" ||
+    row.projectCode !== "" ||
+    row.to > 0 ||
+    row.from > 0;
 
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const nonEmptyEditedRows = editedRows.filter(isNonEmpty);
+      const nonEmptyLocalRows = localRows.filter(isNonEmpty);
 
-const handleSave = async () => {
-  setIsSaving(true);
-  try {
-    const nonEmptyEditedRows = editedRows.filter(isNonEmpty);
-    const nonEmptyLocalRows  = localRows.filter(isNonEmpty);
+      const allRows = [...nonEmptyEditedRows, ...nonEmptyLocalRows];
 
-    const allRows = [...nonEmptyEditedRows, ...nonEmptyLocalRows];
+      const transfersToSave: CreateTransferData[] = allRows.map((row) => {
+        let fromCenter = row.from || 0;
+        let toCenter = row.to || 0;
+        if (fromCenter > 0) toCenter = 0;
+        else if (toCenter > 0) fromCenter = 0;
 
-    const transfersToSave: CreateTransferData[] = allRows.map((row) => {
-      let fromCenter = row.from || 0;
-      let toCenter   = row.to   || 0;
-      if (fromCenter > 0) toCenter = 0;
-      else if (toCenter > 0) fromCenter = 0;
+        return {
+          transaction: parseInt(transactionId),
+          cost_center_code: row.costCenterCode || "",
+          cost_center_name: row.costCenterName || "",
+          account_code: row.accountCode || "",
+          account_name: row.accountName || "",
+          project_code: row.projectCode || "-",
+          project_name: row.projectName || "-",
+          approved_budget: row.approvedBudget || 0,
+          available_budget: row.availableBudget || 0,
+          to_center: toCenter,
+          encumbrance: row.encumbrance || 0,
+          actual: row.actual || 0,
+          done: 1,
+          from_center: fromCenter,
+        };
+      });
 
-      return {
-        transaction: parseInt(transactionId),
-        cost_center_code: row.costCenterCode || "",
-        cost_center_name: row.costCenterName || "",
-        account_code: row.accountCode || "",
-        account_name: row.accountName || "",
-        project_code: row.projectCode || "-",
-        project_name: row.projectName || "-",
-        approved_budget: row.approvedBudget || 0,
-        available_budget: row.availableBudget || 0,
-        to_center: toCenter,
-        encumbrance: row.encumbrance || 0,
-        actual: row.actual || 0,
-        done: 1,
-        from_center: fromCenter,
-      };
+      // Save
+      await createTransfer(transfersToSave).unwrap();
+
+      // ✅ Immediately remove only the local rows that were saved
+      // const savedLocalIds = nonEmptyLocalRows.map((r) => r.id);
+      // setLocalRows((prev) => {
+      //   const next = prev.filter((r) => !savedLocalIds.includes(r.id));
+      //   if (next.length > 0) {
+      //     localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(next));
+      //   } else {
+      //     localStorage.removeItem(`localRows_${transactionId}`);
+      //   }
+      //   return next;
+      // });
+
+      // Ask RTK to refetch API rows
+      store.dispatch(
+        transferDetailsApi.util.invalidateTags(["TransferDetails"])
+      );
+
+      toast.success("Transfers saved successfully!");
+    } catch (err) {
+      console.error("Error saving transfers:", err);
+      toast.error("Error saving transfers. Please try again.");
+      // (no local deletion on error)
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!awaitingSync) return;
+    if (!apiData?.transfers) return;
+
+    // We assume the refetch has brought back the rows we just created.
+    // Remove only the local rows that were part of this save.
+    setLocalRows((prev) => {
+      const next = prev.filter((r) => !pendingSavedLocalIds.includes(r.id));
+      // Update localStorage accordingly
+      if (next.length > 0) {
+        localStorage.setItem(
+          `localRows_${transactionId}`,
+          JSON.stringify(next)
+        );
+      } else {
+        localStorage.removeItem(`localRows_${transactionId}`);
+      }
+      return next;
     });
 
-    // Save
-    await createTransfer(transfersToSave).unwrap();
-
-    // ✅ Immediately remove only the local rows that were saved
-    // const savedLocalIds = nonEmptyLocalRows.map((r) => r.id);
-    // setLocalRows((prev) => {
-    //   const next = prev.filter((r) => !savedLocalIds.includes(r.id));
-    //   if (next.length > 0) {
-    //     localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(next));
-    //   } else {
-    //     localStorage.removeItem(`localRows_${transactionId}`);
-    //   }
-    //   return next;
-    // });
-
-    // Ask RTK to refetch API rows
-    store.dispatch(transferDetailsApi.util.invalidateTags(["TransferDetails"]));
-
-    toast.success("Transfers saved successfully!");
-  } catch (err) {
-    console.error("Error saving transfers:", err);
-    toast.error("Error saving transfers. Please try again.");
-    // (no local deletion on error)
-  } finally {
-    setIsSaving(false);
-  }
-};
-
-useEffect(() => {
-  if (!awaitingSync) return;
-  if (!apiData?.transfers) return;
-
-  // We assume the refetch has brought back the rows we just created.
-  // Remove only the local rows that were part of this save.
-  setLocalRows((prev) => {
-    const next = prev.filter((r) => !pendingSavedLocalIds.includes(r.id));
-    // Update localStorage accordingly
-    if (next.length > 0) {
-      localStorage.setItem(`localRows_${transactionId}`, JSON.stringify(next));
-    } else {
-      localStorage.removeItem(`localRows_${transactionId}`);
-    }
-    return next;
-  });
-
-  // done syncing
-  setPendingSavedLocalIds([]);
-  setAwaitingSync(false);
-}, [apiData, awaitingSync, pendingSavedLocalIds, transactionId]);
-
-
+    // done syncing
+    setPendingSavedLocalIds([]);
+    setAwaitingSync(false);
+  }, [apiData, awaitingSync, pendingSavedLocalIds, transactionId]);
 
   // Check if submit should be disabled
   const isSubmitDisabled = () => {
@@ -924,31 +938,31 @@ useEffect(() => {
 
         return (
           <div className="flex items-center  gap-3 justify-center">
-            {     apiData?.status.status === "not yet sent for approval" ||
-      apiData?.summary?.status === "not yet sent for approval"?
-           <button
-              onClick={() => deleteRow(transferRow.id)}
-              className="flex items-center justify-center w-6 h-6 bg-red-100 border border-red-300 rounded-full text-red-600 hover:bg-red-200 transition-colors"
-              title="Delete row"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
+            {apiData?.status.status === "not yet sent for approval" ||
+            apiData?.summary?.status === "not yet sent for approval" ? (
+              <button
+                onClick={() => deleteRow(transferRow.id)}
+                className="flex items-center justify-center w-6 h-6 bg-red-100 border border-red-300 rounded-full text-red-600 hover:bg-red-200 transition-colors"
+                title="Delete row"
               >
-                <path
-                  d="M9 3L3 9M3 3L9 9"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-      : null}
-       
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M9 3L3 9M3 3L9 9"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            ) : null}
+
             {hasErrors ? (
               <button
                 onClick={() =>
@@ -1004,7 +1018,7 @@ useEffect(() => {
         );
       },
     },
-    
+
     {
       id: "costCenterCode",
       header: "Legal Entity",
@@ -1017,11 +1031,15 @@ useEffect(() => {
           </span>
         ) : (
           <Select
-           value={costCenterOptions.find(o => o.value === transferRow.costCenterCode) ?? null}
-  onChange={(opt) => {
-    updateRow(transferRow.id, "costCenterCode", opt?.value || "");
-    if (opt) updateRow(transferRow.id, "costCenterName", opt.name);
-  }}
+            value={
+              costCenterOptions.find(
+                (o) => o.value === transferRow.costCenterCode
+              ) ?? null
+            }
+            onChange={(opt) => {
+              updateRow(transferRow.id, "costCenterCode", opt?.value || "");
+              if (opt) updateRow(transferRow.id, "costCenterName", opt.name);
+            }}
             options={costCenterOptions}
             placeholder="Select Legal"
             isSearchable
@@ -1062,7 +1080,10 @@ useEffect(() => {
           </span>
         ) : (
           <Select
-            value={accountOptions.find(o => o.value === transferRow.accountCode) ?? null}
+            value={
+              accountOptions.find((o) => o.value === transferRow.accountCode) ??
+              null
+            }
             onChange={(opt) => {
               updateRow(transferRow.id, "accountCode", opt?.value || "");
               if (opt) updateRow(transferRow.id, "accountName", opt.name);
@@ -1108,7 +1129,10 @@ useEffect(() => {
           </span>
         ) : (
           <Select
-            value={projectOptions.find(o => o.value === transferRow.projectCode) ?? null}
+            value={
+              projectOptions.find((o) => o.value === transferRow.projectCode) ??
+              null
+            }
             onChange={(opt) => {
               updateRow(transferRow.id, "projectCode", opt?.value || "");
               if (opt) updateRow(transferRow.id, "projectName", opt.name);
@@ -1141,7 +1165,7 @@ useEffect(() => {
         );
       },
     },
-      {
+    {
       id: "costCenterName",
       header: "Legal Entity",
 
@@ -1181,7 +1205,6 @@ useEffect(() => {
       },
     },
 
- 
     {
       id: "encumbrance",
       header: "Encumbrance",
@@ -1336,32 +1359,7 @@ useEffect(() => {
         );
       },
     },
-     {
-      id: "to",
-      header: "To",
-      showSum: true,
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-
-        return isSubmitted ? (
-          <span className={`text-sm text-gray-900 `}>
-            {formatNumber(transferRow.to)}
-          </span>
-        ) : (
-          <input
-            type="number"
-            value={transferRow.to || ""}
-            onChange={(e) =>
-              updateRow(transferRow.id, "to", Number(e.target.value) || 0)
-            }
-            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
-            placeholder="To"
-          />
-        );
-      },
-    },
-    {
+      {
       id: "from",
       header: "From",
       showSum: true,
@@ -1386,6 +1384,32 @@ useEffect(() => {
         );
       },
     },
+    {
+      id: "to",
+      header: "To",
+      showSum: true,
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+
+        return isSubmitted ? (
+          <span className={`text-sm text-gray-900 `}>
+            {formatNumber(transferRow.to)}
+          </span>
+        ) : (
+          <input
+            type="number"
+            value={transferRow.to || ""}
+            onChange={(e) =>
+              updateRow(transferRow.id, "to", Number(e.target.value) || 0)
+            }
+            className={`w-full px-3 py-2 border rounded text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#AFAFAF] `}
+            placeholder="To"
+          />
+        );
+      },
+    },
+  
   ];
 
   // Handler for validation error click
@@ -1536,7 +1560,7 @@ useEffect(() => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleBack}
-            className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
+            className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#00B7AD] hover:text-[#174ec4] "
           >
             Fund Adjustments
           </button>
@@ -1657,7 +1681,7 @@ useEffect(() => {
               className={`px-6 py-2 text-sm rounded-lg transition-colors inline-flex items-center gap-2 ${
                 isSubmitDisabled() || isSubmitting
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-[#00B7AD] text-white hover:bg-blue-700"
               }`}
               title={
                 isSubmitting
@@ -1843,7 +1867,7 @@ useEffect(() => {
                     onClick={() =>
                       document.getElementById("file-upload")?.click()
                     }
-                    className="text-[#0052FF] underline hover:text-blue-700 transition-colors"
+                    className="text-[#00B7AD] underline hover:text-blue-700 transition-colors"
                   >
                     browse
                   </button>
@@ -1886,7 +1910,7 @@ useEffect(() => {
             className={`px-4 py-2 text-sm font-medium border rounded-md transition-colors inline-flex items-center gap-2 ${
               !selectedFile || isUploading
                 ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                : "text-white bg-[#0052FF] border-[#0052FF] hover:bg-blue-700"
+                : "text-white bg-[#00B7AD] border-[#00B7AD] hover:bg-blue-700"
             }`}
           >
             {isUploading ? (

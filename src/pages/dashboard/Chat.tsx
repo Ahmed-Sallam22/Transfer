@@ -27,8 +27,8 @@ export default function Chat({
   const params = useParams();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const composeInputRef = useRef<HTMLInputElement | null>(null); // NEW
-const location = useLocation();
-const transactionCode = (location.state as { txCode?: string })?.txCode || "";
+  const location = useLocation();
+  const transactionCode = (location.state as { txCode?: string })?.txCode || "";
   // Modal state (NEW)
   const [showNewChat, setShowNewChat] = useState(false);
   const [userSearch, setUserSearch] = useState("");
@@ -44,13 +44,11 @@ const transactionCode = (location.state as { txCode?: string })?.txCode || "";
   }, [params.userId]);
 
   // Load participants (left pane)
-  const {
-    data: participantsData,
-    isLoading: participantsLoading,
-  } = useGetParticipantsByTransactionQuery(
-    { transactionId },
-    { skip: !transactionId }
-  );
+  const { data: participantsData, isLoading: participantsLoading } =
+    useGetParticipantsByTransactionQuery(
+      { transactionId },
+      { skip: !transactionId }
+    );
 
   const participants = useMemo(
     () => participantsData?.participants ?? [],
@@ -84,19 +82,16 @@ const transactionCode = (location.state as { txCode?: string })?.txCode || "";
     setPage(1);
   }, [selectedUserId, transactionId]);
 
-  const {
-    data: threadData,
-    isFetching: threadFetching,
-
-  } = useGetThreadInfiniteQuery(
-    {
-      transactionId: transactionId as string | number,
-      userId: selectedUserId as number,
-      page,
-      pageSize,
-    },
-    { skip: !transactionId || !selectedUserId }
-  );
+  const { data: threadData, isFetching: threadFetching } =
+    useGetThreadInfiniteQuery(
+      {
+        transactionId: transactionId as string | number,
+        userId: selectedUserId as number,
+        page,
+        pageSize,
+      },
+      { skip: !transactionId || !selectedUserId }
+    );
 
   const messages = useMemo<ThreadMessage[]>(
     () => threadData?.results ?? [],
@@ -106,7 +101,8 @@ const transactionCode = (location.state as { txCode?: string })?.txCode || "";
   const hasMore = useMemo(() => {
     if (!threadData) return false;
     if (typeof threadData.next === "string") return Boolean(threadData.next);
-    if (typeof threadData.count === "number") return messages.length < threadData.count;
+    if (typeof threadData.count === "number")
+      return messages.length < threadData.count;
     return messages.length > 0 && messages.length % pageSize === 0;
   }, [threadData, messages.length, pageSize]);
 
@@ -127,7 +123,8 @@ const transactionCode = (location.state as { txCode?: string })?.txCode || "";
     });
     setCompose("");
     setTimeout(() => {
-      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      if (scrollRef.current)
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       composeInputRef.current?.focus();
     }, 0);
   }
@@ -147,35 +144,33 @@ const transactionCode = (location.state as { txCode?: string })?.txCode || "";
     setMenuOpenForId(null);
   }
 
-async function saveEdit() {
-  if (!editingId || !selectedUserId || !transactionId) return;
-  const text = editingText.trim();
-  if (!text) return;
+  async function saveEdit() {
+    if (!editingId || !selectedUserId || !transactionId) return;
+    const text = editingText.trim();
+    if (!text) return;
 
-  await updateMessage({
-    messageId: editingId,
-    data: { message: text },
-    transactionId,               // NEW
-    userId: selectedUserId,      // NEW
-  });
+    await updateMessage({
+      messageId: editingId,
+      data: { message: text },
+      transactionId, // NEW
+      userId: selectedUserId, // NEW
+    });
 
-  setEditingId(null);
-  setEditingText("");
-}
+    setEditingId(null);
+    setEditingText("");
+  }
 
+  async function handleDelete(mid: number) {
+    if (!selectedUserId || !transactionId) return;
 
- async function handleDelete(mid: number) {
-  if (!selectedUserId || !transactionId) return;
+    await deleteMessage({
+      messageId: mid,
+      transactionId, // NEW
+      userId: selectedUserId, // NEW
+    });
 
-  await deleteMessage({
-    messageId: mid,
-    transactionId,          // NEW
-    userId: selectedUserId, // NEW
-  });
-
-  setMenuOpenForId(null);
-}
-
+    setMenuOpenForId(null);
+  }
 
   function handleSelectParticipant(p: Participant) {
     setSelectedUserId(p.user_id);
@@ -207,14 +202,16 @@ async function saveEdit() {
   useEffect(() => {
     if (page === 1 && messages.length > 0) {
       const id = setTimeout(() => {
-        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        if (scrollRef.current)
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }, 0);
       return () => clearTimeout(id);
     }
   }, [page, messages.length]);
 
   // Helpers
-  const formatTime = (iso?: string | null) => (iso ? dayjs(iso).format("h:mm A") : "");
+  const formatTime = (iso?: string | null) =>
+    iso ? dayjs(iso).format("h:mm A") : "";
 
   // Edit/Delete allowed within 15 minutes (your WhatsApp-like rule)
   const canModifyMessage = (msg: ThreadMessage) => {
@@ -225,7 +222,6 @@ async function saveEdit() {
     return diffInMinutes <= 15;
   };
 
-  
   const selectedParticipant = useMemo(
     () => participants.find((p) => p.user_id === selectedUserId),
     [participants, selectedUserId]
@@ -240,52 +236,61 @@ async function saveEdit() {
   const filteredUsers = useMemo(() => {
     const term = userSearch.trim().toLowerCase();
     const base = (allUsers ?? []) as UserListItem[];
-    const withoutSelf = currentUserId ? base.filter(u => u.id !== currentUserId) : base;
+    const withoutSelf = currentUserId
+      ? base.filter((u) => u.id !== currentUserId)
+      : base;
     if (!term) return withoutSelf;
-    return withoutSelf.filter(u =>
+    return withoutSelf.filter((u) =>
       (u.username || "").toLowerCase().includes(term)
     );
   }, [allUsers, userSearch, currentUserId]);
-// Who did we pick from the modal (even if not in participants yet)?
-const selectedUserFromAll = useMemo(
-  () => (allUsers as UserListItem[] | undefined)?.find(u => u.id === selectedUserId),
-  [allUsers, selectedUserId]
-);
-
-// Use participants -> allUsers -> fallback
-const selectedUserName = useMemo(() => {
-  return (
-    selectedParticipant?.username ??
-    selectedUserFromAll?.username ??
-    (selectedUserId ? `User ${selectedUserId}` : "")
+  // Who did we pick from the modal (even if not in participants yet)?
+  const selectedUserFromAll = useMemo(
+    () =>
+      (allUsers as UserListItem[] | undefined)?.find(
+        (u) => u.id === selectedUserId
+      ),
+    [allUsers, selectedUserId]
   );
-}, [selectedParticipant?.username, selectedUserFromAll?.username, selectedUserId]);
 
+  // Use participants -> allUsers -> fallback
+  const selectedUserName = useMemo(() => {
+    return (
+      selectedParticipant?.username ??
+      selectedUserFromAll?.username ??
+      (selectedUserId ? `User ${selectedUserId}` : "")
+    );
+  }, [
+    selectedParticipant?.username,
+    selectedUserFromAll?.username,
+    selectedUserId,
+  ]);
 
-const messagesAsc = useMemo<ThreadMessage[]>(
-  () =>
-    [...(messages ?? [])].sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    ),
-  [messages]
-);
-const prevHeightRef = useRef(0);
+  const messagesAsc = useMemo<ThreadMessage[]>(
+    () =>
+      [...(messages ?? [])].sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      ),
+    [messages]
+  );
+  const prevHeightRef = useRef(0);
 
-function handleLoadOlder() {
-  if (scrollRef.current) prevHeightRef.current = scrollRef.current.scrollHeight;
-  setPage((p) => p + 1);
-}
-
-// After messages change and fetch finishes, adjust scroll by the delta height
-useEffect(() => {
-  if (!threadFetching && prevHeightRef.current && scrollRef.current) {
-    const el = scrollRef.current;
-    const delta = el.scrollHeight - prevHeightRef.current;
-    el.scrollTop = el.scrollTop + delta; // maintain viewport
-    prevHeightRef.current = 0;
+  function handleLoadOlder() {
+    if (scrollRef.current)
+      prevHeightRef.current = scrollRef.current.scrollHeight;
+    setPage((p) => p + 1);
   }
-}, [messagesAsc.length, threadFetching]);
+
+  // After messages change and fetch finishes, adjust scroll by the delta height
+  useEffect(() => {
+    if (!threadFetching && prevHeightRef.current && scrollRef.current) {
+      const el = scrollRef.current;
+      const delta = el.scrollHeight - prevHeightRef.current;
+      el.scrollTop = el.scrollTop + delta; // maintain viewport
+      prevHeightRef.current = 0;
+    }
+  }, [messagesAsc.length, threadFetching]);
   return (
     <div className="flex h-[85vh] bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
       {/* Left Sidebar: Participants */}
@@ -295,7 +300,7 @@ useEffect(() => {
           {/* + button (NEW) */}
           <button
             onClick={() => setShowNewChat(true)}
-            className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 active:scale-95 transition"
+            className="w-9 h-9 rounded-full bg-[#00B7AD] text-white flex items-center justify-center hover:bg-[#005B5D] active:scale-95 transition"
             title="Start new chat"
           >
             +
@@ -303,9 +308,7 @@ useEffect(() => {
         </div>
 
         <div className="p-4 space-y-1 overflow-y-auto max-h-[calc(100%-5rem)]">
-        
-
-          {(!participantsLoading && participants.length === 0) && (
+          {!participantsLoading && participants.length === 0 && (
             <div className="p-8 text-center">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-gray-400 text-xl">💬</span>
@@ -322,32 +325,46 @@ useEffect(() => {
                 key={p.user_id}
                 className={`group relative p-4 cursor-pointer rounded-lg transition-all duration-200  ${
                   isActive
-                    ? "bg-blue-500 text-white shadow-md"
+                    ? "bg-[#00B7AD] text-white shadow-md"
                     : "bg-white hover:shadow-sm border border-gray-100"
                 }`}
                 onClick={() => handleSelectParticipant(p)}
               >
                 <div className="flex items-start gap-3">
-                 
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className={`font-semibold truncate text-sm ${isActive ? "text-white" : "text-gray-900"}`}>
+                      <h3
+                        className={`font-semibold truncate text-sm ${
+                          isActive ? "text-white" : "text-gray-900"
+                        }`}
+                      >
                         {p.username}
                       </h3>
-                      <div className={`text-xs ${isActive ? "text-white/70" : "text-gray-500"}`}>
+                      <div
+                        className={`text-xs ${
+                          isActive ? "text-white/70" : "text-gray-500"
+                        }`}
+                      >
                         {formatTime(p.last_message_at)}
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <p className={`text-xs truncate ${isActive ? "text-white/80" : "text-gray-600"}`}>
+                      <p
+                        className={`text-xs truncate ${
+                          isActive ? "text-white/80" : "text-gray-600"
+                        }`}
+                      >
                         {p.last_message || "No messages yet"}
                       </p>
                       {unread > 0 && (
-                        <span className={`min-w-[18px] h-4 px-1.5 rounded-full text-xs font-bold flex items-center justify-center ${
-                          isActive ? "bg-white text-blue-500" : "bg-red-500 text-white"
-                        }`}>
+                        <span
+                          className={`min-w-[18px] h-4 px-1.5 rounded-full text-xs font-bold flex items-center justify-center ${
+                            isActive
+                              ? "bg-white text-[#00B7AD]"
+                              : "bg-red-500 text-white"
+                          }`}
+                        >
                           {unread > 99 ? "99+" : unread}
                         </span>
                       )}
@@ -366,167 +383,202 @@ useEffect(() => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center  justify-between">
             <div className="flex items-center gap-4">
-          
               <div>
                 <div className=" flex items-center  w-full gap-2 justify-between">
-<div>
-
-                <h2 className="font-bold text-xl text-gray-900">
-                  {selectedUserId ? selectedUserName : "Select a conversation"}
-                </h2>
-                </div>
-
-
-
+                  <div>
+                    <h2 className="font-bold text-xl text-gray-900">
+                      {selectedUserId
+                        ? selectedUserName
+                        : "Select a conversation"}
+                    </h2>
+                  </div>
                 </div>
 
                 {threadFetching && (
                   <div className="flex items-center gap-2 ">
-                    <span className="text-xs text-blue-600 font-medium">Syncing messages…</span>
+                    <span className="text-xs text-[#00B7AD] font-medium">
+                      Syncing messages…
+                    </span>
                   </div>
                 )}
               </div>
             </div>
             <div>
-
-                {transactionCode && (
-  <div className="text-md text-gray-500 mt-1">
-    Transaction: {transactionCode}
-  </div>
-)}
-</div>
+              {transactionCode && (
+                <div className="text-md text-gray-500 mt-1">
+                  Transaction: {transactionCode}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Messages Area */}
-     {/* Messages Area */}
-<div ref={scrollRef} className="flex-1 overflow-y-auto p-0 bg-gray-50">
-  {/* Inner flex column that keeps content anchored to the bottom */}
-  <div className="min-h-full flex flex-col justify-end p-6 space-y-4">
-    {/* Load older button stays above the messages (like WhatsApp) */}
-    {hasMore && (
-      <div className="text-center">
-   <button onClick={() => handleLoadOlder()} className="px-6 py-2 ...">
-          {threadFetching ? "Loading older messages" : "Load older messages"}
-        </button>
-      </div>
-    )}
+        {/* Messages Area */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-0 bg-gray-50">
+          {/* Inner flex column that keeps content anchored to the bottom */}
+          <div className="min-h-full flex flex-col justify-end p-6 space-y-4">
+            {/* Load older button stays above the messages (like WhatsApp) */}
+            {hasMore && (
+              <div className="text-center">
+                <button
+                  onClick={() => handleLoadOlder()}
+                  className="px-6 py-2 ..."
+                >
+                  {threadFetching
+                    ? "Loading older messages"
+                    : "Load older messages"}
+                </button>
+              </div>
+            )}
 
-    {/* Thread errors */}
+            {/* Thread errors */}
 
-    {/* Messages (keep your current map) */}
-    {messagesAsc.map((msg) => {
-      const isOwn = currentUserId != null ? msg.user_from === currentUserId : !(msg.user_from === selectedUserId);
-      const align = isOwn ? "justify-end" : "justify-start";
-      const canModify = canModifyMessage(msg) && isOwn && !msg.is_deleted;
-      const isEdited = msg.edit_history_display?.length > 0 || msg.is_edited;
-      const time = formatTime(msg.timestamp);
+            {/* Messages (keep your current map) */}
+            {messagesAsc.map((msg) => {
+              const isOwn =
+                currentUserId != null
+                  ? msg.user_from === currentUserId
+                  : !(msg.user_from === selectedUserId);
+              const align = isOwn ? "justify-end" : "justify-start";
+              const canModify =
+                canModifyMessage(msg) && isOwn && !msg.is_deleted;
+              const isEdited =
+                msg.edit_history_display?.length > 0 || msg.is_edited;
+              const time = formatTime(msg.timestamp);
 
-      return (
-        <div key={msg.id} className={`flex ${align} group`}>
-          <div className={`relative max-w-[75%] transition-all duration-200`}>
-            <div className={`relative rounded-2xl px-2 py-3 shadow-sm ${
-              isOwn ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
-            }`}>
-              {menuOpenForId === msg.id && canModify && (
-                <div className="absolute right-0 top-8 z-50 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
-                  <button
-                    className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-t-lg flex items-center gap-2"
-                    onClick={() => startEdit(msg)}
+              return (
+                <div key={msg.id} className={`flex ${align} group`}>
+                  <div
+                    className={`relative max-w-[75%] transition-all duration-200`}
                   >
-                    ✏️ Edit
-                  </button>
-                  <button
-                    className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-lg flex items-center gap-2"
-                    onClick={() => handleDelete(msg.id)}
-                  >
-                    ✕ Delete
-                  </button>
-                </div>
-              )}
-
-          
-
-              {editingId === msg.id ? (
-                <div className="space-y-3">
-                  <textarea
-                    value={editingText}
-                    onChange={(e) => setEditingText(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={2}
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      className="px-4 py-2 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600 disabled:opacity-60"
-                      onClick={saveEdit}
-                      disabled={updating || !editingText.trim()}
+                    <div
+                      className={`relative rounded-2xl px-2 py-3 shadow-sm ${
+                        isOwn
+                          ? "bg-[#00B7AD] text-white rounded-br-md"
+                          : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
+                      }`}
                     >
-                      {updating ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50"
-                      onClick={() => { setEditingId(null); setEditingText(""); }}
-                    >
-                      Cancel
-                    </button>
+                      {menuOpenForId === msg.id && canModify && (
+                        <div className="absolute right-0 top-8 z-50 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
+                          <button
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-[#d5f0ef] hover:text-[#00B7AD] transition-colors rounded-t-lg flex items-center gap-2"
+                            onClick={() => startEdit(msg)}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-lg flex items-center gap-2"
+                            onClick={() => handleDelete(msg.id)}
+                          >
+                            ✕ Delete
+                          </button>
+                        </div>
+                      )}
+
+                      {editingId === msg.id ? (
+                        <div className="space-y-3">
+                          <textarea
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-[#00B7AD] focus:border-transparent resize-none"
+                            rows={2}
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              className="px-4 py-2 rounded-lg bg-[#00B7AD] text-white text-xs font-medium hover:bg-[#00B7AD] disabled:opacity-60"
+                              onClick={saveEdit}
+                              disabled={updating || !editingText.trim()}
+                            >
+                              {updating ? "Saving..." : "Save"}
+                            </button>
+                            <button
+                              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50"
+                              onClick={() => {
+                                setEditingId(null);
+                                setEditingText("");
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {msg.is_deleted ? (
+                            <div
+                              className={`italic text-sm ${
+                                isOwn ? "text-white/60" : "text-gray-500"
+                              }`}
+                            >
+                              This message was deleted
+                            </div>
+                          ) : (
+                            <div className="text-sm break-words">
+                              <div className="flex justify-between items-center">
+                                <span>{msg.message}</span>
+                                {isOwn && canModify && !msg.is_deleted && (
+                                  <button
+                                    type="button"
+                                    className={`w-6 h-6 rounded-full opacity-70 hover:opacity-100 ${
+                                      isOwn
+                                        ? "bg-white/30 text-white"
+                                        : "bg-gray-200 text-gray-600"
+                                    }`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openMenu(msg.id);
+                                    }}
+                                    title="More options"
+                                    aria-label="More options"
+                                  >
+                                    ⋮
+                                  </button>
+                                )}
+                              </div>
+
+                              {isEdited && (
+                                <span
+                                  className={`ml-2 text-xs italic ${
+                                    isOwn ? "text-white/60" : "text-gray-500"
+                                  }`}
+                                >
+                                  (edited)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <div
+                        className={`mt-2 flex items-center gap-2 text-xs ${
+                          isOwn ? "text-white/60" : "text-gray-500"
+                        }`}
+                      >
+                        <span>{time}</span>
+                        {msg.seen_status?.is_seen && isOwn && <span>· ✓✓</span>}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <>
-                  {msg.is_deleted ? (
-                    <div className={`italic text-sm ${isOwn ? "text-white/60" : "text-gray-500"}`}>
-                      This message was deleted
-                    </div>
-                  ) : (
-                    <div className="text-sm break-words">
-                        <div className="flex justify-between items-center">
-                            
-                      <span>{msg.message}</span>
-                          {isOwn && canModify && !msg.is_deleted && (
-                  <button
-                    type="button"
-                    className={`w-6 h-6 rounded-full opacity-70 hover:opacity-100 ${isOwn ? "bg-white/30 text-white" : "bg-gray-200 text-gray-600"}`}
-                    onClick={(e) => { e.stopPropagation(); openMenu(msg.id); }}
-                    title="More options"
-                    aria-label="More options"
-                  >
-                    ⋮
-                  </button>
-                )}
-                                        </div>
+              );
+            })}
 
-                      {isEdited && (
-                        <span className={`ml-2 text-xs italic ${isOwn ? "text-white/60" : "text-gray-500"}`}>
-                          (edited)
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className={`mt-2 flex items-center gap-2 text-xs ${isOwn ? "text-white/60" : "text-gray-500"}`}>
-                <span>{time}</span>
-                {msg.seen_status?.is_seen && isOwn && <span>· ✓✓</span>}
+            {!threadFetching && messages.length === 0 && selectedUserId && (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">💬</span>
+                </div>
+                <div className="text-gray-500 font-medium">No messages yet</div>
+                <div className="text-sm text-gray-400 mt-1">
+                  Start the conversation!
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
-      );
-    })}
-
-    {!threadFetching && messages.length === 0 && selectedUserId && (
-      <div className="text-center py-16">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-2xl">💬</span>
-        </div>
-        <div className="text-gray-500 font-medium">No messages yet</div>
-        <div className="text-sm text-gray-400 mt-1">Start the conversation!</div>
-      </div>
-    )}
-  </div>
-</div>
 
         {/* Composer */}
         {selectedUserId && (
@@ -536,15 +588,20 @@ useEffect(() => {
                 <input
                   ref={composeInputRef} // NEW
                   type="text"
-                  className="w-full px-4 py-3 pr-12 rounded-2xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white placeholder-gray-500 transition-all duration-200"
+                  className="w-full px-4 py-3 pr-12 rounded-2xl border-gray-200 bg-gray-50 border-0 focus:ring-2 focus:ring-[#00B7AD] focus:border-transparent focus:bg-white placeholder-gray-500 transition-all duration-200"
                   placeholder="Type your message..."
                   value={compose}
                   onChange={(e) => setCompose(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
                 />
                 {compose && (
                   <button
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-500 text-white hover:bg-blue-600 hover:scale-110 transition-all duration-200 shadow-md flex items-center justify-center"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#00B7AD] text-white hover:bg-[#00B7AD] hover:scale-110 transition-all duration-200 shadow-md flex items-center justify-center"
                     onClick={handleSend}
                     disabled={sending || !compose.trim()}
                     title="Send message"
@@ -559,10 +616,14 @@ useEffect(() => {
               </div>
               {!compose && (
                 <button
-                  className="px-6 py-3 bg-blue-500 text-white rounded-2xl font-medium hover:bg-blue-600 hover:shadow-md transition-all duration-200 disabled:opacity-60"
+                  className="px-6 py-3 bg-[#00B7AD] text-white rounded-2xl font-medium hover:bg-[#00B7AD] hover:shadow-md transition-all duration-200 disabled:opacity-60"
                   onClick={handleSend}
                   disabled={sending || !compose.trim() || !selectedUserId}
-                  title={!selectedUserId ? "Select a participant first" : "Send message"}
+                  title={
+                    !selectedUserId
+                      ? "Select a participant first"
+                      : "Send message"
+                  }
                 >
                   Send
                 </button>
@@ -596,7 +657,7 @@ useEffect(() => {
             <div className="p-4">
               <input
                 type="text"
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-[#00B7AD] focus:border-transparent"
                 placeholder="Search users…"
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
@@ -609,7 +670,9 @@ useEffect(() => {
                 <div className="p-4 text-sm text-gray-500">Loading users…</div>
               )}
               {usersError && (
-                <div className="p-4 text-sm text-red-600">Failed to load users</div>
+                <div className="p-4 text-sm text-red-600">
+                  Failed to load users
+                </div>
               )}
               {!usersLoading && filteredUsers.length === 0 && (
                 <div className="p-4 text-sm text-gray-500">No users found</div>
@@ -624,12 +687,18 @@ useEffect(() => {
                         className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
                         onClick={() => startChatWithUser(u)}
                       >
-                        <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold text-sm">
-                          {(u.username || `User ${u.id}`).charAt(0).toUpperCase()}
+                        <div className="w-9 h-9 rounded-full bg-[#00B7AD] text-white flex items-center justify-center font-semibold text-sm">
+                          {(u.username || `User ${u.id}`)
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
                         <div className="flex-1 text-left">
-                          <div className="text-sm font-medium">{u.username || `User ${u.id}`}</div>
-                          <div className="text-xs text-gray-500 capitalize">{u.role}</div>
+                          <div className="text-sm font-medium">
+                            {u.username || `User ${u.id}`}
+                          </div>
+                          <div className="text-xs text-gray-500 capitalize">
+                            {u.role}
+                          </div>
                         </div>
                         {alreadyInThisTransaction && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border text-gray-600">

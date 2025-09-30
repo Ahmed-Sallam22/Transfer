@@ -551,9 +551,40 @@ export function SharedTable({
   const canGoPrevious = isServerSidePagination ? hasPrevious : currentPage > 1;
   const canGoNext = isServerSidePagination ? hasNext : currentPage < totalPages;
   const canGoLast = isServerSidePagination ? hasNext : currentPage < totalPages;
-const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-<svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g clip-path="url(#clip0_15_90)"> <rect width="24" height="24" fill="transparent"></rect> <path d="M20 12C20 16.4183 16.4183 20 12 20C10.5937 20 9.27223 19.6372 8.12398 19C7.53267 18.6719 4.48731 20.4615 3.99998 20C3.44096 19.4706 5.4583 16.6708 5.07024 16C4.38956 14.8233 3.99999 13.4571 3.99999 12C3.99999 7.58172 7.58171 4 12 4C16.4183 4 20 7.58172 20 12Z" stroke="#757575" stroke-linejoin="round"></path> </g> <defs> <clipPath id="clip0_15_90"> <rect width="24" height="24" fill="#757575"></rect> </clipPath> </defs> </g></svg>
-);
+  const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+      <g
+        id="SVGRepo_tracerCarrier"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      ></g>
+      <g id="SVGRepo_iconCarrier">
+        {" "}
+        <g clip-path="url(#clip0_15_90)">
+          {" "}
+          <rect width="24" height="24" fill="transparent"></rect>{" "}
+          <path
+            d="M20 12C20 16.4183 16.4183 20 12 20C10.5937 20 9.27223 19.6372 8.12398 19C7.53267 18.6719 4.48731 20.4615 3.99998 20C3.44096 19.4706 5.4583 16.6708 5.07024 16C4.38956 14.8233 3.99999 13.4571 3.99999 12C3.99999 7.58172 7.58171 4 12 4C16.4183 4 20 7.58172 20 12Z"
+            stroke="#757575"
+            stroke-linejoin="round"
+          ></path>{" "}
+        </g>{" "}
+        <defs>
+          {" "}
+          <clipPath id="clip0_15_90">
+            {" "}
+            <rect width="24" height="24" fill="#757575"></rect>{" "}
+          </clipPath>{" "}
+        </defs>{" "}
+      </g>
+    </svg>
+  );
   return (
     <>
       <div
@@ -579,7 +610,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
               ) : showSaveButton && onSave ? (
                 <button
                   onClick={onSave}
-                  className="px-6 py-1.5 bg-blue-600 text-white rounded-sm cursor-pointer hover:bg-blue-700 text-sm  transition-colors"
+                  className="px-6 py-1.5 bg-[#00B7AD] hover:bg-[#0e837d] text-white rounded-sm cursor-pointer  text-sm  transition-colors"
                 >
                   Save
                 </button>
@@ -692,7 +723,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                         className={cn(
                           "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
                           "group-hover:bg-blue-400 group-hover:w-1",
-                          isResizing === column.id && "bg-blue-500 w-1"
+                          isResizing === column.id && "bg-[#b7f1ee] w-1"
                         )}
                       />
 
@@ -741,7 +772,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                         className={cn(
                           "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
                           "group-hover:bg-blue-400 group-hover:w-1",
-                          isResizing === "actions" && "bg-blue-500 w-1"
+                          isResizing === "actions" && "bg-[#00B7AD] w-1"
                         )}
                       />
 
@@ -815,16 +846,13 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                             // Default mode: Edit and Delete buttons
                             <div className="flex items-center justify-center gap-2">
                               {transactions && (
-                                    <button
-                                onClick={() =>
-                                  handleChat(row, globalIndex)
-                                }
-                                className="p-1.5   hover:bg-green-200    border rounded-full border-[#EEEEEE] cursor-pointer  transition-colors"
-                                title="Chat"
-                              >
-                                 <ChatIcon />
-                              </button>
-                               
+                                <button
+                                  onClick={() => handleChat(row, globalIndex)}
+                                  className="p-1.5   hover:bg-green-200    border rounded-full border-[#EEEEEE] cursor-pointer  transition-colors"
+                                  title="Chat"
+                                >
+                                  <ChatIcon />
+                                </button>
                               )}
                               <button
                                 onClick={() => handleEdit(row, globalIndex)}
@@ -900,7 +928,6 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                                   />
                                 </svg>
                               </button>
-                          
                             </div>
                           ) : (
                             // Pending mode: Approve, Reject, and Delete buttons
@@ -929,18 +956,15 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                                   />
                                 </svg>
                               </button>
-                             
-                                  {transactions && (
-                                    <button
-                                onClick={() =>
-                                  handleChat(row, globalIndex)
-                                }
-                                className="p-1.5   hover:bg-green-200    border rounded-full border-[#EEEEEE] cursor-pointer  transition-colors"
-                                title="Chat"
-                              >
-                                 <ChatIcon />
-                              </button>
-                               
+
+                              {transactions && (
+                                <button
+                                  onClick={() => handleChat(row, globalIndex)}
+                                  className="p-1.5   hover:bg-green-200    border rounded-full border-[#EEEEEE] cursor-pointer  transition-colors"
+                                  title="Chat"
+                                >
+                                  <ChatIcon />
+                                </button>
                               )}
                               <button
                                 onClick={() => handleApprove(row, globalIndex)}
@@ -1038,7 +1062,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
           <div className="mt-4 flex items-center justify-center">
             <button
               onClick={onAddNewRow}
-              className="inline-flex text-sm items-center justify-center  gap-2 px-4 bg-blue-600 py-2 hover:bg-blue-700  rounded-lg text-white transition-colors"
+              className="inline-flex text-sm items-center justify-center  gap-2 px-4 bg-[#00B7AD] hover:bg-[#0e837d] py-2  rounded-lg text-white transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -1073,7 +1097,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                 <button
                   onClick={() => onPageChange?.(1)}
                   disabled={!canGoFirst}
-                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#0052FF] hover:border-[#0052FF] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
+                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#00B7AD] hover:border-[#00B7AD] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
                 >
                   <ArrowLeftIcon className="w-4 h-4" />
                   First
@@ -1083,7 +1107,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                 <button
                   onClick={() => onPageChange?.(currentPage - 1)}
                   disabled={!canGoPrevious}
-                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#0052FF] hover:border-[#0052FF] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
+                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#00B7AD] hover:border-[#00B7AD] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
                 >
                   <ArrowLeftIcon className="w-4 h-4" />
                   Back
@@ -1102,8 +1126,8 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                         className={cn(
                           "px-3 py-2 text-sm border rounded-sm transition-colors",
                           currentPage === page
-                            ? "bg-[#0052FF] border-[#0052FF] text-white"
-                            : "border-[#EEEEEE] text-[#282828] hover:bg-[#0052FF] hover:border-[#0052FF] hover:text-white"
+                            ? "bg-[#00B7AD] border-[#00B7AD] text-white"
+                            : "border-[#EEEEEE] text-[#282828] hover:bg-[#00B7AD] hover:border-[#00B7AD] hover:text-white"
                         )}
                       >
                         {page}
@@ -1116,7 +1140,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                 <button
                   onClick={() => onPageChange?.(currentPage + 1)}
                   disabled={!canGoNext}
-                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#0052FF] hover:border-[#0052FF] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
+                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#00B7AD] hover:border-[#00B7AD] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
                 >
                   Next
                   <ArrowRightIcon className="w-4 h-4" />
@@ -1126,7 +1150,7 @@ const ChatIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
                 <button
                   onClick={() => onPageChange?.(totalPages)}
                   disabled={!canGoLast}
-                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#0052FF] hover:border-[#0052FF] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
+                  className="flex items-center gap-1 px-3 py-2 text-sm border border-[#EEEEEE] text-[#282828] rounded-sm hover:bg-[#00B7AD] hover:border-[#00B7AD] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#282828] disabled:hover:border-[#EEEEEE]"
                 >
                   Last
                   <ArrowRightIcon className="w-4 h-4" />

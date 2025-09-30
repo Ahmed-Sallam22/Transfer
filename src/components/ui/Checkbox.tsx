@@ -22,7 +22,7 @@ export function Checkbox({
           id={checkboxId}
           type="checkbox"
           className={cn(
-            'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500',
+            'h-4 w-4 rounded border-gray-300 text-[#00B7AD] focus:ring-2 focus:ring-[#00B7AD]',
             error && 'border-red-500',
             className
           )}

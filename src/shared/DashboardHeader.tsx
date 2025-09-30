@@ -1,37 +1,49 @@
 // src/pages/DashboardHeader.tsx
 
 import Navbar from "./Navbar";
-import { useSelector } from 'react-redux';
-import type { RootState } from '@/app/store';
+import { useSelector } from "react-redux";
+import type { RootState } from "@/app/store";
 
 export default function DashboardHeader() {
   // Get user data from Redux store
   const user = useSelector((state: RootState) => state.auth.user);
-  
+
   // Fallback user data from localStorage if Redux state is not available
   const getUserFromStorage = () => {
     try {
-      const authData = localStorage.getItem('auth');
+      const authData = localStorage.getItem("auth");
       if (authData) {
         const parsed = JSON.parse(authData);
         return parsed.user;
       }
     } catch (error) {
-      console.error('Error parsing auth data from localStorage:', error);
+      console.error("Error parsing auth data from localStorage:", error);
     }
     return null;
   };
 
   const currentUser = user || getUserFromStorage();
-  const userName = currentUser?.username || 'User';
+
+  // Capitalize the first letter of each word in the username
+  const capitalizeWords = (str: string) => {
+    return str
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const userName = currentUser?.username
+    ? capitalizeWords(currentUser.username)
+    : "User";
 
   const today = new Date();
-  const formatted = today.toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  }); // Thursday, 26 2025 (حسب اللغة)
+  const formatted = today.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }); // Thursday, 26 September 2025 (حسب اللغة)
+
   const hours = new Date().getHours();
   const isMorning = hours < 12;
   const greeting = isMorning ? "Good Morning" : "Good Evening";
@@ -40,8 +52,8 @@ export default function DashboardHeader() {
     <header className="flex items-start justify-between gap-4">
       {/* Left: greeting */}
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl sm:text-3xl font-semibold text-[#0052FF]">
-          {greeting}, {userName}!
+        <h2 className="text-xl sm:text-3xl font-semibold text-[#00B7AD]">
+          {greeting}, {userName}
         </h2>
         <p className="text-[#757575] text-sm">{formatted}</p>
       </div>
@@ -49,9 +61,9 @@ export default function DashboardHeader() {
       {/* Right: navbar capsule */}
       <Navbar
         locale="EN"
-        onToggleLocale={(l) => console.log('switch to', l)}
-        onSearchClick={() => console.log('search')}
-        onBellClick={() => console.log('bell')}
+        onToggleLocale={(l) => console.log("switch to", l)}
+        onSearchClick={() => console.log("search")}
+        onBellClick={() => console.log("bell")}
       />
     </header>
   );

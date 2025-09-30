@@ -5,9 +5,9 @@ import {
   type TableRow as SharedTableRow,
 } from "@/shared/SharedTable";
 import {
-  useGetProjectsQuery,
   useGetActiveProjectsWithEnvelopeQuery,
   type EnvelopeProject,
+  useGetProjectsEnvelopeQuery,
 } from "@/api/envelope.api";
 import SharedSelect from "@/shared/SharedSelect";
 
@@ -19,7 +19,7 @@ interface EnvelopeTableRow {
 }
 
 export default function Envelope() {
-  const [selectedProject, setSelectedProject] = useState<string>("");
+  const [selectedProject, setSelectedProject] = useState<string|number>("");
   // const [year, setYear] = useState<string>("");
   // const [month, setMonth] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,7 +27,7 @@ export default function Envelope() {
 
   // Fetch projects list
   const { data: projectsData, isLoading: isLoadingProjects } =
-    useGetProjectsQuery();
+    useGetProjectsEnvelopeQuery();
 
   // Fetch envelope data when project is selected
   const {
@@ -36,7 +36,7 @@ export default function Envelope() {
     error: envelopeError,
   } = useGetActiveProjectsWithEnvelopeQuery(
     {
-      project_code: selectedProject,
+      project_code: String(selectedProject),
       // year: year || undefined,
       // month: month || undefined,
     },
@@ -52,10 +52,9 @@ export default function Envelope() {
       approved_total: project.approved_total,
     })) || [];
 
-  // Table columns definition
   const columns: TableColumn[] = [
     {
-      id: "project_code",  
+      id: "project_code",
       header: "Project Code",
       render: (_, row) => {
         const envelopeRow = row as unknown as EnvelopeTableRow;
@@ -72,15 +71,24 @@ export default function Envelope() {
       showSum: true,
       render: (_, row) => {
         const envelopeRow = row as unknown as EnvelopeTableRow;
+        const value = envelopeRow.submitted_total;
+        const isPositive = value >= 0;
+        const arrow = isPositive ? <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 0.34375V1.65625H8.40625L0.65625 9.40625L1.59375 10.3438L9.34375 2.59375V7H10.6562V0.34375H4Z" fill="#00A350"/>
+</svg>
+ : <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.3438 1.59375L9.40625 0.65625L1.65625 8.40625V4H0.34375V10.6562H7V9.34375H2.59375L10.3438 1.59375Z" fill="#D44333"/>
+</svg>
+;
+
         return (
           <span
-            className={`text-sm font-medium ${
-              envelopeRow.submitted_total >= 0
-                ? "text-green-600"
-                : "text-red-600"
+            className={`flex items-center gap-1 text-sm font-medium ${
+              isPositive ? "text-green-600" : "text-red-600"
             }`}
           >
-            {envelopeRow.submitted_total.toLocaleString()}
+            {value.toLocaleString()}
+            {isPositive ? arrow : arrow}
           </span>
         );
       },
@@ -91,15 +99,23 @@ export default function Envelope() {
       showSum: true,
       render: (_, row) => {
         const envelopeRow = row as unknown as EnvelopeTableRow;
+        const value = envelopeRow.approved_total;
+        const isPositive = value >= 0;
+       const arrow = isPositive ? <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 0.34375V1.65625H8.40625L0.65625 9.40625L1.59375 10.3438L9.34375 2.59375V7H10.6562V0.34375H4Z" fill="#00A350"/>
+</svg>
+ : <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.3438 1.59375L9.40625 0.65625L1.65625 8.40625V4H0.34375V10.6562H7V9.34375H2.59375L10.3438 1.59375Z" fill="#D44333"/>
+</svg>
+;
         return (
           <span
-            className={`text-sm font-medium ${
-              envelopeRow.approved_total >= 0
-                ? "text-green-600"
-                : "text-red-600"
+            className={`flex items-center gap-1 text-sm font-medium ${
+              isPositive ? "text-green-600" : "text-red-600"
             }`}
           >
-            {envelopeRow.approved_total.toLocaleString()}
+            {value.toLocaleString()}
+            {isPositive ? arrow : arrow}
           </span>
         );
       },
@@ -151,14 +167,13 @@ export default function Envelope() {
               title="Project"
               required={true}
               value={selectedProject}
-              onChange={(value) => setSelectedProject(String(value))}
+              onChange={(value) => setSelectedProject(value)}
               placeholder="Select a project"
               disabled={isLoadingProjects}
               options={[
-                { value: "9000000", label: "9000000" },
                 ...(projectsData?.data?.map((project) => ({
                   value: project.id,
-                  label: project.project || project.id,
+                  label: project.alias_default || project.id,
                 })) || []),
               ]}
             />
@@ -197,7 +212,7 @@ export default function Envelope() {
       </div>
 
       {/* Envelope Summary */}
-      {envelopeData && selectedProject &&  (
+      {envelopeData && selectedProject && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Envelope Summary
@@ -205,7 +220,7 @@ export default function Envelope() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="text-sm font-medium text-blue-600">
-                Initial Envelope
+                Projected Envelope
               </div>
               <div className="text-2xl font-bold text-blue-900 mt-1">
                 {envelopeData.initial_envelope.toLocaleString()}
@@ -213,7 +228,7 @@ export default function Envelope() {
             </div>
             <div className="bg-green-50 rounded-lg p-4">
               <div className="text-sm font-medium text-green-600">
-                Current Envelope
+                Final Envelope
               </div>
               <div className="text-2xl font-bold text-green-900 mt-1">
                 {envelopeData.current_envelope.toLocaleString()}
@@ -264,7 +279,6 @@ export default function Envelope() {
               onPageChange={handlePageChange}
               itemsPerPage={itemsPerPage}
               maxHeight="600px"
-              
               showColumnSelector={true}
             />
           ) : (

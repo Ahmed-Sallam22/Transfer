@@ -136,34 +136,47 @@ export default function PendingTransferDetails() {
 
   // Keep the old columns for the main transfer table
   const columnsDetails: TableColumn[] = [
-    {
-      id: "to",
-      header: "To",
-      showSum: true,
+       {
+      id: "costCenterCode",
+      header: "Legal Entity",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return (
           <span className="text-sm text-gray-900">
-               {formatNumber(transferRow.to)}
+            {transferRow.costCenterCode || ""}
           </span>
         );
       },
     },
     {
-      id: "from",
-      header: "From",
-      showSum: true,
+      id: "accountCode",
+      header: "Account Code",
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return (
           <span className="text-sm text-gray-900">
-            {formatNumber(transferRow.from)}
+            {transferRow.accountCode}
           </span>
         );
       },
     },
+
+    {
+      id: "projectCode",
+      header: "Project Code",
+
+      render: (_, row) => {
+        const transferRow = row as unknown as TransferTableRow;
+        return (
+          <span className="text-sm text-gray-900">
+            {transferRow.projectCode}
+          </span>
+        );
+      },
+    },
+   
     {
       id: "encumbrance",
       header: "Encumbrance",
@@ -320,7 +333,7 @@ export default function PendingTransferDetails() {
         );
       },
     },
-        {
+    {
       id: "costCenterName",
       header: "Legal Entity",
 
@@ -359,42 +372,30 @@ export default function PendingTransferDetails() {
         );
       },
     },
- {
-      id: "costCenterCode",
-      header: "Legal Entity",
+     {
+      id: "from",
+      header: "From",
+      showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return (
           <span className="text-sm text-gray-900">
-            {transferRow.costCenterCode || ""}
+            {formatNumber(transferRow.from)}
           </span>
         );
       },
     },
-    {
-      id: "accountCode",
-      header: "Account Code",
+  {
+      id: "to",
+      header: "To",
+      showSum: true,
 
       render: (_, row) => {
         const transferRow = row as unknown as TransferTableRow;
         return (
           <span className="text-sm text-gray-900">
-            {transferRow.accountCode}
-          </span>
-        );
-      },
-    },
-
-    {
-      id: "projectCode",
-      header: "Project Code",
-
-      render: (_, row) => {
-        const transferRow = row as unknown as TransferTableRow;
-        return (
-          <span className="text-sm text-gray-900">
-            {transferRow.projectCode}
+            {formatNumber(transferRow.to)}
           </span>
         );
       },
@@ -500,7 +501,7 @@ export default function PendingTransferDetails() {
       <div className="flex items-center gap-2 mb-6">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#0052FF] hover:text-[#174ec4] "
+          className="flex items-center gap-2  cursor-pointer py-2 text-lg text-[#00B7AD] hover:text-[#174ec4] "
         >
           Pendeing Transfer
         </button>

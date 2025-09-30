@@ -44,7 +44,7 @@ body{
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #0052FF;      /* اللون المطلوب */
+  background: #00B7AD;      /* اللون المطلوب */
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -54,5 +54,5 @@ body{
 /* Firefox */
 .custom-scrollbar{
   scrollbar-width: thin;
-  scrollbar-color: #0052FF transparent; /* thumb ثم track */
+  scrollbar-color: #00B7AD transparent; /* thumb ثم track */
 }

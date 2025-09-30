@@ -4,6 +4,7 @@ import { customBaseQuery } from './baseQuery';
 export interface Project {
   id: string;
   project?: string;
+  alias_default?: string;
 }
 
 export interface ProjectsResponse {
@@ -36,8 +37,15 @@ export const envelopeApi = createApi({
       }),
       providesTags: ['Projects'],
     }),
+    getProjectsEnvelope: builder.query<ProjectsResponse, void>({
+      query: () => ({
+        url: '/projects/envelope/',
+        method: 'GET',
+      }),
+      providesTags: ['Projects'],
+    }),
     getActiveProjectsWithEnvelope: builder.query<EnvelopeResponse, {
-      project_code: string;
+      project_code: string ;
       year?: string;
       month?: string;
     }>({
@@ -58,5 +66,6 @@ export const envelopeApi = createApi({
 
 export const {
   useGetProjectsQuery,
+  useGetProjectsEnvelopeQuery,
   useGetActiveProjectsWithEnvelopeQuery,
 } = envelopeApi;

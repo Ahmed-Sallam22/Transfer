@@ -150,7 +150,7 @@ navigate(target, { replace: true });
     
 
       {/* Right Panel - Hero */}
-      <div className="hidden   lg:block lg:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 relative">
+      <div className="hidden   lg:block lg:w-1/2 bg-gradient-to-br from-[#00B7AD] to-[#005B5D] relative">
         <img src={Animation} className='w-full h-screen object-center' alt="" />
       </div>
     </div>

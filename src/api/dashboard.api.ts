@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { customBaseQuery } from './baseQuery';
 
@@ -89,9 +90,39 @@ export const dashboardApi = createApi({
       }),
       providesTags: ['Dashboard'],
     }),
+    getProjectWiseDashboard: builder.query<
+  {
+    message: string;
+    data: {
+      project_code: string;
+      project_name: string;
+      FY24_budget: number;
+      FY25_budget_current: number;
+      variances: number;
+    }[];
+  },
+  { entity_code: string }
+>({
+  query: ({ entity_code }) => ({
+    url: `/accounts-entities/project-wise-dashboard/?entity_code=${entity_code}`,
+    method: "GET",
+  }),
+}),
+getAccountWiseDashboard: builder.query<any, { project_code: string }>({
+  query: ({ project_code }) => ({
+    url: `/accounts-entities/account-wise-dashboard?project_code=${project_code}`,
+    method: "GET",
+  }),
+}),
+ getEntitiesMapping: builder.query<any, void>({
+      query: () => `/accounts-entities/entities/mapping/list/`,
+    }),
   }),
 });
 
 export const {
   useGetDashboardDataQuery,
+  useGetProjectWiseDashboardQuery,
+  useGetAccountWiseDashboardQuery,
+  useGetEntitiesMappingQuery
 } = dashboardApi;

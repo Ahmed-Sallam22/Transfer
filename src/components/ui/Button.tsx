@@ -1,17 +1,18 @@
-import React from 'react';
-import { cn } from '../../utils/cn';
+import React from "react";
+import { cn } from "../../utils/cn";
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "ghost";
+  size?: "sm" | "md" | "lg";
   loading?: boolean;
   icon?: React.ReactNode;
   children: React.ReactNode;
 }
 
 export function Button({
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   loading = false,
   icon,
   className,
@@ -19,18 +20,21 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'inline-flex py-6 lg:text-base text-sm rounded-lg items-center justify-center rounded-md lg:font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
-  
+  const baseClasses =
+    "inline-flex py-6 lg:text-base text-sm rounded-lg items-center justify-center rounded-md lg:font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+
   const variantClasses = {
-    primary: 'bg-[#0052FF] text-white hover:bg-blue-700 focus-visible:ring-blue-500',
-    secondary: 'bg-[#EEEEEE] text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500',
-    ghost: 'hover:bg-gray-100 focus-visible:ring-gray-500',
+    primary:
+      "bg-[#00B7AD] text-white hover:bg-[#00B7AD] focus-visible:ring-[#00B7AD]",
+    secondary:
+      "bg-[#EEEEEE] text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500",
+    ghost: "hover:bg-gray-100 focus-visible:ring-gray-500",
   };
-  
+
   const sizeClasses = {
-    sm: 'h-8 px-3 text-sm',
-    md: 'h-10 px-4 py-2',
-    lg: 'h-12 px-8 text-lg',
+    sm: "h-8 px-3 text-sm",
+    md: "h-10 px-4 py-2",
+    lg: "h-12 px-8 text-lg",
   };
 
   return (
@@ -66,9 +70,7 @@ export function Button({
           />
         </svg>
       )}
-      {icon && !loading && (
-        <span className="mr-2">{icon}</span>
-      )}
+      {icon && !loading && <span className="mr-2">{icon}</span>}
       {children}
     </button>
   );

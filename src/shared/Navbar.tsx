@@ -40,10 +40,23 @@ export default function Navbar({
 
   const currentUser = user || getUserFromStorage();
     const logout = useLogout();
+  // Capitalize the first letter of each word in the username
+  const capitalizeWords = (str: string) => {
+    return str
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const userName = currentUser?.username
+    ? capitalizeWords(currentUser.username)
+    : "User";
 
   // Default values if no user data is available
-  const userName = currentUser?.username || 'User';
-  const userRole = currentUser?.role || 'Guest';
+  const userRole =
+    currentUser?.role
+      ? capitalizeWords(currentUser.role)
+      : "Guest";
   const canTransferBudget = currentUser?.can_transfer_budget || false;
 
   // You can use canTransferBudget to show/hide certain UI elements or features
