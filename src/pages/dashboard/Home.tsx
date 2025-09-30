@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer,
@@ -142,8 +142,9 @@ export default function Home() {
     data: dashboardData,
     isLoading,
     error,
+    refetch: refetchDashboard,
   } = useGetDashboardDataQuery({ type: mode });
-const [selectedProject, setSelectedProject] = useState<string | number>("0002447");
+const [selectedProject, setSelectedProject] = useState<string | number>("843");
 
 const [year, setYear] = useState<string>("2025");
   const [filter, setFilter] = useState<string | null>(null); // e.g. "MenPower"
@@ -152,6 +153,7 @@ const [year, setYear] = useState<string>("2025");
     data: accountWiseData,
     isLoading: isLoadingAccountWise,
     error: accountWiseError,
+    refetch: refetchAccountWise,
   } = useGetAccountWiseDashboardQuery(
     { project_code: String(selectedProject) },
     { skip: !selectedProject }
@@ -213,6 +215,7 @@ const {
     data: projectWiseData,
     isLoading: isLoadingProjectWise,
     error: projectWiseError,
+    refetch: refetchProjectWise,
   } = useGetProjectWiseDashboardQuery({ entity_code: selectedEntity });
   // Table columns for request timeline
   const timelineColumns: TableColumn[] = [
@@ -370,6 +373,22 @@ const {
     { id: "FY24_budget", header: "FY24 Budget", accessor: "FY24_budget" },
     { id: "FY25_budget", header: "FY25 Budget", accessor: "FY25_budget" },
   ];
+   useEffect(() => {
+    // when project changes: clear account filter & refetch project-related endpoints
+    setFilter(null);
+    refetchAccountWise();
+    }, [selectedProject, refetchAccountWise]);
+
+  useEffect(() => {
+    // when entity changes: refetch the project-wise table
+    refetchProjectWise();
+  }, [selectedEntity, refetchProjectWise]);
+
+  useEffect(() => {
+    // if mode or year changes and you want to force a fresh pull
+    refetchDashboard();
+    // year affects only derived memos in your code; if your APIs support year, add it to args and refetch here too.
+  }, [mode, year, refetchDashboard]);
 
   return (
     <div className="space-y-6">
