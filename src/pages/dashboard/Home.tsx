@@ -143,7 +143,7 @@ export default function Home() {
     isLoading,
     error,
   } = useGetDashboardDataQuery({ type: mode });
-  const [selectedProject, setSelectedProject] = useState<string | number>("");
+const [selectedProject, setSelectedProject] = useState<string | number>("0002447");
 
 const [year, setYear] = useState<string>("2025");
   const [filter, setFilter] = useState<string | null>(null); // e.g. "MenPower"
@@ -229,7 +229,7 @@ const {
       header: "Project Name",
       accessor: "project_name",
       render: (value) => (
-        <span className="text-sm font-medium">{String(value)} days ago</span>
+        <span className="text-sm font-medium">{String(value)}</span>
       ),
     },
     {
@@ -237,7 +237,7 @@ const {
       header: "FY24 Budget",
       accessor: "FY24_budget",
       render: (value) => (
-        <span className="text-sm font-medium">{String(value)} days ago</span>
+        <span className="text-sm font-medium">{String(value)}</span>
       ),
     },
     {
@@ -245,7 +245,7 @@ const {
       header: "FY25 Budget Current",
       accessor: "FY25_budget_current",
       render: (value) => (
-        <span className="text-sm font-medium">{String(value)} days ago</span>
+        <span className="text-sm font-medium">{String(value)}</span>
       ),
     },
     {
@@ -253,7 +253,7 @@ const {
       header: "Variances",
       accessor: "variances",
       render: (value) => (
-        <span className="text-sm font-medium">{String(value)} days ago</span>
+        <span className="text-sm font-medium">{String(value)}</span>
       ),
     },
   ];
