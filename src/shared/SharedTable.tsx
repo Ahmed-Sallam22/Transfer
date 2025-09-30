@@ -123,6 +123,7 @@ export interface TableColumn {
   accessor?: string;
   render?: (value: unknown, row: TableRow, index: number) => React.ReactNode;
   showSum?: boolean; // Add this property for columns that should show sum
+  description?: string; // 👈 Add this
 }
 
 export interface TableRow {
@@ -693,56 +694,63 @@ export function SharedTable({
             {/* Table Header */}
             <thead className="bg-[#F6F6F6]   rounded-3xl">
               <tr>
-                {filteredColumns.map((column) => (
-                  <th
-                    key={column.id}
-                    className="text-left px-4 py-3 text-sm font-[300] text-[#595B5E] relative select-none border-r border-r-transparent hover:border-r-blue-200"
-                    style={{
-                      width: columnWidths[column.id] || column.width || 150,
-                      minWidth: column.minWidth || 100,
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="truncate">{column.header}</span>
-                    </div>
+               {filteredColumns.map((column) => (
+  <th
+    key={column.id}
+    className="text-left px-4 py-3 text-sm font-[300] text-[#595B5E] relative select-none border-r border-r-transparent hover:border-r-blue-200"
+    style={{
+      width: columnWidths[column.id] || column.width || 150,
+      minWidth: column.minWidth || 100,
+    }}
+  >
+    <div className="flex items-center justify-between relative group">
+      <span className="truncate">{column.header}</span>
 
-                    {/* Resize handle - now for all columns */}
-                    <div
-                      className={cn(
-                        "absolute top-0 right-0 w-3 h-full cursor-col-resize group transition-all duration-200 z-10",
-                        "hover:w-4 hover:bg-blue-100/50",
-                        isResizing === column.id && "w-4 bg-blue-200/50"
-                      )}
-                      onMouseDown={(e) => handleMouseDown(e, column.id)}
-                      onDoubleClick={() => handleDoubleClick(column.id)}
-                      title="Drag to resize, double-click to reset"
-                      style={{ userSelect: "none" }}
-                    >
-                      {/* Resize bar */}
-                      <div
-                        className={cn(
-                          "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
-                          "group-hover:bg-blue-400 group-hover:w-1",
-                          isResizing === column.id && "bg-[#b7f1ee] w-1"
-                        )}
-                      />
+      {/* Tooltip */}
+      <div className="absolute left-0 top-full mt-2 w-max max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+        <div className="px-3 py-2 rounded-md bg-gray-900 text-white text-xs shadow-lg">
+          {column.description || column.header}
+        </div>
+      </div>
+    </div>
 
-                      {/* Resize icon */}
-                      <div
-                        className={cn(
-                          "absolute top-1/2 right-0.5 transform -translate-y-1/2",
-                          "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-                          "bg-white border border-gray-300 rounded p-0.5 shadow-sm",
-                          "group-hover:border-blue-400",
-                          isResizing === column.id &&
-                            "opacity-100 border-blue-500"
-                        )}
-                      >
-                        <ResizeIcon className="w-2 h-2 text-gray-600 group-hover:text-blue-600" />
-                      </div>
-                    </div>
-                  </th>
-                ))}
+    {/* Resize handle remains the same */}
+    <div
+      className={cn(
+        "absolute top-0 right-0 w-3 h-full cursor-col-resize group transition-all duration-200 z-10",
+        "hover:w-4 hover:bg-blue-100/50",
+        isResizing === column.id && "w-4 bg-blue-200/50"
+      )}
+      onMouseDown={(e) => handleMouseDown(e, column.id)}
+      onDoubleClick={() => handleDoubleClick(column.id)}
+      title="Drag to resize, double-click to reset"
+      style={{ userSelect: "none" }}
+    >
+      {/* Resize bar */}
+      <div
+        className={cn(
+          "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
+          "group-hover:bg-blue-400 group-hover:w-1",
+          isResizing === column.id && "bg-[#b7f1ee] w-1"
+        )}
+      />
+
+      {/* Resize icon */}
+      <div
+        className={cn(
+          "absolute top-1/2 right-0.5 transform -translate-y-1/2",
+          "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+          "bg-white border border-gray-300 rounded p-0.5 shadow-sm",
+          "group-hover:border-blue-400",
+          isResizing === column.id && "opacity-100 border-blue-500"
+        )}
+      >
+        <ResizeIcon className="w-2 h-2 text-gray-600 group-hover:text-blue-600" />
+      </div>
+    </div>
+  </th>
+))}
+
 
                 {/* Actions column header */}
                 {showActions && (
