@@ -306,6 +306,13 @@ const {
     if (!envelopeData) {
       return [
         {
+          title: "Initial Envelope",
+          value: "-",
+          subtitle: "from last month",
+          delta: "-",
+          trend: "flat" as const,
+        },
+        {
           title: "Projected Envelope",
           value: "-",
           subtitle: "from last month",
@@ -313,14 +320,7 @@ const {
           trend: "flat" as const,
         },
         {
-          title: "Final Envelope",
-          value: "-",
-          subtitle: "from last month",
-          delta: "-",
-          trend: "flat" as const,
-        },
-        {
-          title: "Estimated Envelope",
+          title: "Final",
           value: "-",
           subtitle: "from last month",
           delta: "-",
@@ -331,22 +331,23 @@ const {
 
     return [
       {
-        title: "Projected Envelope",
+        title: "Initial Envelope",
         value: envelopeData.initial_envelope.toLocaleString(),
         subtitle: "from last month",
         delta: "+10%",
         trend: "up" as const,
       },
+     
       {
-        title: "Final Envelope",
-        value: envelopeData.current_envelope.toLocaleString(),
+        title: "Projected Envelope",
+        value: envelopeData.estimated_envelope?.toLocaleString() ?? "-",
         subtitle: "from last month",
         delta: "-2%",
         trend: "down" as const,
       },
-      {
-        title: "Estimated Envelope",
-        value: envelopeData.estimated_envelope?.toLocaleString() ?? "-",
+       {
+        title: "Final",
+        value: envelopeData.current_envelope.toLocaleString(),
         subtitle: "from last month",
         delta: "-2%",
         trend: "down" as const,
