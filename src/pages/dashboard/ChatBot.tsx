@@ -457,7 +457,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                       <div className="mb-2">
                         <button
                           onClick={() => openSqlModal(m.sqlData!)}
-                          className="text-xs px-3 py-1.5 rounded-md shadow bg-gradient-to-r from-blue-500 to-blue-700 text-white hover:shadow-md transition inline-flex items-center gap-1"
+                          className="text-xs px-3 py-1.5 rounded-md shadow bg-gradient-to-r from-[#00B7AD] to-[#09615d] text-white hover:shadow-md transition inline-flex items-center gap-1"
                         >
                           <svg
                             width="14"
@@ -476,7 +476,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                       className={[
                         "px-4 py-3 rounded-2xl text-sm leading-snug break-words",
                         m.isUser
-                          ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-br-md"
+                          ? "bg-gradient-to-r from-[#00B7AD] to-[#09615d] text-white rounded-br-md"
                           : isDarkMode
                           ? "bg-slate-700/80 text-slate-100 rounded-bl-md"
                           : "bg-white/90 text-slate-700 rounded-bl-md",
@@ -592,7 +592,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
             onClick={(e) => e.stopPropagation()}
             dir={isArabic ? "rtl" : "ltr"}
           >
-            <div className="px-6 py-4 text-white bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-between">
+            <div className="px-6 py-4 text-white bg-gradient-to-r from-[#00B7AD] to-[#09615d] flex items-center justify-between">
               <h2 className="text-sm font-semibold">
                 {isArabic ? "تفاصيل البيانات" : "SQL Data Details"}
               </h2>
