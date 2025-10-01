@@ -56,7 +56,7 @@ export default function ProfileDropdown({
           {/* User info - Show on mobile when dropdown is open */}
           <div className="md:hidden p-3 border-b border-gray-100">
             <div className="text-sm font-medium text-gray-900">{userName}</div>
-            <div className="text-xs text-gray-500">{user_level}</div>
+            <div className="text-xs text-gray-500 capitalize">{user_level}</div>
           </div>
 
           {/* Menu items */}

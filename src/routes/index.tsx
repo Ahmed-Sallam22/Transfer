@@ -27,6 +27,9 @@ import Chat from "@/pages/dashboard/Chat";
 const SignIn = lazy(() => import("../pages/auth/SignIn"));
 const AppLayout = lazy(() => import("../components/layout/AppLayout"));
 const Home = lazy(() => import("../pages/dashboard/Home"));
+const DashboardDetails = lazy(
+  () => import("../pages/dashboard/DashboardDetails")
+);
 
 export default function AppRoutes() {
   return (
@@ -49,14 +52,18 @@ export default function AppRoutes() {
           }
         >
           <Route index element={<Home />} />
-        <Route
-  path="chat/:id"
-  element={
-    <ProtectedRoute>
-      <Chat />
-    </ProtectedRoute>
-  }
-/>
+          <Route
+            path="dashboard-details/:type"
+            element={<DashboardDetails />}
+          />
+          <Route
+            path="chat/:id"
+            element={
+              <ProtectedRoute>
+                <Chat />
+              </ProtectedRoute>
+            }
+          />
           {/* Level 1: Transfer, Transfer Details, Fund Requests, Fund Request Details, Adjustments, Adjustment Details */}
           <Route
             path="transfer"
@@ -269,7 +276,6 @@ export default function AppRoutes() {
           {/* <Route path="profile" element={<Profile />} /> */}
           {/* <Route path="settings" element={<Settings />} /> */}
         </Route>
-
 
         {/* Default redirects */}
         <Route path="/" element={<Navigate to="/app" />} />

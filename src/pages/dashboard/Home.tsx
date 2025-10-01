@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer,
@@ -111,51 +112,53 @@ function StatCard({
   title,
   value,
   subtitle,
-  delta,
-  trend = "up", // 'up' | 'down' | 'flat'
-}: {
+}: // trend = "up", // 'up' | 'down' | 'flat'
+{
   title: string;
   value: string | number;
   subtitle?: string;
   delta?: string;
-  trend?: "up" | "down" | "flat";
+  // trend?: "up" | "down" | "flat";
 }) {
-  const isUp = trend === "up";
-  const isDown = trend === "down";
-  const arrow = isUp ? "↗" : isDown ? "↘" : "→";
-  const deltaColor = isUp
-    ? "text-green-600"
-    : isDown
-    ? "text-red-600"
-    : "text-gray-500";
+  // const isUp = trend === "up";
+  // const isDown = trend === "down";
+  // const arrow = isUp ? "↗" : isDown ? "↘" : "→";
+  // const deltaColor = isUp
+  //   ? "text-green-600"
+  //   : isDown
+  //   ? "text-red-600"
+  //   : "text-gray-500";
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
       <div className="flex justify-between items-center">
         <div className="text-sm text-gray-500">{title}</div>
-        <span className={`text-xs font-medium ${deltaColor}`}>{arrow}</span>
+        {/* <span className={`text-xs font-medium ${deltaColor}`}>{arrow}</span> */}
       </div>
       <div className="mt-2 text-2xl font-meduim text-gray-900">{value}</div>
       <div className="flex justify-between items-center">
         <div className="mt-1 text-xs text-[#282828]">{subtitle}</div>
-        <span className={`text-xs font-medium ${deltaColor}`}>{delta}</span>
+        {/* <span className={`text-xs font-medium ${deltaColor}`}>{delta}</span> */}
       </div>
     </div>
   );
 }
 
+// Move this outside the component to avoid re-creation on every render
+const LABEL_TO_GROUP: Record<string, "MenPower" | "NonMenPower" | "Copex"> = {
+  Manpower: "MenPower",
+  "Non-Manpower": "NonMenPower",
+  Capex: "Copex",
+  // tolerate raw keys too (in case you call setFilter with them)
+  MenPower: "MenPower",
+  NonMenPower: "NonMenPower",
+  Copex: "Copex",
+};
+
 // ===== Page =====
 export default function Home() {
   const { t } = useTranslation();
-  const LABEL_TO_GROUP: Record<string, "MenPower" | "NonMenPower" | "Copex"> = {
-    Manpower: "MenPower",
-    "Non-Manpower": "NonMenPower",
-    Capex: "Copex",
-    // tolerate raw keys too (in case you call setFilter with them)
-    MenPower: "MenPower",
-    NonMenPower: "NonMenPower",
-    Copex: "Copex",
-  };
+  const navigate = useNavigate();
   // Mode & Date Range
   const [mode, setMode] = useState<"all" | "Envelope" | "Budget">("all");
   // const [from, setFrom] = useState<string>(format(subDays(new Date(), 7), "yyyy-MM-dd"));
@@ -621,8 +624,8 @@ export default function Home() {
                     title={s.title}
                     value={s.value.toLocaleString()}
                     subtitle={s.subtitle}
-                    delta={s.delta}
-                    trend={s.trend}
+                    // delta={s.delta}
+                    // trend={s.trend}
                   />
                 </div>
               ))}
@@ -713,11 +716,16 @@ export default function Home() {
                             innerRadius={100}
                             outerRadius={115}
                             onClick={(data) => {
-                              if (filter === data.name) {
-                                setFilter(null); // unselect if clicked again
-                              } else {
-                                setFilter(data.name); // filter table
-                              }
+                              // Navigate to dashboard details page for the selected type
+                              const typeMap: Record<string, string> = {
+                                Manpower: "manpower",
+                                "Non-Manpower": "non-manpower",
+                                Capex: "capex",
+                              };
+                              const type = typeMap[data.name] || "manpower";
+                              navigate(
+                                `/app/dashboard-details/${type}?project=${selectedProject}`
+                              );
                             }}
                           >
                             {accountSummaryData.map((entry, i) => (
