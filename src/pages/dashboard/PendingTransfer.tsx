@@ -2,9 +2,10 @@ import SearchBar from "@/shared/SearchBar";
 import { SharedTable } from "@/shared/SharedTable";
 import type { TableColumn, TableRow } from "@/shared/SharedTable";
 import SharedModal from "@/shared/SharedModal";
+import SharedSelect from "@/shared/SharedSelect";
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   useGetPendingTransfersQuery,
   useBulkApproveRejectTransferMutation,
@@ -12,6 +13,7 @@ import {
 } from "@/api/pendingTransfer.api";
 import toast from "react-hot-toast";
 import { useGetTransferStatusQuery } from "@/api/transfer.api";
+import { useGetUsersQuery } from "@/api/user.api";
 
 const PendingtransferData: TableRow[] = [];
 
@@ -19,6 +21,11 @@ export default function PendingTransfer() {
   const navigate = useNavigate();
   const [q, setQ] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Selection state for delegation
+  const [selectedTransfers, setSelectedTransfers] = useState<Set<string>>(
+    new Set()
+  );
 
   // RTK Query hooks
   const {
@@ -114,75 +121,197 @@ export default function PendingTransfer() {
     return String(value);
   };
 
-  // Table columns configuration
-  const PendingTransferColumns: TableColumn[] = [
-    {
-      id: "code",
-      header: "Transaction Code",
-      accessor: "code",
-      width: 160,
-      minWidth: 140,
-      render: (value, row) => (
-        <span
-          className="font-medium bg-[#F6F6F6] p-2 rounded-md cursor-pointer hover:bg-blue-100 transition"
-          onClick={() => handleTransactionIdClick(row)}
-        >
-          {String(value)}
-        </span>
-      ),
-    },
-    {
-      id: "requested_by",
-      header: "Requested By",
-      accessor: "requested_by",
-      width: 160,
-      minWidth: 140,
-    },
-    {
-      id: "status",
-      header: "Status",
-      accessor: "status",
-      width: 110,
-      minWidth: 90,
-      render: (value, row) => (
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition ${
-            value === "Approved" || value === "approved" || value === "active"
-              ? "bg-green-100 text-green-800"
-              : value === "Pending" || value === "pending"
-              ? "bg-yellow-100 text-yellow-800"
-              : value === "Rejected" || value === "rejected"
-              ? "bg-red-100 text-red-800"
-              : value === "In Progress" || value === "in_progress"
-              ? "bg-blue-300 text-blue-800"
-              : "bg-gray-100 text-gray-800"
-          }`}
-          onClick={() => handleStatusClick(row)}
-        >
-          {safeValue(value).charAt(0).toUpperCase() + safeValue(value).slice(1)}
-        </span>
-      ),
-    },
-    {
-      id: "transaction_date",
-      header: "Transaction Date",
-      accessor: "transaction_date",
-      width: 150,
-      minWidth: 120,
-    },
-    {
-      id: "amount",
-      header: "Amount",
-      accessor: "amount",
-      width: 120,
-      minWidth: 100,
-      render: (value) => (
-        <span className="font-medium text-[#282828]">
-          {Number(value).toLocaleString()}
-        </span>
-      ),
-    },
-  ];
+
+    const [isDelegateMode, setIsDelegateMode] = useState<boolean>(false);
+
+  const [isDelegateModalOpen, setIsDelegateModalOpen] =
+    useState<boolean>(false);
+  const [delegateUser, setDelegateUser] = useState<string>("");
+
+  const [delegateReason, setDelegateReason] = useState<string>("");
+
+  // Load ALL users for the modal (NEW)
+  const { data: allUsers } = useGetUsersQuery();
+  const userOptions = (allUsers ?? []).map((u) => ({
+    value: u.id, // or String(u.id) if your SharedSelect needs strings
+    label: `${u.username}`,
+  }));
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // read from URL on first render
+  useState(() => {
+    if (searchParams.get("delegate") === "1") setIsDelegateMode(true);
+  });
+
+  const handleDelegateClick = () => {
+    setIsDelegateMode(true);
+    const next = new URLSearchParams(searchParams);
+    next.set("delegate", "1");
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleCancelDelegate = () => {
+    setIsDelegateMode(false);
+    setSelectedTransfers(new Set());
+    const next = new URLSearchParams(searchParams);
+    next.delete("delegate");
+    setSearchParams(next, { replace: true });
+  };
+
+  // Function to generate table columns configuration
+  // ✅ Build columns then conditionally add the selection column
+  const getPendingTransferColumns = (): TableColumn[] => {
+    const cols: TableColumn[] = [
+      {
+        id: "code",
+        header: "Transaction Code",
+        accessor: "code",
+        width: 160,
+        minWidth: 140,
+        sortable: true,
+        render: (value, row) => (
+          <span
+            className="font-medium bg-[#F6F6F6] p-2 rounded-md cursor-pointer hover:bg-blue-100 transition"
+            onClick={() => handleTransactionIdClick(row)}
+          >
+            {String(value)}
+          </span>
+        ),
+      },
+      {
+        id: "requested_by",
+        header: "Requested By",
+        accessor: "requested_by",
+        width: 160,
+        minWidth: 140,
+        sortable: true,
+      },
+      {
+        id: "status",
+        header: "Status",
+        accessor: "status",
+        width: 110,
+        minWidth: 90,
+        sortable: true,
+        render: (value, row) => (
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition ${
+              value === "Approved" || value === "approved" || value === "active"
+                ? "bg-green-100 text-green-800"
+                : value === "Pending" || value === "pending"
+                ? "bg-yellow-100 text-yellow-800"
+                : value === "Rejected" || value === "rejected"
+                ? "bg-red-100 text-red-800"
+                : value === "In Progress" || value === "in_progress"
+                ? "bg-blue-300 text-blue-800"
+                : "bg-gray-100 text-gray-800"
+            }`}
+            onClick={() => handleStatusClick(row)}
+          >
+            {safeValue(value).charAt(0).toUpperCase() +
+              safeValue(value).slice(1)}
+          </span>
+        ),
+      },
+      {
+        id: "transaction_date",
+        header: "Transaction Date",
+        accessor: "transaction_date",
+        width: 150,
+        minWidth: 120,
+        sortable: true,
+      },
+      {
+        id: "amount",
+        header: "Amount",
+        accessor: "amount",
+        width: 120,
+        minWidth: 100,
+        sortable: true,
+        render: (value) => (
+          <span className="font-medium text-[#282828]">
+            {Number(value).toLocaleString()}
+          </span>
+        ),
+      },
+    ];
+
+    if (isDelegateMode) {
+      cols.unshift({
+        id: "select",
+        header: "",
+        width: 64,
+        minWidth: 56,
+        render: (_: unknown, row) => (
+          <input
+            type="checkbox"
+            checked={selectedTransfers.has(String(row.id))}
+            onChange={(e) =>
+              handleTransferSelection(String(row.id), e.target.checked)
+            }
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+          />
+        ),
+      });
+    }
+
+    return cols;
+  };
+   // Delegation handlers
+  const handleTransferSelection = (transferId: string, checked: boolean) => {
+    setSelectedTransfers((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(transferId);
+      } else {
+        newSet.delete(transferId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(tableData.map((row) => String(row.id)));
+      setSelectedTransfers(allIds);
+    } else {
+      setSelectedTransfers(new Set());
+    }
+  };
+
+  const handleOpenDelegateModal = () => {
+    setIsDelegateModalOpen(true);
+  };
+
+  const handleConfirmDelegate = async () => {
+    console.log("Delegating to user ID:", delegateUser);
+
+    try {
+      // Convert Set to Array for the API call
+      const transferIds = Array.from(selectedTransfers).map((id) =>
+        parseInt(id)
+      );
+
+      await bulkApproveRejectTransfer({
+        transaction_id: transferIds,
+        decide: ["delegate"], // Action is delegate
+        reason: delegateReason ? [delegateReason] : [],
+        other_user_id: [parseInt(delegateUser)], // User to delegate to (convert to number)
+      }).unwrap();
+
+      toast.success(`${transferIds.length} transfer(s) delegated successfully`);
+
+      // Reset state
+      setIsDelegateModalOpen(false);
+      setIsDelegateMode(false);
+      setSelectedTransfers(new Set());
+      setDelegateUser("");
+      setDelegateReason("");
+    } catch (error) {
+      console.error("Error delegating transfers:", error);
+      toast.error("Failed to delegate transfers");
+    }
+  };
 
   const handleSearchChange = (text: string) => {
     console.log("Search changed:", text);
@@ -270,21 +399,83 @@ export default function PendingTransfer() {
     navigate(`/app/chat/${row.id}`, { state: { txCode: row.code } });
   };
 
+ 
+
   return (
     <div>
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide  ">Pending Transfer</h1>
+        <h1 className="text-2xl font-bold tracking-wide">Pending Transfer</h1>
+
+        {!isDelegateMode ? (
+          <button
+            onClick={handleDelegateClick}
+            className="flex items-center gap-2 px-3 py-2 bg-[#00B7AD] hover:bg-[#0e837d] text-white rounded-md transition-colors font-medium"
+          >
+            <svg
+              width="24"
+              height="11"
+              viewBox="0 0 24 11"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M1 9.21364H3.90563C5.20531 9.21364 6.51897 9.34904 7.78385 9.60963C10.0213 10.0706 12.3771 10.1264 14.6375 9.76054M13.441 5.52211C13.5951 5.50426 13.7427 5.48379 13.8836 5.46131C15.0554 5.27441 16.039 4.64823 16.9395 3.96798L19.2631 2.21276C20.0822 1.59399 21.298 1.59387 22.1173 2.21248C22.8548 2.76939 23.0803 3.68639 22.614 4.43381C22.0703 5.30545 21.3041 6.42054 20.5685 7.10189M13.441 5.52211C13.3947 5.52748 13.3477 5.53262 13.3002 5.53749M13.441 5.52211C13.6285 5.48194 13.8146 5.36634 13.9893 5.21393C14.8162 4.49214 14.8685 3.27571 14.151 2.46973C13.9845 2.28273 13.7897 2.12678 13.5731 1.99758C9.97651 -0.14757 4.38068 1.48626 1 3.88375M13.441 5.52211C13.3941 5.53216 13.3471 5.53749 13.3002 5.53749M13.3002 5.53749C12.6273 5.60658 11.8401 5.62444 10.9666 5.54196"
+                stroke="white"
+                strokeWidth="1.92857"
+                strokeLinecap="round"
+              />
+            </svg>
+            Delegate
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCancelDelegate}
+              className="flex items-center gap-2 px-3 py-2 bg-transparent border border-[#00B7AD] text-[#00B7AD] hover:bg-[#00B7AD] hover:text-white  rounded-md transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleOpenDelegateModal}
+              className="flex items-center gap-2 px-3 py-2 bg-[#00B7AD] hover:bg-[#0e837d] text-white rounded-md transition-colors font-medium"
+              disabled={selectedTransfers.size === 0}
+            >
+              Proceed to Delegate
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="p-4 bg-white rounded-2xl mt-4">
-        <SearchBar
-          placeholder="Search  Pending Transfer"
-          value={q}
-          onChange={handleSearchChange}
-          onSubmit={doSearch}
-          dir="ltr"
-          debounce={250}
-        />
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <SearchBar
+              placeholder="Search Pending Transfer"
+              value={q}
+              onChange={handleSearchChange}
+              onSubmit={doSearch}
+              dir="ltr"
+              debounce={250}
+            />
+          </div>
+
+          {isDelegateMode && (
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedTransfers.size > 0 &&
+                    selectedTransfers.size === tableData.length
+                  }
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                Select All
+              </label>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Transfer Table */}
@@ -357,7 +548,7 @@ export default function PendingTransfer() {
         ) : (
           <SharedTable
             title="Recent Pending Transfers"
-            columns={PendingTransferColumns}
+            columns={getPendingTransferColumns()}
             data={tableData}
             onFilter={handleFilter}
             filterLabel="Filter Pending Transfers"
@@ -375,6 +566,7 @@ export default function PendingTransfer() {
             transactions={true}
             onChat={handleChat}
             showFooter={true}
+            showColumnSelector={true}
           />
         )}
       </div>
@@ -706,6 +898,76 @@ export default function PendingTransfer() {
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
             >
               Close
+            </button>
+          </div>
+        </div>
+      </SharedModal>
+
+      {/* Delegate Modal */}
+      <SharedModal
+        isOpen={isDelegateModalOpen}
+        onClose={() => {
+          setIsDelegateModalOpen(false);
+          setDelegateUser("");
+          setDelegateReason("");
+        }}
+        title="Delegate Transfers"
+        size="md"
+      >
+        <div className="p-4">
+          <div className="mb-4">
+            <p className="text-sm text-[#282828] mb-4">
+              You're about to delegate {selectedTransfers.size} transfer(s) to
+              another user. Please select the user and provide a reason for the
+              delegation.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {/* User Selection */}
+            <div>
+              <SharedSelect
+                title="Select User"
+                required={true}
+                value={delegateUser}
+                onChange={(value) => setDelegateUser(String(value))}
+                placeholder="Choose a user to delegate to"
+                options={userOptions}
+              />
+            </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-sm font-bold text-[#282828] mb-2">
+                Reason for Delegation
+              </label>
+              <textarea
+                rows={5}
+                value={delegateReason}
+                onChange={(e) => setDelegateReason(e.target.value)}
+                className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
+                placeholder="Provide a reason for delegating these transfers..."
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              onClick={() => {
+                setIsDelegateModalOpen(false);
+                setDelegateUser("");
+                setDelegateReason("");
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelegate}
+              disabled={!delegateUser}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#00B7AD] border border-[#00B7AD] rounded-md hover:bg-[#0e837d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Confirm Delegation
             </button>
           </div>
         </div>

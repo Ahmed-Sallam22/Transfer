@@ -235,7 +235,7 @@ export function SharedSelect({
                     onClick={() => handleOptionSelect(option.value)}
                     disabled={option.disabled}
                     className={cn(
-                      "relative w-full px-3 py-2 text-left text-sm hover:bg-gray-100",
+                      "relative w-full capitalize px-3 py-2 text-left text-sm hover:bg-gray-100",
                       "focus:outline-none focus:bg-gray-100",
                       "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
                       value === option.value && "bg-[#f7f7f7] text-[#00B7AD]"

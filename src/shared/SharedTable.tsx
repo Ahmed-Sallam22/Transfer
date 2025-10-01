@@ -111,6 +111,58 @@ const ColumnsIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
+// Sort icons
+const SortIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M7 11L12 6L17 11M7 13L12 18L17 13"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const SortUpIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M7 11L12 6L17 11"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const SortDownIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M7 13L12 18L17 13"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 // Edit icon component
 
 // Delete icon component
@@ -124,6 +176,7 @@ export interface TableColumn {
   render?: (value: unknown, row: TableRow, index: number) => React.ReactNode;
   showSum?: boolean; // Add this property for columns that should show sum
   description?: string; // 👈 Add this
+  sortable?: boolean; // Add this property to enable sorting for specific columns
 }
 
 export interface TableRow {
@@ -223,6 +276,13 @@ export function SharedTable({
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     () => new Set(columns.map((col) => col.id))
   );
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{
+    key: string | null;
+    direction: "asc" | "desc";
+  }>({ key: "amount", direction: "desc" }); // Default sort by amount (highest to lowest)
+
   const tableRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{
     startX: number;
@@ -240,18 +300,88 @@ export function SharedTable({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
+  // Sorting function
+  const handleSort = (columnId: string) => {
+    const column = columns.find((col) => col.id === columnId);
+    if (column?.sortable === false) return; // Only skip sorting if explicitly set to false
+
+    let direction: "asc" | "desc" = "desc"; // Default to descending
+
+    if (sortConfig.key === columnId && sortConfig.direction === "desc") {
+      direction = "asc";
+    }
+
+    setSortConfig({ key: columnId, direction });
+  };
+
+  // Sort data function
+  const sortedData = React.useMemo(() => {
+    if (!sortConfig.key) return data;
+
+    const column = columns.find((col) => col.id === sortConfig.key);
+    if (!column) return data;
+
+    const accessor = column.accessor || column.id;
+
+    return [...data].sort((a, b) => {
+      const aValue = a[accessor];
+      const bValue = b[accessor];
+
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortConfig.direction === "asc" ? -1 : 1;
+      if (bValue == null) return sortConfig.direction === "asc" ? 1 : -1;
+
+      // Convert to comparable values
+      let aComp: string | number = aValue as string | number;
+      let bComp: string | number = bValue as string | number;
+
+      // Handle numeric values
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        aComp = aValue;
+        bComp = bValue;
+      } else if (typeof aValue === "string" && typeof bValue === "string") {
+        // Try to parse as numbers first
+        const aNum = parseFloat(aValue);
+        const bNum = parseFloat(bValue);
+
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          aComp = aNum;
+          bComp = bNum;
+        } else {
+          // String comparison (case insensitive)
+          aComp = aValue.toLowerCase();
+          bComp = bValue.toLowerCase();
+        }
+      } else {
+        // Convert to strings for comparison
+        aComp = String(aValue).toLowerCase();
+        bComp = String(bValue).toLowerCase();
+      }
+
+      if (aComp < bComp) {
+        return sortConfig.direction === "asc" ? -1 : 1;
+      }
+      if (aComp > bComp) {
+        return sortConfig.direction === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [data, sortConfig, columns]);
+
   // For server-side pagination, use data as-is (already paginated from API)
   // For client-side pagination, slice the data
   // If pagination is disabled, use all data
   const currentData = !showPagination
-    ? data
+    ? sortedData
     : isServerSidePagination
-    ? data
-    : data.slice(startIndex, endIndex);
+    ? sortedData
+    : sortedData.slice(startIndex, endIndex);
 
   // Filter columns based on visibility
-  const filteredColumns = columns.filter((column) =>
-    visibleColumns.has(column.id)
+  // Always show select column if it exists, filter others based on visibility
+  const filteredColumns = columns.filter(
+    (column) => column.id === "select" || visibleColumns.has(column.id)
   );
 
   // Column management functions
@@ -649,22 +779,26 @@ export function SharedTable({
                         </h4>
                       </div>
                       <div className="p-2">
-                        {columns.map((column) => (
-                          <label
-                            key={column.id}
-                            className="flex items-center gap-3 px-2 py-2 hover:bg-gray-50 rounded cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={visibleColumns.has(column.id)}
-                              onChange={() => toggleColumnVisibility(column.id)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700 flex-1">
-                              {column.header}
-                            </span>
-                          </label>
-                        ))}
+                        {columns
+                          .filter((column) => column.id !== "select") // Exclude select column from dropdown
+                          .map((column) => (
+                            <label
+                              key={column.id}
+                              className="flex items-center gap-3 px-2 py-2 hover:bg-gray-50 rounded cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={visibleColumns.has(column.id)}
+                                onChange={() =>
+                                  toggleColumnVisibility(column.id)
+                                }
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700 flex-1">
+                                {column.header}
+                              </span>
+                            </label>
+                          ))}
                       </div>
                     </div>
                   )}
@@ -692,65 +826,88 @@ export function SharedTable({
         >
           <table className="w-full bg-white">
             {/* Table Header */}
-            <thead className="bg-[#F6F6F6]   rounded-3xl">
+            <thead className="bg-[#F6F6F6] sticky  top-0 z-30   rounded-3xl">
               <tr>
-               {filteredColumns.map((column) => (
-  <th
-    key={column.id}
-    className="text-left px-4 py-3 text-sm font-[300] text-[#595B5E] relative select-none border-r border-r-transparent hover:border-r-blue-200"
-    style={{
-      width: columnWidths[column.id] || column.width || 150,
-      minWidth: column.minWidth || 100,
-    }}
-  >
-    <div className="flex items-center justify-between relative group">
-      <span className="truncate">{column.header}</span>
+                {filteredColumns.map((column) => (
+                  <th
+                    key={column.id}
+                    className={cn(
+                      "text-left px-4 py-3 text-sm font-[300] text-[#595B5E] relative select-none border-r border-r-transparent hover:border-r-blue-200",
+                      column.sortable !== false &&
+                        "cursor-pointer hover:bg-gray-100"
+                    )}
+                    style={{
+                      width: columnWidths[column.id] || column.width || 150,
+                      minWidth: column.minWidth || 100,
+                    }}
+                    onClick={() =>
+                      column.sortable !== false && handleSort(column.id)
+                    }
+                  >
+                    <div className="flex items-center justify-between relative group">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{column.header}</span>
+                        {column.sortable !== false && (
+                          <div className="flex flex-col">
+                            {sortConfig.key === column.id ? (
+                              sortConfig.direction === "asc" ? (
+                                <SortUpIcon className="w-3 h-3 text-blue-600" />
+                              ) : (
+                                <SortDownIcon className="w-3 h-3 text-blue-600" />
+                              )
+                            ) : (
+                              <SortIcon className="w-3 h-3 text-gray-400 opacity-50" />
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-      {/* Tooltip */}
-      <div className="absolute left-0 top-full mt-2 w-max max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
-        <div className="px-3 py-2 rounded-md bg-gray-900 text-white text-xs shadow-lg">
-          {column.description || column.header}
-        </div>
-      </div>
-    </div>
+                      {(column.description || column.header) && (
+                        <div className="pointer-events-none absolute left-0 top-full mt-2 w-max max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                          <div className="px-3 py-2 rounded-md bg-gray-900 text-white text-xs shadow-lg">
+                            {column.description || column.header}
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-    {/* Resize handle remains the same */}
-    <div
-      className={cn(
-        "absolute top-0 right-0 w-3 h-full cursor-col-resize group transition-all duration-200 z-10",
-        "hover:w-4 hover:bg-blue-100/50",
-        isResizing === column.id && "w-4 bg-blue-200/50"
-      )}
-      onMouseDown={(e) => handleMouseDown(e, column.id)}
-      onDoubleClick={() => handleDoubleClick(column.id)}
-      title="Drag to resize, double-click to reset"
-      style={{ userSelect: "none" }}
-    >
-      {/* Resize bar */}
-      <div
-        className={cn(
-          "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
-          "group-hover:bg-blue-400 group-hover:w-1",
-          isResizing === column.id && "bg-[#b7f1ee] w-1"
-        )}
-      />
+                    {/* Resize handle remains the same */}
+                    <div
+                      className={cn(
+                        "absolute top-0 right-0 w-3 h-full cursor-col-resize group transition-all duration-200 z-10",
+                        "hover:w-4 hover:bg-blue-100/50",
+                        isResizing === column.id && "w-4 bg-blue-200/50"
+                      )}
+                      onMouseDown={(e) => handleMouseDown(e, column.id)}
+                      onDoubleClick={() => handleDoubleClick(column.id)}
+                      title="Drag to resize, double-click to reset"
+                      style={{ userSelect: "none" }}
+                    >
+                      {/* Resize bar */}
+                      <div
+                        className={cn(
+                          "absolute top-1/4 right-1 w-0.5 h-1/2 bg-gray-300 transition-colors",
+                          "group-hover:bg-blue-400 group-hover:w-1",
+                          isResizing === column.id && "bg-[#b7f1ee] w-1"
+                        )}
+                      />
 
-      {/* Resize icon */}
-      <div
-        className={cn(
-          "absolute top-1/2 right-0.5 transform -translate-y-1/2",
-          "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-          "bg-white border border-gray-300 rounded p-0.5 shadow-sm",
-          "group-hover:border-blue-400",
-          isResizing === column.id && "opacity-100 border-blue-500"
-        )}
-      >
-        <ResizeIcon className="w-2 h-2 text-gray-600 group-hover:text-blue-600" />
-      </div>
-    </div>
-  </th>
-))}
-
+                      {/* Resize icon */}
+                      <div
+                        className={cn(
+                          "absolute top-1/2 right-0.5 transform -translate-y-1/2",
+                          "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+                          "bg-white border border-gray-300 rounded p-0.5 shadow-sm",
+                          "group-hover:border-blue-400",
+                          isResizing === column.id &&
+                            "opacity-100 border-blue-500"
+                        )}
+                      >
+                        <ResizeIcon className="w-2 h-2 text-gray-600 group-hover:text-blue-600" />
+                      </div>
+                    </div>
+                  </th>
+                ))}
 
                 {/* Actions column header */}
                 {showActions && (

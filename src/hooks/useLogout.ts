@@ -39,9 +39,14 @@ export const useLogout = () => {
       dispatch(fundRequestApi.util.resetApiState());
       dispatch(reportsApi.util.resetApiState());
       dispatch(attachmentsApi.util.resetApiState());
-      toast.success('Logged out successfully');
+      
+      // Clear any stored redirect and set to go to app after login
+      localStorage.removeItem('postLoginRedirect');
+      localStorage.setItem('postLoginRedirect', '/app');
 
-      navigate('/auth/sign-in', { replace: true });
+      toast.success('Logged out successfully');
+      // Navigate without state to prevent preserving the previous location
+      navigate('/auth/sign-in', { replace: true, state: null });
     }
   };
 

@@ -8,12 +8,13 @@ type Props = {
   userName: string;
   userRole?: string;
   avatarUrl?: string;
+  user_level?: string;
   onLogout?: () => void;
 };
 
 export default function ProfileDropdown({
+  user_level,
   userName,
-  userRole = "Manager",
   avatarUrl = "https://i.pravatar.cc/100?img=12",
   onLogout,
 }: Props) {
@@ -45,7 +46,7 @@ export default function ProfileDropdown({
         />
         <div className="hidden md:block text-left min-w-0">
           <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{userName}</div>
-          <div className="text-xs text-gray-500 truncate">{userRole}</div>
+          <div className="text-xs text-gray-500 truncate">{user_level}</div>
         </div>
       </button>
 
@@ -55,7 +56,7 @@ export default function ProfileDropdown({
           {/* User info - Show on mobile when dropdown is open */}
           <div className="md:hidden p-3 border-b border-gray-100">
             <div className="text-sm font-medium text-gray-900">{userName}</div>
-            <div className="text-xs text-gray-500">{userRole}</div>
+            <div className="text-xs text-gray-500">{user_level}</div>
           </div>
 
           {/* Menu items */}

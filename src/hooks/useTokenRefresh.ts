@@ -5,7 +5,7 @@ import { setCredentials, showSessionExpired } from '../features/auth/authSlice';
 
 export const useTokenRefresh = () => {
   const dispatch = useAppDispatch();
-  const { tokens, user, userLevel } = useAppSelector(state => state.auth);
+  const { tokens, user, userLevel, user_level_name } = useAppSelector(state => state.auth);
   const [refreshTokenMutation, { isLoading }] = useRefreshTokenMutation();
 
   const refreshToken = useCallback(async () => {
@@ -24,6 +24,7 @@ export const useTokenRefresh = () => {
         dispatch(setCredentials({
           data: user,
           user_level: userLevel,
+          user_level_name: user_level_name || '',
           message: 'Token refreshed successfully',
           token: result.token,
           refresh: result.refresh,
@@ -39,7 +40,7 @@ export const useTokenRefresh = () => {
       dispatch(showSessionExpired());
       return false;
     }
-  }, [tokens?.refresh, user, userLevel, refreshTokenMutation, dispatch]);
+  }, [tokens?.refresh, user, userLevel, user_level_name, refreshTokenMutation, dispatch]);
 
   const isTokenExpired = useCallback((token: string) => {
     try {

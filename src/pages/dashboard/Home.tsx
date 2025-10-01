@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer,
-  Tooltip as RTooltip,
   PieChart,
   Pie,
   Cell,
+  Tooltip as RTooltip,
+  Legend,
 } from "recharts";
 import {
   useGetAccountWiseDashboardQuery,
@@ -14,12 +15,26 @@ import {
   useGetEntitiesMappingQuery,
   useGetProjectWiseDashboardQuery,
 } from "@/api/dashboard.api";
-import { SharedTable, type TableColumn } from "@/shared/SharedTable";
+import {
+  SharedTable,
+  type TableColumn,
+  type TableRow as SharedTableRow,
+} from "@/shared/SharedTable";
+import { SharedTable2 } from "@/shared/SharedTable 2";
+
 import {
   useGetActiveProjectsWithEnvelopeQuery,
   useGetProjectsQuery,
+  type EnvelopeProject,
 } from "@/api/envelope.api";
 import SharedSelect from "@/shared/SharedSelect";
+import ModeSelect from "@/components/ui/ModeSelect";
+interface EnvelopeTableRow {
+  id: string;
+  project_code: string;
+  submitted_total: number;
+  approved_total: number;
+}
 
 // ===== Reusable Pieces =====
 function LoadingSkeleton({ className = "" }: { className?: string }) {
@@ -132,9 +147,17 @@ function StatCard({
 // ===== Page =====
 export default function Home() {
   const { t } = useTranslation();
-
+  const LABEL_TO_GROUP: Record<string, "MenPower" | "NonMenPower" | "Copex"> = {
+    Manpower: "MenPower",
+    "Non-Manpower": "NonMenPower",
+    Capex: "Copex",
+    // tolerate raw keys too (in case you call setFilter with them)
+    MenPower: "MenPower",
+    NonMenPower: "NonMenPower",
+    Copex: "Copex",
+  };
   // Mode & Date Range
-  const [mode, setMode] = useState<"all" | "normal" | "smart">("all");
+  const [mode, setMode] = useState<"all" | "Envelope" | "Budget">("all");
   // const [from, setFrom] = useState<string>(format(subDays(new Date(), 7), "yyyy-MM-dd"));
 
   // API call
@@ -143,10 +166,12 @@ export default function Home() {
     isLoading,
     error,
     refetch: refetchDashboard,
-  } = useGetDashboardDataQuery({ type: mode });
-const [selectedProject, setSelectedProject] = useState<string | number>("843");
+  } = useGetDashboardDataQuery({ type: "all" });
+  const [selectedProject, setSelectedProject] = useState<string | number>(
+    "843"
+  );
 
-const [year, setYear] = useState<string>("2025");
+  const [year, setYear] = useState<string>("2025");
   const [filter, setFilter] = useState<string | null>(null); // e.g. "MenPower"
 
   const {
@@ -158,29 +183,13 @@ const [year, setYear] = useState<string>("2025");
     { project_code: String(selectedProject) },
     { skip: !selectedProject }
   );
-  const accountTableData = useMemo(() => {
-    if (!accountWiseData?.data) return [];
-
-    const allAccounts = [
-      ...(accountWiseData.data.MenPower?.accounts || []),
-      ...(accountWiseData.data.NonMenPower?.accounts || []),
-      ...(accountWiseData.data.Copex?.accounts || []),
-    ];
-
-    // Filter by category if user clicked chart slice
-    if (filter) {
-      return accountWiseData.data[filter]?.accounts || [];
-    }
-
-    return allAccounts;
-  }, [accountWiseData, filter]);
 
   const accountSummaryData = useMemo(() => {
     if (!accountWiseData?.data) return [];
 
     return [
       {
-        name: "MenPower",
+        name: "Manpower",
         value:
           year === "2025"
             ? accountWiseData.data.MenPower.summary.total_fy25_budget
@@ -188,7 +197,7 @@ const [year, setYear] = useState<string>("2025");
         color: "#007E77",
       },
       {
-        name: "NonMenPower",
+        name: "Non-Manpower",
         value:
           year === "2025"
             ? accountWiseData.data.NonMenPower.summary.total_fy25_budget
@@ -196,7 +205,7 @@ const [year, setYear] = useState<string>("2025");
         color: "#6BE6E4",
       },
       {
-        name: "Copex",
+        name: "Capex",
         value:
           year === "2025"
             ? accountWiseData.data.Copex.summary.total_fy25_budget
@@ -205,11 +214,8 @@ const [year, setYear] = useState<string>("2025");
       },
     ];
   }, [accountWiseData, year]);
-const [selectedEntity, setSelectedEntity] = useState<string>("10001"); // default
-const {
-  data: entitiesData,
-  isLoading: isLoadingEntities,
-} = useGetEntitiesMappingQuery();
+  const [selectedEntity, setSelectedEntity] = useState<string>("10001"); // default
+  const { data: entitiesData } = useGetEntitiesMappingQuery();
   // Process request dates for timeline table (only for normal data)
   const {
     data: projectWiseData,
@@ -267,65 +273,60 @@ const {
     const normalData = dashboardData?.normal;
     if (!normalData) {
       return [
-        { name: "Manpower", value: 0, color: "#007E77" },
-        { name: "Non-Manpower", value: 0, color: "#6BE6E4" },
-        { name: "Capex", value: 0, color: "#00B7AD" },
+        { name: "Approved", value: 0, color: "#007E77" },
+        { name: "Pending", value: 0, color: "#6BE6E4" },
+        { name: "Total Transaction", value: 0, color: "#00B7AD" },
       ];
     }
 
     return [
       {
-        name: "Manpower",
+        name: "Approved",
         value: normalData.approved_transfers,
         color: "#007E77",
       },
       {
-        name: "Non-Manpower",
+        name: "Pending",
         value: normalData.pending_transfers,
         color: "#6BE6E4",
       },
       {
-        name: "Capex",
-        value: normalData.rejected_transfers,
+        name: "Total Transaction",
+        value: normalData.total_transfers,
         color: "#00B7AD",
       },
     ];
   }, [dashboardData?.normal]);
 
   // Fetch projects list
-  const { data: projectsData, isLoading: isLoadingProjects } =
-    useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery();
 
-  const { data: envelopeData } = useGetActiveProjectsWithEnvelopeQuery(
-    {
-      project_code: String(selectedProject),
-      // year: year || undefined,
-      // month: month || undefined,
-    },
-    { skip: !selectedProject }
-  );
-
+  const {
+    data: envelopeData,
+    isLoading: isLoadingEnvelope,
+    error: envelopeError,
+  } = useGetActiveProjectsWithEnvelopeQuery();
   const stats = useMemo(() => {
     if (!envelopeData) {
       return [
         {
           title: "Initial Envelope",
           value: "-",
-          subtitle: "from last month",
+          subtitle: "Year Start Envelope ",
           delta: "-",
           trend: "flat" as const,
         },
         {
           title: "Projected Envelope",
           value: "-",
-          subtitle: "from last month",
+          subtitle: "After Approval Pending Transaction",
           delta: "-",
           trend: "flat" as const,
         },
         {
           title: "Final",
           value: "-",
-          subtitle: "from last month",
+          subtitle: "Approved Transactions",
           delta: "-",
           trend: "flat" as const,
         },
@@ -336,22 +337,22 @@ const {
       {
         title: "Initial Envelope",
         value: envelopeData.initial_envelope.toLocaleString(),
-        subtitle: "from last month",
+        subtitle: "Year Start Envelope ",
         delta: "+10%",
         trend: "up" as const,
       },
-     
+
       {
         title: "Projected Envelope",
         value: envelopeData.estimated_envelope?.toLocaleString() ?? "-",
-        subtitle: "from last month",
+        subtitle: "After Approval Pending Transaction",
         delta: "-2%",
         trend: "down" as const,
       },
-       {
+      {
         title: "Final",
         value: envelopeData.current_envelope.toLocaleString(),
-        subtitle: "from last month",
+        subtitle: "Approved Transactions",
         delta: "-2%",
         trend: "down" as const,
       },
@@ -364,20 +365,51 @@ const {
       id: "approved_total",
       header: "Approved Total",
       accessor: "approved_total",
-      render: (v) => (
-        <span className={v >= 0 ? "text-green-600" : "text-red-600"}>
-          {v.toLocaleString()}
+      render: (v: any) => (
+        <span
+          className={(v as number) >= 0 ? "text-green-600" : "text-red-600"}
+        >
+          {(v as number)?.toLocaleString()}
         </span>
       ),
     },
     { id: "FY24_budget", header: "FY24 Budget", accessor: "FY24_budget" },
     { id: "FY25_budget", header: "FY25 Budget", accessor: "FY25_budget" },
   ];
-   useEffect(() => {
+  const accountGroupedData = useMemo(() => {
+    if (!accountWiseData?.data) return [];
+
+    const sections = [
+      { key: "MenPower", title: "Manpower" },
+      { key: "NonMenPower", title: "Non-Manpower" },
+      { key: "Copex", title: "Capex" },
+    ] as const;
+
+    return sections.map(({ key, title }) => {
+      const section = (accountWiseData.data as any)[key] ?? {};
+      const summary = section.summary ?? {};
+      const rows = section.accounts ?? [];
+
+      return {
+        __type: "group",
+        id: key, // unique id for toggling
+        title, // group title
+        totals: {
+          // map to your column ids so they land in the right cells
+          approved_total: Number(summary.total_approved_transfers || 0),
+          FY24_budget: Number(summary.total_fy24_budget || 0),
+          FY25_budget: Number(summary.total_fy25_budget || 0),
+        },
+        rows, // the original accounts array
+      };
+    });
+  }, [accountWiseData]);
+
+  useEffect(() => {
     // when project changes: clear account filter & refetch project-related endpoints
     setFilter(null);
     refetchAccountWise();
-    }, [selectedProject, refetchAccountWise]);
+  }, [selectedProject, refetchAccountWise]);
 
   useEffect(() => {
     // when entity changes: refetch the project-wise table
@@ -389,7 +421,130 @@ const {
     refetchDashboard();
     // year affects only derived memos in your code; if your APIs support year, add it to args and refetch here too.
   }, [mode, year, refetchDashboard]);
+  const filteredAccountGroupedData = useMemo(() => {
+    if (!accountGroupedData?.length || !filter) return accountGroupedData;
+    const key = LABEL_TO_GROUP[filter];
+    return key
+      ? accountGroupedData.filter((g: any) => g.id === key)
+      : accountGroupedData;
+  }, [accountGroupedData, filter]);
 
+  const tableRows: EnvelopeTableRow[] =
+    envelopeData?.data?.map((project: EnvelopeProject, index: number) => ({
+      id: `${project.project_code}-${index}`,
+      project_code: project.project_code,
+      submitted_total: project.submitted_total,
+      approved_total: project.approved_total,
+    })) || [];
+
+  const columns: TableColumn[] = [
+    {
+      id: "project_code",
+      header: "Project Code",
+      render: (_, row) => {
+        const envelopeRow = row as unknown as EnvelopeTableRow;
+        return (
+          <span className="text-sm font-medium text-gray-900">
+            {envelopeRow.project_code}
+          </span>
+        );
+      },
+    },
+    {
+      id: "submitted_total",
+      header: "Submitted Total",
+      showSum: true,
+      render: (_, row) => {
+        const envelopeRow = row as unknown as EnvelopeTableRow;
+        const value = envelopeRow.submitted_total;
+        const isPositive = value >= 0;
+        const arrow = isPositive ? (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 11 11"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M4 0.34375V1.65625H8.40625L0.65625 9.40625L1.59375 10.3438L9.34375 2.59375V7H10.6562V0.34375H4Z"
+              fill="#00A350"
+            />
+          </svg>
+        ) : (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 11 11"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M10.3438 1.59375L9.40625 0.65625L1.65625 8.40625V4H0.34375V10.6562H7V9.34375H2.59375L10.3438 1.59375Z"
+              fill="#D44333"
+            />
+          </svg>
+        );
+        return (
+          <span
+            className={`flex items-center gap-1 text-sm font-medium ${
+              isPositive ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {value.toLocaleString()}
+            {isPositive ? arrow : arrow}
+          </span>
+        );
+      },
+    },
+    {
+      id: "approved_total",
+      header: "Approved Total",
+      showSum: true,
+      render: (_, row) => {
+        const envelopeRow = row as unknown as EnvelopeTableRow;
+        const value = envelopeRow.approved_total;
+        const isPositive = value >= 0;
+        const arrow = isPositive ? (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 11 11"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M4 0.34375V1.65625H8.40625L0.65625 9.40625L1.59375 10.3438L9.34375 2.59375V7H10.6562V0.34375H4Z"
+              fill="#00A350"
+            />
+          </svg>
+        ) : (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 11 11"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M10.3438 1.59375L9.40625 0.65625L1.65625 8.40625V4H0.34375V10.6562H7V9.34375H2.59375L10.3438 1.59375Z"
+              fill="#D44333"
+            />
+          </svg>
+        );
+        return (
+          <span
+            className={`flex items-center gap-1 text-sm font-medium ${
+              isPositive ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {value.toLocaleString()}
+            {isPositive ? arrow : arrow}
+          </span>
+        );
+      },
+    },
+  ];
   return (
     <div className="space-y-6">
       {/* Error State */}
@@ -408,13 +563,21 @@ const {
         {/* Right side */}
         <div className="flex items-center gap-3">
           {/* Project Selection */}
+
+          <ModeSelect
+            value={mode} // "all" | "Envelope" | "Budget"
+            onChange={(v) => setMode(v)}
+          />
+        </div>
+      </div>
+      {(mode === "Budget" || mode === "all") && (
+        <div className="flex items-center gap-4 mb-4">
           <SharedSelect
-            className="w-72"
+            className="w-full"
             required={false}
             value={selectedProject}
             onChange={(option) => setSelectedProject(option)}
             placeholder="Select a project"
-            disabled={isLoadingProjects}
             options={[
               ...(projectsData?.data?.map((project) => ({
                 value: project.id.toString(),
@@ -423,39 +586,22 @@ const {
             ]}
           />
           <SharedSelect
-  className="w-72"
-  required={false}
-  value={selectedEntity}
-  onChange={(value) => setSelectedEntity(String(value))}
-  placeholder="Select Entity"
-  disabled={isLoadingEntities}
-  options={[
-    ...(entitiesData?.data?.data?.map((entity: any) => ({
-      value: entity.entity_code,
-      label: entity.entity_name,
-    })) || []),
-  ]}
-/>
-
-
-          {/* Mode Selection */}
-          <select
-            value={mode}
-            onChange={(e) =>
-              setMode(e.target.value as "all" | "normal" | "smart")
-            }
-            className="rounded-md border border-gray-200 bg-white px-3 py-4 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            disabled={isLoading}
-          >
-            <option value="all">All</option>
-            <option value="normal">Normal</option>
-            <option value="smart">Smart</option>
-          </select>
+            className="w-full"
+            required={false}
+            value={selectedEntity}
+            onChange={(value) => setSelectedEntity(String(value))}
+            placeholder="Select Entity"
+            options={[
+              ...(entitiesData?.data?.data?.map((entity: any) => ({
+                value: entity.entity_code,
+                label: entity.entity_name,
+              })) || []),
+            ]}
+          />
         </div>
-      </div>
-
+      )}
       {/* Stats */}
-      {(mode === "normal" || mode === "all") && (
+      {(mode === "Envelope" || mode === "all") && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {isLoading
             ? Array.from({ length: 4 }).map((_, i) => (
@@ -482,9 +628,51 @@ const {
               ))}
         </div>
       )}
-
+      {mode === "Envelope" && (
+        <div className="bg-white rounded-2xl shadow-sm">
+          {isLoadingEnvelope ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">
+                Loading envelope data...
+              </span>
+            </div>
+          ) : envelopeError ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="text-red-600 text-lg font-medium">
+                  Error loading data
+                </div>
+                <div className="text-gray-500 text-sm mt-1">
+                  Please try selecting a different project or check your
+                  connection.
+                </div>
+              </div>
+            </div>
+          ) : tableRows.length > 0 ? (
+            <SharedTable
+              title="Active Projects with Envelope"
+              columns={columns}
+              data={tableRows as unknown as SharedTableRow[]}
+              showFooter={true}
+              showPagination={false}
+              maxHeight="600px"
+              showColumnSelector={true}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="text-gray-500 text-lg">No data available</div>
+                <div className="text-gray-400 text-sm mt-1">
+                  Try adjusting your filters or select a different project.
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* Charts Row 1 */}
-      {(mode === "normal" || mode === "all") && (
+      {(mode === "Budget" || mode === "all") && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-1">
           {isLoading ? (
             <>
@@ -494,77 +682,211 @@ const {
           ) : (
             <>
               {/* Breakdown of Budget (Donut) */}
-              <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 animate-fadeIn">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="font-semibold text-gray-900">
-                    Breakdown of Budget
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 animate-fadeIn">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="font-semibold text-gray-900">
+                      Breakdown of Budget
+                    </div>
+                    <div>
+                      <select
+                        className="rounded-xl border border-[#F6F6F6] bg-[#F6F6F6] px-3 py-1.5 text-sm  focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        defaultValue="2025"
+                        onChange={(e) => setYear(e.target.value)}
+                      >
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <select
-                      className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                      defaultValue="2025"
-                      onChange={(e) => setYear(e.target.value)}
-                    >
-                      <option value="2025">2025</option>
-                      <option value="2024">2024</option>
-                    </select>
+
+                  <div className="flex items-center justify-center">
+                    {/* Chart */}
+
+                    <div className="h-[280px] w-full   ms-auto">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={accountSummaryData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={100}
+                            outerRadius={115}
+                            onClick={(data) => {
+                              if (filter === data.name) {
+                                setFilter(null); // unselect if clicked again
+                              } else {
+                                setFilter(data.name); // filter table
+                              }
+                            }}
+                          >
+                            {accountSummaryData.map((entry, i) => (
+                              <Cell
+                                key={i}
+                                fill={entry.color}
+                                cursor="pointer"
+                              />
+                            ))}
+                          </Pie>
+
+                          <RTooltip
+                            content={({ active, payload }) => {
+                              if (!active || !payload?.length) return null;
+                              const p = payload[0];
+                              return (
+                                <div className="rounded-lg bg-black text-white px-3 py-2 text-sm shadow">
+                                  <div className="font-medium">{p.name}</div>
+                                  <div>{(p.value / 1_000_000).toFixed(0)}M</div>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Legend
+                            verticalAlign="bottom"
+                            align="center"
+                            iconType="circle"
+                            content={(props: any) => {
+                              const payload = (props?.payload ??
+                                []) as Array<any>;
+                              if (!payload.length) return null;
+
+                              return (
+                                <div className="mt-6 flex items-center justify-center gap-8 sm:gap-12">
+                                  {payload.map((item) => {
+                                    const label = String(
+                                      item?.value ?? ""
+                                    ).replace("_", " ");
+                                    const isActive =
+                                      filter === label ||
+                                      filter === LABEL_TO_GROUP[label];
+                                    return (
+                                      <button
+                                        key={`${item?.dataKey ?? "k"}-${
+                                          item?.value ?? "v"
+                                        }`}
+                                        type="button"
+                                        onClick={() =>
+                                          setFilter((prev) =>
+                                            prev === label ||
+                                            prev === LABEL_TO_GROUP[label]
+                                              ? null
+                                              : label
+                                          )
+                                        }
+                                        className={`inline-flex items-center gap-3 ${
+                                          isActive ? "opacity-100" : ""
+                                        }`}
+                                      >
+                                        <span
+                                          className="inline-block h-4 w-4 rounded-[6px] ring-1 ring-white shadow"
+                                          style={{
+                                            backgroundColor: item?.color,
+                                          }}
+                                          aria-hidden
+                                        />
+                                        <span className="text-[#0B2440] text-sm font-semibold">
+                                          {label}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center">
-                  {/* Chart */}
-                  <div className="h-[280px] w-1/2   ms-auto">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={accountSummaryData}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={100}
-                          outerRadius={115}
-                          onClick={(data) => {
-                            if (filter === data.name) {
-                              setFilter(null); // unselect if clicked again
-                            } else {
-                              setFilter(data.name); // filter table
-                            }
-                          }}
-                        >
-                          {accountSummaryData.map((entry, i) => (
-                            <Cell key={i} fill={entry.color} cursor="pointer" />
-                          ))}
-                        </Pie>
-
-                        <RTooltip
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.length) return null;
-                            const p = payload[0];
-                            return (
-                              <div className="rounded-lg bg-black text-white px-3 py-2 text-sm shadow">
-                                <div className="font-medium">{p.name}</div>
-                                <div>{(p.value / 1_000_000).toFixed(0)}M</div>
-                              </div>
-                            );
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                {/* Transfer Status Chart */}
+                <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 animate-fadeIn">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="font-semibold text-gray-900">
+                      Transfer Status
+                    </div>
+                    <div>
+                      <select
+                        className="rounded-xl border border-[#F6F6F6] bg-[#F6F6F6] px-3 py-1.5 text-sm  focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        defaultValue="2025"
+                        onChange={(e) => setYear(e.target.value)}
+                      >
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Legend */}
-                  <div className="  ms-auto space-y-4">
-                    {statusData.map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-800"
-                      >
-                        <span
-                          className="h-3 w-3 rounded-sm"
-                          style={{ background: item.color }}
-                        />
-                        {item.name}
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-center">
+                    {/* Chart */}
+                    <div className="h-[280px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={statusData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={100}
+                            outerRadius={115}
+                            cursor="pointer"
+                          >
+                            {statusData.map((entry, i) => (
+                              <Cell key={i} fill={entry.color} />
+                            ))}
+                          </Pie>
+
+                          <RTooltip
+                            content={({ active, payload }) => {
+                              if (!active || !payload?.length) return null;
+                              const p = payload[0];
+                              return (
+                                <div className="rounded-lg bg-black text-white px-3 py-2 text-sm shadow">
+                                  <div className="font-medium">
+                                    {p.name?.replace("_", " ")}
+                                  </div>
+                                  <div>{Number(p.value).toLocaleString()}</div>
+                                </div>
+                              );
+                            }}
+                          />
+
+                          {/* Legend */}
+                          <Legend
+                            verticalAlign="bottom"
+                            align="center"
+                            iconType="circle"
+                            content={(props: any) => {
+                              const payload = (props?.payload ??
+                                []) as Array<any>;
+                              if (!payload.length) return null;
+
+                              return (
+                                <div className="flex mt-3 items-center justify-center gap-8 sm:gap-12">
+                                  {payload.map((item) => (
+                                    <div
+                                      key={`${item?.dataKey ?? "k"}-${
+                                        item?.value ?? "v"
+                                      }`}
+                                      className="inline-flex items-center gap-3"
+                                    >
+                                      <span
+                                        className="inline-block h-4 w-4 rounded-[6px] ring-1 ring-white shadow"
+                                        style={{ backgroundColor: item?.color }}
+                                        aria-hidden
+                                      />
+                                      <span className="text-[#0B2440] text-sm font-semibold">
+                                        {item?.value?.replace("_", " ")}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -572,36 +894,13 @@ const {
           )}
         </div>
       )}
-      {/* Request Timeline Pipeline Table - Only for Normal mode */}
-      {(mode === "normal" || mode === "all") && dashboardData?.normal && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-          <div className="mb-4 font-semibold text-gray-900">Account Wise</div>
-          {isLoadingAccountWise ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-2 text-gray-600">
-                Loading account wise data...
-              </span>
-            </div>
-          ) : accountWiseError ? (
-            <ErrorState message="Failed to load account wise data." />
-          ) : (
-            <SharedTable
-              columns={accountColumns}
-              data={accountTableData}
-              showPagination={false}
-              itemsPerPage={10}
-              currentPage={1}
-              maxHeight="600px"
-            />
-          )}
-        </div>
-      )}
 
       {/* Request Timeline Pipeline Table - Only for Normal mode */}
-      {(mode === "normal" || mode === "all") && dashboardData?.normal && (
+      {(mode === "Budget" || mode === "all") && (
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-          <div className="mb-4 font-semibold text-gray-900">Project Wise</div>
+          <div className="mb-4 font-semibold text-gray-900">
+            Project-wise breakdown
+          </div>
 
           {isLoadingProjectWise ? (
             <div className="flex justify-center items-center h-32">
@@ -623,6 +922,34 @@ const {
               currentPage={1}
               maxHeight="800px"
               className="mt-4"
+            />
+          )}
+        </div>
+      )}
+      {/* Request Timeline Pipeline Table - Only for Normal mode */}
+      {(mode === "Budget" || mode === "all") && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+          <div className="mb-4 font-semibold text-gray-900">
+            Account-wise breakdown
+          </div>
+          {isLoadingAccountWise ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">
+                Loading account wise data...
+              </span>
+            </div>
+          ) : accountWiseError ? (
+            <ErrorState message="Failed to load account wise data." />
+          ) : (
+            <SharedTable2
+              columns={accountColumns}
+              data={filteredAccountGroupedData as any}
+              showPagination={false}
+              groupable={true}
+              itemsPerPage={10}
+              currentPage={1}
+              maxHeight="600px"
             />
           )}
         </div>

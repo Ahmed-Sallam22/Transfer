@@ -693,11 +693,11 @@ export default function Chat({
                             .toUpperCase()}
                         </div>
                         <div className="flex-1 text-left">
-                          <div className="text-sm font-medium">
-                            {u.username || `User ${u.id}`}
+                          <div className="text-sm font-medium capitalize">
+                            {u.username || `User ${u.id}`} 
                           </div>
                           <div className="text-xs text-gray-500 capitalize">
-                            {u.role}
+                            {u.user_level}
                           </div>
                         </div>
                         {alreadyInThisTransaction && (

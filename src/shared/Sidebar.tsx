@@ -17,7 +17,7 @@ import {
   LogOut,
   X,
   Workflow,
-  Mail,
+  // Mail,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -51,13 +51,13 @@ const getSections = (userRole: string | null, userLevel: number | null) =>
           allowedRoles: ["superadmin"],
           allowedLevels: [] as number[],
         },
-        {
-          to: "/app/envelope",
-          label: "Envelope",
-          icon: Mail,
-          allowedRoles: ["superadmin"],
-          allowedLevels: [4] as number[],
-        },
+        // {
+        //   to: "/app/envelope",
+        //   label: "Envelope",
+        //   icon: Mail,
+        //   allowedRoles: ["superadmin"],
+        //   allowedLevels: [4] as number[],
+        // },
       ].filter((item) => {
         const hasRoleAccess =
           item.allowedRoles.length === 0 ||

@@ -3,6 +3,8 @@ export interface User {
   username: string;
   role: string;
   can_transfer_budget: boolean;
+  user_level: string;
+  user_level_name: string,
 }
 
 export interface AuthTokens {
@@ -20,6 +22,7 @@ export interface LoginResponse {
   user_level: number;
   message: string;
   token: string;
+  user_level_name: string;
   refresh: string;
 }
 

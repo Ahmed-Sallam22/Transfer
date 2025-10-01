@@ -39,11 +39,13 @@ export const customBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBase
         // Update tokens in the store
         const currentUser = state.auth.user;
         const currentUserLevel = state.auth.userLevel;
+        const currentUserLevelName = state.auth.user_level_name;
         
         if (currentUser && currentUserLevel !== null) {
           api.dispatch(setCredentials({
             data: currentUser,
             user_level: currentUserLevel,
+            user_level_name: currentUserLevelName || '',
             message: 'Token refreshed',
             token: refreshData.token,
             refresh: refreshData.refresh,

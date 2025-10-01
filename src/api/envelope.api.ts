@@ -44,18 +44,11 @@ export const envelopeApi = createApi({
       }),
       providesTags: ['Projects'],
     }),
-    getActiveProjectsWithEnvelope: builder.query<EnvelopeResponse, {
-      project_code: string ;
-      year?: string;
-      month?: string;
-    }>({
-      query: ({ project_code, year, month }) => {
-        const params = new URLSearchParams({ project_code });
-        if (year) params.append('year', year);
-        if (month) params.append('month', month);
-        
+    getActiveProjectsWithEnvelope: builder.query<EnvelopeResponse,void>({
+      query: () => {
+ 
         return {
-          url: `/accounts-entities/projects/active-with-envelope/?${params.toString()}`,
+          url: `/accounts-entities/projects/active-with-envelope`,
           method: 'GET',
         };
       },

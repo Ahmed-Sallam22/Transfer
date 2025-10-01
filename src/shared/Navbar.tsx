@@ -22,7 +22,11 @@ export default function Navbar({
   onBellClick,
 }: NavbarProps) {
   // Get user data from Redux store (which is synced with localStorage)
-  const user = useSelector((state: RootState) => state.auth.user);
+ const user = useSelector((state: RootState) => state.auth.user);
+  const userLevelNameFromState = useSelector(
+    (state: RootState) => state.auth.user_level_name
+  );
+  
 
   // Fallback user data from localStorage if Redux state is not available
   const getUserFromStorage = () => {
@@ -126,6 +130,7 @@ export default function Navbar({
         )}
      
         <ProfileDropdown
+        user_level={userLevelNameFromState ||''}
           userName={userName}
           userRole={userRole}
           avatarUrl={img}

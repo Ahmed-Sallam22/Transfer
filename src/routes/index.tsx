@@ -15,13 +15,13 @@ import PendingAdjustments from "@/pages/dashboard/PendingAdjustments";
 import PendingAdjustmentsDetails from "@/pages/dashboard/PendingAdjustmentsDetails";
 import PendingRequests from "@/pages/dashboard/PendingRequests";
 import PendingRequestsDetails from "@/pages/dashboard/PendingRequestsDetails";
-// import ProjectsOverview from "@/pages/dashboard/ProjectsOverview";
+// import ProjectsOverview from "@/pages/dashboard/ProjectsOverview";F
 // import AccountsProjects from "@/pages/dashboard/AccountsProjects";
 import Users from "@/pages/dashboard/Users";
 import Reports from "@/pages/dashboard/Reports";
 import AddWorkFlow from "@/pages/dashboard/AddWorkFlow";
 import WorkFlow from "@/pages/dashboard/WorkFlow";
-import Envelope from "@/pages/dashboard/Envelope";
+// import Envelope from "@/pages/dashboard/Envelope";
 import Chat from "@/pages/dashboard/Chat";
 
 const SignIn = lazy(() => import("../pages/auth/SignIn"));
@@ -194,7 +194,7 @@ export default function AppRoutes() {
           />
 
           {/* Level 4 + Super Admin: Envelope page */}
-          <Route
+          {/* <Route
             path="envelope"
             element={
               <RoleProtectedRoute
@@ -204,7 +204,7 @@ export default function AppRoutes() {
                 <Envelope />
               </RoleProtectedRoute>
             }
-          />
+          /> */}
 
           {/* Super Admin only: Management pages */}
           {/* <Route

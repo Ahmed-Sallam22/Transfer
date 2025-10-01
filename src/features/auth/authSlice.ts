@@ -7,6 +7,8 @@ interface AuthState {
   tokens: AuthTokens | null;
   isAuthenticated: boolean;
   showSessionExpiredModal: boolean;
+  user_level_name?: string | null;
+  isInitialized: boolean; // Add this to track if auth has been hydrated
 }
 
 const initialState: AuthState = {
@@ -15,6 +17,7 @@ const initialState: AuthState = {
   tokens: null,
   isAuthenticated: false,
   showSessionExpiredModal: false,
+  isInitialized: false,
 };
 
 const authSlice = createSlice({
@@ -22,17 +25,20 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials(state, action: PayloadAction<LoginResponse>) {
-      const { data, user_level, token, refresh } = action.payload;
+      const { data, user_level, token, refresh,user_level_name } = action.payload;
       state.user = data;
       state.userLevel = user_level;
+      state.user_level_name = user_level_name;
       state.tokens = { token, refresh };
       state.isAuthenticated = true;
+      state.isInitialized = true;
       state.showSessionExpiredModal = false;
       
       // Persist to localStorage
       localStorage.setItem('auth', JSON.stringify({
         user: data,
         userLevel: user_level,
+          user_level_name,
         tokens: { token, refresh }
       }));
     },
@@ -40,7 +46,9 @@ const authSlice = createSlice({
       state.user = null;
       state.userLevel = null;
       state.tokens = null;
+      state.user_level_name = null; 
       state.isAuthenticated = false;
+      state.isInitialized = true; // Keep initialized true after logout
       state.showSessionExpiredModal = false;
       localStorage.removeItem('auth');
     },
@@ -59,6 +67,7 @@ const authSlice = createSlice({
           if (parsed.user && parsed.tokens) {
             state.user = parsed.user;
             state.userLevel = parsed.userLevel;
+            state.user_level_name = parsed.user_level_name;
             state.tokens = parsed.tokens;
             state.isAuthenticated = true;
           }
@@ -66,6 +75,7 @@ const authSlice = createSlice({
           localStorage.removeItem('auth');
         }
       }
+      state.isInitialized = true; // Always set initialized after hydration attempt
     },
   },
 });
