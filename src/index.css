@@ -3,7 +3,7 @@
 body{
     background-color: #F6F6F6;
     font-family: 'Inter', sans-serif;
-    /* text-transform: capitalize; */
+    text-transform: capitalize;
 }
 
 /* Loading and Animation Styles */
