@@ -121,19 +121,18 @@ export default function PendingTransfer() {
     return String(value);
   };
 
-
-    const [isDelegateMode, setIsDelegateMode] = useState<boolean>(false);
+  const [isDelegateMode, setIsDelegateMode] = useState<boolean>(false);
 
   const [isDelegateModalOpen, setIsDelegateModalOpen] =
     useState<boolean>(false);
-  const [delegateUser, setDelegateUser] = useState<string>("");
+  const [delegateUser, setDelegateUser] = useState<number | null>(null);
 
   const [delegateReason, setDelegateReason] = useState<string>("");
 
   // Load ALL users for the modal (NEW)
   const { data: allUsers } = useGetUsersQuery();
   const userOptions = (allUsers ?? []).map((u) => ({
-    value: u.id, // or String(u.id) if your SharedSelect needs strings
+    value: String(u.id), // Convert to string for consistency with SharedSelect
     label: `${u.username}`,
   }));
   const [searchParams, setSearchParams] = useSearchParams();
@@ -257,7 +256,7 @@ export default function PendingTransfer() {
 
     return cols;
   };
-   // Delegation handlers
+  // Delegation handlers
   const handleTransferSelection = (transferId: string, checked: boolean) => {
     setSelectedTransfers((prev) => {
       const newSet = new Set(prev);
@@ -286,6 +285,11 @@ export default function PendingTransfer() {
   const handleConfirmDelegate = async () => {
     console.log("Delegating to user ID:", delegateUser);
 
+    if (!delegateUser) {
+      toast.error("Please select a user to delegate to");
+      return;
+    }
+
     try {
       // Convert Set to Array for the API call
       const transferIds = Array.from(selectedTransfers).map((id) =>
@@ -296,7 +300,7 @@ export default function PendingTransfer() {
         transaction_id: transferIds,
         decide: ["delegate"], // Action is delegate
         reason: delegateReason ? [delegateReason] : [],
-        other_user_id: [parseInt(delegateUser)], // User to delegate to (convert to number)
+        other_user_id: [delegateUser], // User to delegate to (use number directly)
       }).unwrap();
 
       toast.success(`${transferIds.length} transfer(s) delegated successfully`);
@@ -305,7 +309,7 @@ export default function PendingTransfer() {
       setIsDelegateModalOpen(false);
       setIsDelegateMode(false);
       setSelectedTransfers(new Set());
-      setDelegateUser("");
+      setDelegateUser(null);
       setDelegateReason("");
     } catch (error) {
       console.error("Error delegating transfers:", error);
@@ -398,8 +402,6 @@ export default function PendingTransfer() {
     // Navigate to chat page with transaction/request ID
     navigate(`/app/chat/${row.id}`, { state: { txCode: row.code } });
   };
-
- 
 
   return (
     <div>
@@ -908,7 +910,7 @@ export default function PendingTransfer() {
         isOpen={isDelegateModalOpen}
         onClose={() => {
           setIsDelegateModalOpen(false);
-          setDelegateUser("");
+          setDelegateUser(null);
           setDelegateReason("");
         }}
         title="Delegate Transfers"
@@ -929,8 +931,11 @@ export default function PendingTransfer() {
               <SharedSelect
                 title="Select User"
                 required={true}
-                value={delegateUser}
-                onChange={(value) => setDelegateUser(String(value))}
+                value={delegateUser !== null ? String(delegateUser) : ""}
+                onChange={(value) => {
+                  const numericValue = typeof value === 'string' ? parseInt(value, 10) : value;
+                  setDelegateUser(numericValue);
+                }}
                 placeholder="Choose a user to delegate to"
                 options={userOptions}
               />
@@ -955,7 +960,7 @@ export default function PendingTransfer() {
             <button
               onClick={() => {
                 setIsDelegateModalOpen(false);
-                setDelegateUser("");
+                setDelegateUser(null);
                 setDelegateReason("");
               }}
               className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"

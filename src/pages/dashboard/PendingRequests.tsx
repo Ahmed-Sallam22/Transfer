@@ -214,7 +214,7 @@ export default function PendingTransfer() {
   
     const [isDelegateModalOpen, setIsDelegateModalOpen] =
       useState<boolean>(false);
-    const [delegateUser, setDelegateUser] = useState<string>("");
+  const [delegateUser, setDelegateUser] = useState<number | null>(null);
   
     const [delegateReason, setDelegateReason] = useState<string>("");
   
@@ -371,35 +371,40 @@ export default function PendingTransfer() {
       setIsDelegateModalOpen(true);
     };
   
-    const handleConfirmDelegate = async () => {
-      console.log("Delegating to user ID:", delegateUser);
-  
-      try {
-        // Convert Set to Array for the API call
-        const transferIds = Array.from(selectedTransfers).map((id) =>
-          parseInt(id)
-        );
-  
-        await bulkApproveRejectTransfer({
-          transaction_id: transferIds,
-          decide: ["delegate"], // Action is delegate
-          reason: delegateReason ? [delegateReason] : [],
-          other_user_id: [parseInt(delegateUser)], // User to delegate to (convert to number)
-        }).unwrap();
-  
-        toast.success(`${transferIds.length} transfer(s) delegated successfully`);
-  
-        // Reset state
-        setIsDelegateModalOpen(false);
-        setIsDelegateMode(false);
-        setSelectedTransfers(new Set());
-        setDelegateUser("");
-        setDelegateReason("");
-      } catch (error) {
-        console.error("Error delegating transfers:", error);
-        toast.error("Failed to delegate transfers");
-      }
-    };
+      const handleConfirmDelegate = async () => {
+    console.log("Delegating to user ID:", delegateUser);
+
+    if (!delegateUser) {
+      toast.error("Please select a user to delegate to");
+      return;
+    }
+
+    try {
+      // Convert Set to Array for the API call
+      const transferIds = Array.from(selectedTransfers).map((id) =>
+        parseInt(id)
+      );
+
+      await bulkApproveRejectTransfer({
+        transaction_id: transferIds,
+        decide: ["delegate"], // Action is delegate
+        reason: delegateReason ? [delegateReason] : [],
+        other_user_id: [delegateUser], // User to delegate to (use number directly)
+      }).unwrap();
+
+      toast.success(`${transferIds.length} transfer(s) delegated successfully`);
+
+      // Reset state
+      setIsDelegateModalOpen(false);
+      setIsDelegateMode(false);
+      setSelectedTransfers(new Set());
+      setDelegateUser(null);
+      setDelegateReason("");
+    } catch (error) {
+      console.error("Error delegating transfers:", error);
+      toast.error("Failed to delegate transfers");
+    }
+  };
 
   return (
     <div>
@@ -903,74 +908,77 @@ export default function PendingTransfer() {
         </div>
       </SharedModal>
         {/* Delegate Modal */}
-            <SharedModal
-              isOpen={isDelegateModalOpen}
-              onClose={() => {
+      <SharedModal
+        isOpen={isDelegateModalOpen}
+        onClose={() => {
+          setIsDelegateModalOpen(false);
+          setDelegateUser(null);
+          setDelegateReason("");
+        }}
+        title="Delegate Transfers"
+        size="md"
+      >
+        <div className="p-4">
+          <div className="mb-4">
+            <p className="text-sm text-[#282828] mb-4">
+              You're about to delegate {selectedTransfers.size} transfer(s) to
+              another user. Please select the user and provide a reason for the
+              delegation.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {/* User Selection */}
+            <div>
+              <SharedSelect
+                title="Select User"
+                required={true}
+                value={delegateUser !== null ? String(delegateUser) : ""}
+                onChange={(value) => {
+                  const numericValue = typeof value === 'string' ? parseInt(value, 10) : value;
+                  setDelegateUser(numericValue);
+                }}
+                placeholder="Choose a user to delegate to"
+                options={userOptions}
+              />
+            </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-sm font-bold text-[#282828] mb-2">
+                Reason for Delegation
+              </label>
+              <textarea
+                rows={5}
+                value={delegateReason}
+                onChange={(e) => setDelegateReason(e.target.value)}
+                className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
+                placeholder="Provide a reason for delegating these transfers..."
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              onClick={() => {
                 setIsDelegateModalOpen(false);
-                setDelegateUser("");
+                setDelegateUser(null);
                 setDelegateReason("");
               }}
-              title="Delegate Transfers"
-              size="md"
+              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
             >
-              <div className="p-4">
-                <div className="mb-4">
-                  <p className="text-sm text-[#282828] mb-4">
-                    You're about to delegate {selectedTransfers.size} transfer(s) to
-                    another user. Please select the user and provide a reason for the
-                    delegation.
-                  </p>
-                </div>
-      
-                <div className="space-y-4">
-                  {/* User Selection */}
-                  <div>
-                    <SharedSelect
-                      title="Select User"
-                      required={true}
-                      value={delegateUser}
-                      onChange={(value) => setDelegateUser(String(value))}
-                      placeholder="Choose a user to delegate to"
-                      options={userOptions}
-                    />
-                  </div>
-      
-                  {/* Reason */}
-                  <div>
-                    <label className="block text-sm font-bold text-[#282828] mb-2">
-                      Reason for Delegation
-                    </label>
-                    <textarea
-                      rows={5}
-                      value={delegateReason}
-                      onChange={(e) => setDelegateReason(e.target.value)}
-                      className="w-full px-3 text-sm resize-none py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-sm placeholder:text-[#AFAFAF]"
-                      placeholder="Provide a reason for delegating these transfers..."
-                    />
-                  </div>
-                </div>
-      
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    onClick={() => {
-                      setIsDelegateModalOpen(false);
-                      setDelegateUser("");
-                      setDelegateReason("");
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmDelegate}
-                    disabled={!delegateUser}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#00B7AD] border border-[#00B7AD] rounded-md hover:bg-[#0e837d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Confirm Delegation
-                  </button>
-                </div>
-              </div>
-            </SharedModal>
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelegate}
+              disabled={!delegateUser}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#00B7AD] border border-[#00B7AD] rounded-md hover:bg-[#0e837d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Confirm Delegation
+            </button>
+          </div>
+        </div>
+      </SharedModal>
     </div>
   );
 }
