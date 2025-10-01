@@ -112,33 +112,35 @@ function StatCard({
   title,
   value,
   subtitle,
-}: // trend = "up", // 'up' | 'down' | 'flat'
+   trend = "up", // 'up' | 'down' | 'flat'
+}:
 {
   title: string;
   value: string | number;
   subtitle?: string;
   delta?: string;
-  // trend?: "up" | "down" | "flat";
+  trend?: "up" | "down" | "flat";
 }) {
-  // const isUp = trend === "up";
-  // const isDown = trend === "down";
-  // const arrow = isUp ? "↗" : isDown ? "↘" : "→";
-  // const deltaColor = isUp
-  //   ? "text-green-600"
-  //   : isDown
-  //   ? "text-red-600"
-  //   : "text-gray-500";
+  const delta="10%"
+  const isUp = trend === "up";
+  const isDown = trend === "down";
+  const arrow = isUp ? "↗" : isDown ? "↘" : "→";
+  const deltaColor = isUp
+    ? "text-green-600"
+    : isDown
+    ? "text-red-600"
+    : "text-gray-500";
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
       <div className="flex justify-between items-center">
         <div className="text-sm text-gray-500">{title}</div>
-        {/* <span className={`text-xs font-medium ${deltaColor}`}>{arrow}</span> */}
+        <span className={`text-xs font-medium ${deltaColor}`}>{arrow}</span>
       </div>
       <div className="mt-2 text-2xl font-meduim text-gray-900">{value}</div>
       <div className="flex justify-between items-center">
         <div className="mt-1 text-xs text-[#282828]">{subtitle}</div>
-        {/* <span className={`text-xs font-medium ${deltaColor}`}>{delta}</span> */}
+        <span className={`text-xs font-medium ${deltaColor}`}>{delta}</span>
       </div>
     </div>
   );
@@ -624,8 +626,8 @@ export default function Home() {
                     title={s.title}
                     value={s.value.toLocaleString()}
                     subtitle={s.subtitle}
-                    // delta={s.delta}
-                    // trend={s.trend}
+                    delta={s.delta}
+                    trend={s.trend}
                   />
                 </div>
               ))}
