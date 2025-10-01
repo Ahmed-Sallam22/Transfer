@@ -334,7 +334,7 @@ export default function Chat({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <h3
-                        className={`font-semibold truncate text-sm ${
+                        className={`font-semibold capitalize truncate text-sm ${
                           isActive ? "text-white" : "text-gray-900"
                         }`}
                       >
@@ -384,12 +384,12 @@ export default function Chat({
           <div className="flex items-center  justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <div className=" flex items-center  w-full gap-2 justify-between">
+                <div className=" flex items-center capitalize  w-full gap-2 justify-between">
                   <div>
-                    <h2 className="font-bold text-xl text-gray-900">
+                    <h2 className="font-bold text-xl capitalize text-gray-900">
                       {selectedUserId
                         ? selectedUserName
-                        : "Select a conversation"}
+                        : "Select conversation"}
                     </h2>
                   </div>
                 </div>
