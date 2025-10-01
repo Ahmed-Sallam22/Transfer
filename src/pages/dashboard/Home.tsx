@@ -30,6 +30,7 @@ import {
 } from "@/api/envelope.api";
 import SharedSelect from "@/shared/SharedSelect";
 import ModeSelect from "@/components/ui/ModeSelect";
+import { useUserLevel } from "@/features/auth/hooks";
 interface EnvelopeTableRow {
   id: string;
   project_code: string;
@@ -112,39 +113,48 @@ function StatCard({
   title,
   value,
   subtitle,
-   trend = "up", // 'up' | 'down' | 'flat'
-}:
-{
+  deltaPct, // <- pass a number like 0.0123 for +1.23%. Omit/undefined to hide.
+}: {
   title: string;
   value: string | number;
   subtitle?: string;
-  delta?: string;
-  trend?: "up" | "down" | "flat";
+  deltaPct?: number; // percent in decimal form (e.g. 0.0123)
 }) {
-  const delta="10%"
-  const isUp = trend === "up";
-  const isDown = trend === "down";
-  const arrow = isUp ? "↗" : isDown ? "↘" : "→";
+  const hasDelta = typeof deltaPct === "number" && !Number.isNaN(deltaPct);
+  const isUp = hasDelta && deltaPct > 0;
+  const isDown = hasDelta && deltaPct < 0;
+
+  const arrow = hasDelta ? (isUp ? "↗" : isDown ? "↘" : "→") : null;
   const deltaColor = isUp
     ? "text-green-600"
     : isDown
     ? "text-red-600"
     : "text-gray-500";
 
+  const formattedValue =
+    typeof value === "number" ? value.toLocaleString() : value;
+
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
       <div className="flex justify-between items-center">
         <div className="text-sm text-gray-500">{title}</div>
-        <span className={`text-xs font-medium ${deltaColor}`}>{arrow}</span>
+        {arrow && <div className={`text-xs font-medium ${deltaColor}`}>{arrow}</div>}
       </div>
-      <div className="mt-2 text-2xl font-meduim text-gray-900">{value}</div>
+
+      <div className="mt-2 text-2xl font-meduim text-gray-900">{formattedValue}</div>
+
       <div className="flex justify-between items-center">
-        <div className="mt-1 text-xs text-[#282828]">{subtitle}</div>
-        <span className={`text-xs font-medium ${deltaColor}`}>{delta}</span>
+        {subtitle ? <div className="mt-1 text-xs text-[#282828]">{subtitle}</div> : <span />}
+        {hasDelta ? (
+          <span className={`text-xs font-medium ${deltaColor}`}>
+            {(deltaPct * 100).toFixed(2)}%
+          </span>
+        ) : null}
       </div>
     </div>
   );
 }
+
 
 // Move this outside the component to avoid re-creation on every render
 const LABEL_TO_GROUP: Record<string, "MenPower" | "NonMenPower" | "Copex"> = {
@@ -311,58 +321,53 @@ export default function Home() {
     isLoading: isLoadingEnvelope,
     error: envelopeError,
   } = useGetActiveProjectsWithEnvelopeQuery();
-  const stats = useMemo(() => {
-    if (!envelopeData) {
-      return [
+const userLevel = useUserLevel(); // number (e.g., 4)
+
+const stats = useMemo(() => {
+  const base: Array<{
+    title: string;
+    value: number | string;
+    subtitle?: string;
+    deltaPct?: number; // decimal (e.g., 0.0123)
+  }> = envelopeData
+    ? [
         {
           title: "Initial Envelope",
-          value: "-",
-          subtitle: "Year Start Envelope ",
-          delta: "-",
-          trend: "flat" as const,
+          value: envelopeData.initial_envelope,
+          subtitle: "Year Start Envelope",
+          // no deltaPct for initial -> hidden automatically
         },
         {
           title: "Projected Envelope",
-          value: "-",
+          value: envelopeData.estimated_envelope ?? "-",
           subtitle: "After Approval Pending Transaction",
-          delta: "-",
-          trend: "flat" as const,
+          deltaPct: envelopeData.estimated_envelope_change_percentage, // may be +/-
         },
         {
           title: "Final",
-          value: "-",
+          value: envelopeData.current_envelope,
           subtitle: "Approved Transactions",
-          delta: "-",
-          trend: "flat" as const,
+          deltaPct: envelopeData.current_envelope_change_percentage, // may be +/-
         },
+      ]
+    : [
+        { title: "Initial Envelope", value: "-", subtitle: "Year Start Envelope" },
+        { title: "Projected Envelope", value: "-", subtitle: "After Approval Pending Transaction" },
+        { title: "Final", value: "-", subtitle: "Approved Transactions" },
       ];
-    }
 
-    return [
-      {
-        title: "Initial Envelope",
-        value: envelopeData.initial_envelope.toLocaleString(),
-        subtitle: "Year Start Envelope ",
-        delta: "+10%",
-        trend: "up" as const,
-      },
+  if (userLevel === 4) {
+    base.push({
+      title: "Contingency",
+      value: 564_318_837,
+      subtitle: "Contingency",
+      // no deltaPct -> hidden
+    });
+  }
 
-      {
-        title: "Projected Envelope",
-        value: envelopeData.estimated_envelope?.toLocaleString() ?? "-",
-        subtitle: "After Approval Pending Transaction",
-        delta: "-2%",
-        trend: "down" as const,
-      },
-      {
-        title: "Final",
-        value: envelopeData.current_envelope.toLocaleString(),
-        subtitle: "Approved Transactions",
-        delta: "-2%",
-        trend: "down" as const,
-      },
-    ];
-  }, [envelopeData]);
+  return base;
+}, [envelopeData, userLevel]);
+
   const accountColumns: TableColumn[] = [
     { id: "account", header: "Account Code", accessor: "account" },
     { id: "account_name", header: "Account Name", accessor: "account_name" },
@@ -550,6 +555,9 @@ export default function Home() {
       },
     },
   ];
+   const isLevel4 = userLevel === 4;
+
+  
   return (
     <div className="space-y-6">
       {/* Error State */}
@@ -607,31 +615,32 @@ export default function Home() {
       )}
       {/* Stats */}
       {(mode === "Envelope" || mode === "all") && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {isLoading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <StatCardSkeleton key={i} />
-              ))
-            : stats.map((s, index) => (
-                <div
-                  key={s.title}
-                  className="animate-fadeIn"
-                  style={{
-                    animationDelay: `${index * 0.1}s`,
-                    opacity: 0,
-                    animation: `fadeIn 0.6s ease-out ${index * 0.1}s forwards`,
-                  }}
-                >
-                  <StatCard
-                    title={s.title}
-                    value={s.value.toLocaleString()}
-                    subtitle={s.subtitle}
-                    delta={s.delta}
-                    trend={s.trend}
-                  />
-                </div>
-              ))}
+      <div
+  className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${
+    isLevel4 ? "xl:grid-cols-4" : "xl:grid-cols-3"
+  }`}
+>
+  {isLoading
+    ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+    : stats.map((s, index) => (
+        <div
+          key={s.title}
+          className="animate-fadeIn"
+          style={{
+            animationDelay: `${index * 0.1}s`,
+            opacity: 0,
+            animation: `fadeIn 0.6s ease-out ${index * 0.1}s forwards`,
+          }}
+        >
+          <StatCard
+            title={s.title}
+            value={typeof s.value === "number" ? s.value.toLocaleString() : s.value}
+            subtitle={s.subtitle}
+       deltaPct={s.deltaPct}
+          />
         </div>
+      ))}
+</div>
       )}
       {mode === "Envelope" && (
         <div className="bg-white rounded-2xl shadow-sm">
@@ -716,7 +725,10 @@ export default function Home() {
                             dataKey="value"
                             nameKey="name"
                             innerRadius={100}
+                            cx="50%"
+          cy="50%"
                             outerRadius={115}
+                            paddingAngle={1}
                             onClick={(data) => {
                               // Navigate to dashboard details page for the selected type
                               const typeMap: Record<string, string> = {
@@ -729,12 +741,16 @@ export default function Home() {
                                 `/app/dashboard-details/${type}?project=${selectedProject}`
                               );
                             }}
+                          
+                            labelLine={false}
                           >
                             {accountSummaryData.map((entry, i) => (
                               <Cell
                                 key={i}
                                 fill={entry.color}
                                 cursor="pointer"
+                                stroke="#ffffff"
+                                strokeWidth={2}
                               />
                             ))}
                           </Pie>
@@ -807,8 +823,10 @@ export default function Home() {
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
+                  
                   </div>
                 </div>
+      
 
                 {/* Transfer Status Chart */}
                 <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 animate-fadeIn">

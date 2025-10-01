@@ -22,6 +22,8 @@ export interface EnvelopeResponse {
   initial_envelope: number;
   current_envelope: number;
   estimated_envelope: number;
+  estimated_envelope_change_percentage: number;
+  current_envelope_change_percentage: number;
   data: EnvelopeProject[];
 }
 

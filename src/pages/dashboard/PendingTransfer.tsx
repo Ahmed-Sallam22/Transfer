@@ -933,7 +933,8 @@ export default function PendingTransfer() {
                 required={true}
                 value={delegateUser !== null ? String(delegateUser) : ""}
                 onChange={(value) => {
-                  const numericValue = typeof value === 'string' ? parseInt(value, 10) : value;
+                  const numericValue =
+                    typeof value === "string" ? parseInt(value, 10) : value;
                   setDelegateUser(numericValue);
                 }}
                 placeholder="Choose a user to delegate to"
