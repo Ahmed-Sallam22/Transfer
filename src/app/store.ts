@@ -16,6 +16,7 @@ import { envelopeApi } from '../api/envelope.api';
 import { userApi } from '@/api/user.api';
 import { levelApi } from '@/api/level.api';
 import { chatApi } from '@/api/chatApi';
+import { invoiceApi } from '@/api/invoice.api';
 
 export const store = configureStore({
   reducer: {
@@ -36,6 +37,7 @@ export const store = configureStore({
     [userApi.reducerPath]: userApi.reducer,
     [levelApi.reducerPath]: levelApi.reducer,
     [chatApi.reducerPath]: chatApi.reducer,
+    [invoiceApi.reducerPath]: invoiceApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -55,6 +57,7 @@ export const store = configureStore({
       userApi.middleware,
       levelApi.middleware,
       chatApi.middleware,
+      invoiceApi.middleware,
     ),
 });
 

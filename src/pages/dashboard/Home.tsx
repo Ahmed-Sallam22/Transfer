@@ -9,6 +9,11 @@ import {
   Cell,
   Tooltip as RTooltip,
   Legend,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Bar,
 } from "recharts";
 import {
   useGetAccountWiseDashboardQuery,
@@ -44,7 +49,9 @@ function LoadingSkeleton({ className = "" }: { className?: string }) {
     <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
   );
 }
-
+function formatPctFromFraction(p: number) {
+  return `${(p * 1000000).toFixed(2)}%`;
+}
 function ChartLoadingSkeleton() {
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
@@ -145,11 +152,11 @@ function StatCard({
 
       <div className="flex justify-between items-center">
         {subtitle ? <div className="mt-1 text-xs text-[#282828]">{subtitle}</div> : <span />}
-        {hasDelta ? (
-          <span className={`text-xs font-medium ${deltaColor}`}>
-            {(deltaPct * 100).toFixed(2)}%
-          </span>
-        ) : null}
+  {hasDelta ? (
+  <span className={`text-xs font-medium ${deltaColor}`}>
+    {formatPctFromFraction(deltaPct)}
+  </span>
+) : null}
       </div>
     </div>
   );
@@ -290,7 +297,7 @@ export default function Home() {
       return [
         { name: "Approved", value: 0, color: "#007E77" },
         { name: "Pending", value: 0, color: "#6BE6E4" },
-        { name: "Total Transaction", value: 0, color: "#00B7AD" },
+        { name: "Rejected", value: 0, color: "#00B7AD" },
       ];
     }
 
@@ -306,8 +313,8 @@ export default function Home() {
         color: "#6BE6E4",
       },
       {
-        name: "Total Transaction",
-        value: normalData.total_transfers,
+        name: "Rejected",
+        value: normalData.rejected_transfers,
         color: "#00B7AD",
       },
     ];
@@ -557,6 +564,39 @@ const stats = useMemo(() => {
   ];
    const isLevel4 = userLevel === 4;
 
+
+
+// formatter used by both label and tooltip
+const fmtAmount = (n: number) => {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "";
+  if (Math.abs(v) >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + "B";
+  if (Math.abs(v) >= 1_000_000)     return (v / 1_000_000).toFixed(1) + "M";
+  if (Math.abs(v) >= 1_000)         return (v / 1_000).toFixed(1) + "K";
+  return v.toLocaleString();
+};
+
+const renderCustomizedLabel = ({
+  cx, cy, midAngle, innerRadius, outerRadius, value,
+}: any) => {
+  const v = Number(value);
+  if (!Number.isFinite(v) || v === 0) return null; // 🔒 hide for 0
+
+  const RADIAN = Math.PI / 180;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + r * Math.cos(-(midAngle ?? 0) * RADIAN);
+  const y = cy + r * Math.sin(-(midAngle ?? 0) * RADIAN);
+
+  return (
+    <text x={x} y={y} fill="#fff" fontSize={14} fontWeight={600}
+          textAnchor={x > cx ? "start" : "end"} dominantBaseline="central">
+      {fmtAmount(v)}
+    </text>
+  );
+};
+
+
+
   
   return (
     <div className="space-y-6">
@@ -724,11 +764,15 @@ const stats = useMemo(() => {
                             data={accountSummaryData}
                             dataKey="value"
                             nameKey="name"
-                            innerRadius={100}
-                            cx="50%"
-          cy="50%"
-                            outerRadius={115}
+                     
                             paddingAngle={1}
+                         
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={renderCustomizedLabel}
+          outerRadius={100}
+         
                             onClick={(data) => {
                               // Navigate to dashboard details page for the selected type
                               const typeMap: Record<string, string> = {
@@ -742,7 +786,7 @@ const stats = useMemo(() => {
                               );
                             }}
                           
-                            labelLine={false}
+                         
                           >
                             {accountSummaryData.map((entry, i) => (
                               <Cell
@@ -762,7 +806,7 @@ const stats = useMemo(() => {
                               return (
                                 <div className="rounded-lg bg-black text-white px-3 py-2 text-sm shadow">
                                   <div className="font-medium">{p.name}</div>
-                                  <div>{(p.value / 1_000_000).toFixed(0)}M</div>
+                                  <div>{(p.value / 1_000_000).toFixed(1)}M</div>
                                 </div>
                               );
                             }}
@@ -826,7 +870,7 @@ const stats = useMemo(() => {
                   
                   </div>
                 </div>
-      
+
 
                 {/* Transfer Status Chart */}
                 <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 animate-fadeIn">
@@ -848,74 +892,44 @@ const stats = useMemo(() => {
 
                   <div className="flex items-center justify-center">
                     {/* Chart */}
-                    <div className="h-[280px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={statusData}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius={100}
-                            outerRadius={115}
-                            cursor="pointer"
-                          >
-                            {statusData.map((entry, i) => (
-                              <Cell key={i} fill={entry.color} />
-                            ))}
-                          </Pie>
+             <div className="h-[280px] w-full">
+  <ResponsiveContainer width="100%" height="100%">
+  
+                          <BarChart data={statusData} barSize={40}>
+      
+<CartesianGrid vertical={false} stroke={'#E5E7EB'} />      <XAxis
+        dataKey="name"
+        tickFormatter={(v) => String(v).replace("_", " ")}
+        axisLine={false}
+        tickLine={false}
+     
+      />
+      <YAxis
+        axisLine={false}
+        tickLine={false}
+        // tick={false} // uncomment to hide labels
+      />
+    <RTooltip
+        wrapperStyle={{ background: "transparent", border: "none", boxShadow: "none" }}
+        contentStyle={{ background: "#E5E7EB", color: "#fff", border: "none" }} // keep tooltip pill
+        formatter={(value: number, name: string) => [
+          Number(value).toLocaleString(),
+          String(name).replace("_", " "),
+        ]}
+        labelFormatter={() => ""}
+      />
 
-                          <RTooltip
-                            content={({ active, payload }) => {
-                              if (!active || !payload?.length) return null;
-                              const p = payload[0];
-                              return (
-                                <div className="rounded-lg bg-black text-white px-3 py-2 text-sm shadow">
-                                  <div className="font-medium">
-                                    {p.name?.replace("_", " ")}
-                                  </div>
-                                  <div>{Number(p.value).toLocaleString()}</div>
-                                </div>
-                              );
-                            }}
-                          />
+      <Bar dataKey="value" name="Transfers" radius={[8, 8, 0, 0]}>
+        {statusData.map((entry, i) => (
+          <Cell key={i} fill={entry.color} />
+        ))}
+      </Bar>
+    </BarChart>
+  </ResponsiveContainer>
+</div>
 
-                          {/* Legend */}
-                          <Legend
-                            verticalAlign="bottom"
-                            align="center"
-                            iconType="circle"
-                            content={(props: any) => {
-                              const payload = (props?.payload ??
-                                []) as Array<any>;
-                              if (!payload.length) return null;
-
-                              return (
-                                <div className="flex mt-3 items-center justify-center gap-8 sm:gap-12">
-                                  {payload.map((item) => (
-                                    <div
-                                      key={`${item?.dataKey ?? "k"}-${
-                                        item?.value ?? "v"
-                                      }`}
-                                      className="inline-flex items-center gap-3"
-                                    >
-                                      <span
-                                        className="inline-block h-4 w-4 rounded-[6px] ring-1 ring-white shadow"
-                                        style={{ backgroundColor: item?.color }}
-                                        aria-hidden
-                                      />
-                                      <span className="text-[#0B2440] text-sm font-semibold">
-                                        {item?.value?.replace("_", " ")}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              );
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
                   </div>
+           
                 </div>
               </div>
             </>

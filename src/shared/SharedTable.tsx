@@ -217,6 +217,7 @@ export interface SharedTableProps {
   addRowButtonText?: string;
   // Shadow control
   showShadow?: boolean;
+  documents?: boolean;
   // Title size control
   titleSize?: "sm" | "lg";
   // Pending mode control
@@ -245,7 +246,7 @@ export function SharedTable({
   hasPrevious,
   showActions = false,
   transactions = false,
-
+  documents = false,
   onEdit,
   onChat,
   onDelete,
@@ -1019,7 +1020,21 @@ export function SharedTable({
                                   <ChatIcon />
                                 </button>
                               )}
-                              <button
+                                {documents && (
+                                <button
+                                  onClick={() => handleView(row, globalIndex)}
+                                  className="p-1.5   hover:bg-green-200    border rounded-full border-[#EEEEEE] cursor-pointer  transition-colors"
+                                  title="View"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.18391 10.1965C1.61729 9.46033 1.33398 9.09227 1.33398 7.99935C1.33398 6.90643 1.61729 6.53837 2.18391 5.80224C3.31529 4.33239 5.21273 2.66602 8.00065 2.66602C10.7886 2.66602 12.686 4.33239 13.8174 5.80224C14.384 6.53837 14.6673 6.90643 14.6673 7.99935C14.6673 9.09227 14.384 9.46033 13.8174 10.1965C12.686 11.6663 10.7886 13.3327 8.00065 13.3327C5.21273 13.3327 3.31529 11.6663 2.18391 10.1965Z" stroke="#757575" stroke-width="1.5"/>
+<path d="M10 8C10 9.10457 9.10457 10 8 10C6.89543 10 6 9.10457 6 8C6 6.89543 6.89543 6 8 6C9.10457 6 10 6.89543 10 8Z" stroke="#757575" stroke-width="1.5"/>
+</svg>
+
+                                </button>
+                              )}
+                              {!documents&&(
+  <button
                                 onClick={() => handleEdit(row, globalIndex)}
                                 className="p-1.5  hover:bg-blue-200 border rounded-full border-[#EEEEEE] cursor-pointer hover:text-blue-700 transition-colors"
                                 title="Edit"
@@ -1056,6 +1071,8 @@ export function SharedTable({
                                   />
                                 </svg>
                               </button>
+                              )}
+                            
                               <button
                                 onClick={() =>
                                   handleDeleteClick(row, globalIndex)

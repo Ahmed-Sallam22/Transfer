@@ -23,6 +23,9 @@ import AddWorkFlow from "@/pages/dashboard/AddWorkFlow";
 import WorkFlow from "@/pages/dashboard/WorkFlow";
 // import Envelope from "@/pages/dashboard/Envelope";
 import Chat from "@/pages/dashboard/Chat";
+import DocumentIO from "@/pages/dashboard/DocumentIO";
+import InvoiceDetails from "@/pages/dashboard/InvoiceDetails";
+import UploadInvoice from "@/pages/dashboard/UploadInvoice";
 
 const SignIn = lazy(() => import("../pages/auth/SignIn"));
 const AppLayout = lazy(() => import("../components/layout/AppLayout"));
@@ -235,6 +238,30 @@ export default function AppRoutes() {
             element={
               <RoleProtectedRoute allowedRoles={["superadmin"]}>
                 <Reports />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="Document_I/O"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <DocumentIO />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="Document_I/O/:id"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <InvoiceDetails />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="Document_I/O/upload"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <UploadInvoice />
               </RoleProtectedRoute>
             }
           />
