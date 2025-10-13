@@ -100,7 +100,7 @@ export default function DocumentIO() {
       render: (value) => (
         <span
           className={`px-3 py-1 rounded-full text-xs font-medium ${
-            value === "Approved"
+            value === "Submitted"
               ? "bg-green-100 text-green-800"
               : value === "Pending"
               ? "bg-yellow-100 text-yellow-800"

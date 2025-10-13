@@ -2,10 +2,9 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { customBaseQuery } from './baseQuery';
 
 export interface InvoiceData {
-  status: string;
   InvoiceNumber: string;
   InvoiceCurrency: string;
-  InvoiceAmount: number | string;
+  InvoiceAmount: number ;
   InvoiceDate: string;
   BusinessUnit: string;
   Supplier: string;
@@ -46,7 +45,7 @@ export interface Invoice {
   InvoiceNumber?: string;
   status?: string;
   InvoiceCurrency?: string;
-  InvoiceAmount?: string | number;
+  InvoiceAmount?:  number;
   InvoiceDate?: string;
   BusinessUnit?: string;
   Supplier?: string;

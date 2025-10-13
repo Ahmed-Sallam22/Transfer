@@ -65,7 +65,7 @@ export default function InvoiceReview() {
     supplierSite: "",
     businessUnit: "",
     description: "",
-    invoiceAmount: "0",
+    invoiceAmount: 0,
     invoiceCurrency: "USD",
     invoiceGroup: "",
     lineItems: [] as Array<{
@@ -82,6 +82,8 @@ export default function InvoiceReview() {
   useEffect(() => {
     if (dataSource?.data) {
       const data = dataSource.data;
+      console.log("data",data);
+      
       const lineItems = (data.invoiceLines || []).map((line, idx: number) => ({
         id: idx + 1,
         lineNumber: line.LineNumber || idx + 1,
@@ -96,11 +98,7 @@ export default function InvoiceReview() {
           "0",
       }));
 
-      // Calculate invoice amount from line items sum
-      const calculatedAmount = lineItems.reduce(
-        (sum, line) => sum + parseFloat(String(line.lineAmount) || "0"),
-        0
-      );
+  
 
       setForm({
         invoiceNo: data.InvoiceNumber || "",
@@ -109,7 +107,7 @@ export default function InvoiceReview() {
         supplierSite: data.SupplierSite || "",
         businessUnit: data.BusinessUnit || "",
         description: data.Description || "",
-        invoiceAmount: String(calculatedAmount),
+        invoiceAmount: data?.InvoiceAmount || 0,
         invoiceCurrency: data.InvoiceCurrency || "USD",
         invoiceGroup: data.InvoiceGroup || "",
         lineItems: lineItems,
@@ -125,13 +123,7 @@ export default function InvoiceReview() {
     return { subtotal };
   }, [form.lineItems]);
 
-  // Update invoiceAmount when line items change
-  useEffect(() => {
-    setForm((prevForm) => ({
-      ...prevForm,
-      invoiceAmount: String(calc.subtotal),
-    }));
-  }, [calc.subtotal]);
+ 
 
   const addRow = () => {
     const lastLineNumber =
@@ -179,7 +171,6 @@ export default function InvoiceReview() {
       // Prepare the payload
       const payload = {
         Invoice_Data: {
-          status: "Pending",
           InvoiceNumber: form.invoiceNo,
           InvoiceCurrency: form.invoiceCurrency,
           InvoiceAmount: form.invoiceAmount,
