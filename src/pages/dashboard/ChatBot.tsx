@@ -381,6 +381,10 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
       setMessages((m) => [...m, userMsg]);
       setNewMessage("");
+      // Clear file immediately when adding to chat
+      if (fileToSend) {
+        removeFile();
+      }
     }
 
     setIsTyping(true);
@@ -411,11 +415,6 @@ const ChatBot: React.FC<ChatBotProps> = ({
           msg.id === messageId ? { ...msg, isLoading: false } : msg
         )
       );
-
-      // Clear file after sending (use fileToSend since selectedFile might have changed)
-      if (fileToSend && !retryMessageId) {
-        removeFile();
-      }
 
       let botText = "";
       let pageToNavigate: string | null = null;
