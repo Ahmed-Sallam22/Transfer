@@ -19,6 +19,10 @@ type Message = {
   isUser: boolean;
   timestamp: Date;
   sqlData?: string; // HTML table from SQLBuilderAgent
+  filePreview?: string; // base64 or URL for image preview
+  fileName?: string; // original file name
+  isError?: boolean; // if message failed to send
+  isLoading?: boolean; // if message is being sent
 };
 
 type ChatBotProps = {
@@ -71,6 +75,11 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
   // Input
   const [newMessage, setNewMessage] = useState("");
+
+  // File upload state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // RTK Query
   const [sendMessageMutation] = useSendMessageMutation();
@@ -259,24 +268,154 @@ const ChatBot: React.FC<ChatBotProps> = ({
     setCurrentSqlData("");
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || isTyping) return;
+  // File handling functions
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const userMsg: Message = {
-      id: Date.now(),
-      text: newMessage,
-      isUser: true,
-      timestamp: new Date(),
-    };
+    // Check file type (PDF or images)
+    const validTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
 
-    setMessages((m) => [...m, userMsg]);
-    setNewMessage("");
+    if (!validTypes.includes(file.type)) {
+      alert(
+        isArabic
+          ? "يرجى اختيار ملف PDF أو صورة (JPG, PNG, GIF, WebP)"
+          : "Please select a PDF or image file (JPG, PNG, GIF, WebP)"
+      );
+      return;
+    }
+
+    // Check file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      alert(
+        isArabic
+          ? "حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت"
+          : "File size too large. Maximum 10MB"
+      );
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview for images
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const sendMessage = async (retryMessageId?: number) => {
+    // Get the message to send (either new or retry)
+    let messageToSend: Message | undefined;
+    let inputText = newMessage.trim();
+    const fileToSend = selectedFile;
+    const previewToSend = filePreview;
+
+    if (retryMessageId) {
+      // Find the message to retry
+      messageToSend = messages.find((m) => m.id === retryMessageId);
+      if (!messageToSend) return;
+
+      inputText = messageToSend.text;
+      // Note: We can't re-upload the file on retry since we don't store the File object
+      // The user will need to select the file again if retry is needed
+    }
+
+    if ((!inputText && !fileToSend) || isTyping) return;
+
+    const messageId = retryMessageId || Date.now();
+
+    // If retrying, update the message to loading state
+    if (retryMessageId) {
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === retryMessageId
+            ? { ...msg, isError: false, isLoading: true }
+            : msg
+        )
+      );
+    } else {
+      // Create new user message
+      const userMsg: Message = {
+        id: messageId,
+        text: inputText || (isArabic ? "تم إرفاق ملف" : ""),
+        isUser: true,
+        timestamp: new Date(),
+        filePreview: fileToSend && previewToSend ? previewToSend : undefined,
+        fileName: fileToSend?.name,
+        isLoading: true,
+      };
+
+      setMessages((m) => [...m, userMsg]);
+      setNewMessage("");
+    }
+
     setIsTyping(true);
 
     try {
-      const data = await sendMessageMutation({
-        user_input: userMsg.text,
-      }).unwrap();
+      // Prepare payload
+      const payload: {
+        user_input: string;
+        file_base64?: string;
+        file_name?: string;
+      } = {
+        user_input:
+          inputText || (isArabic ? "تحليل الملف" : "Analyze this file"),
+      };
+
+      // Add file data if present (only on new messages, not retries)
+      if (fileToSend && !retryMessageId) {
+        const base64 = await convertFileToBase64(fileToSend);
+        payload.file_base64 = base64;
+        payload.file_name = fileToSend.name;
+      }
+
+      const data = await sendMessageMutation(payload).unwrap();
+
+      // Mark message as successfully sent
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === messageId ? { ...msg, isLoading: false } : msg
+        )
+      );
+
+      // Clear file after sending (use fileToSend since selectedFile might have changed)
+      if (fileToSend && !retryMessageId) {
+        removeFile();
+      }
 
       let botText = "";
       let pageToNavigate: string | null = null;
@@ -309,11 +448,20 @@ const ChatBot: React.FC<ChatBotProps> = ({
       }
 
       if (pageToNavigate) {
-        // Navigate without route existence check; react-router will handle it
         navigate(pageToNavigate);
       }
     } catch (err) {
       console.error("Chat error:", err);
+
+      // Mark message as error
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, isLoading: false, isError: true }
+            : msg
+        )
+      );
+
       setMessages((m) => [
         ...m,
         {
@@ -474,7 +622,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
                     <div
                       className={[
-                        "px-4 py-3 rounded-2xl text-sm leading-snug break-words",
+                        "rounded-2xl text-sm leading-snug break-words overflow-hidden",
                         m.isUser
                           ? "bg-gradient-to-r from-[#00B7AD] to-[#09615d] text-white rounded-br-md"
                           : isDarkMode
@@ -482,15 +630,96 @@ const ChatBot: React.FC<ChatBotProps> = ({
                           : "bg-white/90 text-slate-700 rounded-bl-md",
                       ].join(" ")}
                     >
-                      {m.text}
+                      {/* Image preview for user messages with files */}
+                      {m.isUser && m.filePreview && (
+                        <div className="relative">
+                          <img
+                            src={m.filePreview}
+                            alt={m.fileName || "attachment"}
+                            className="w-full max-w-xs rounded-t-2xl"
+                          />
+                          {m.isLoading && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* PDF indicator for user messages */}
+                      {m.isUser && m.fileName && !m.filePreview && (
+                        <div className="flex items-center gap-2 p-3 bg-black/10">
+                          <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="text-white"
+                          >
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6ZM6 20V4h7v5h5v11H6Z" />
+                          </svg>
+                          <span className="text-xs font-medium truncate">
+                            {m.fileName}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Message text */}
+                      {m.text && <div className="px-4 py-3">{m.text}</div>}
+
+                      {/* Error indicator with retry button */}
+                      {m.isError && (
+                        <div className="px-4 pb-3 flex items-center gap-2">
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="text-red-300"
+                          >
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm1 15h-2v-2h2v2Zm0-4h-2V7h2v6Z" />
+                          </svg>
+                          <span className="text-xs text-red-300">
+                            {isArabic ? "فشل الإرسال" : "Failed to send"}
+                          </span>
+                          <button
+                            onClick={() => sendMessage(m.id)}
+                            className="text-xs underline hover:no-underline text-white/90"
+                          >
+                            {isArabic ? "إعادة المحاولة" : "Retry"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div
                       className={[
-                        "mt-1 text-[10px] opacity-60",
-                        m.isUser ? "text-right" : "",
+                        "mt-1 text-[10px] opacity-60 flex items-center gap-1",
+                        m.isUser ? "text-right justify-end" : "",
                       ].join(" ")}
                     >
-                      {timeOf(m.timestamp)}
+                      <span>{timeOf(m.timestamp)}</span>
+                      {m.isUser && m.isLoading && (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="animate-spin"
+                        >
+                          <path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2Z" />
+                        </svg>
+                      )}
+                      {m.isUser && !m.isLoading && !m.isError && (
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="text-blue-400"
+                        >
+                          <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z" />
+                        </svg>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -530,12 +759,95 @@ const ChatBot: React.FC<ChatBotProps> = ({
                   : "bg-white/80 border-black/10",
               ].join(" ")}
             >
+              {/* File Preview */}
+              {selectedFile && (
+                <div className="mb-3 p-3 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center gap-3">
+                  {filePreview ? (
+                    <img
+                      src={filePreview}
+                      alt="Preview"
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-red-100 rounded flex items-center justify-center">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="text-red-600"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6ZM6 20V4h7v5h5v11H6Z" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {(selectedFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  <button
+                    onClick={removeFile}
+                    className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 flex items-center justify-center transition"
+                    aria-label="Remove file"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="text-red-600"
+                    >
+                      <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                {/* File upload button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isTyping}
+                  className={[
+                    "w-10 h-10 rounded-full flex items-center justify-center transition",
+                    isDarkMode
+                      ? "bg-slate-700/50 hover:bg-slate-600/50 text-slate-300"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-600",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                  ].join(" ")}
+                  title={isArabic ? "إرفاق ملف" : "Attach file"}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 0 0 5 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5Z" />
+                  </svg>
+                </button>
+
                 <input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") sendMessage();
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void sendMessage();
+                    }
                   }}
                   placeholder={
                     isArabic ? "اكتب رسالتك..." : "Type your message..."
@@ -547,12 +859,12 @@ const ChatBot: React.FC<ChatBotProps> = ({
                     isDarkMode
                       ? "bg-slate-700/50 border-slate-600 text-slate-100 placeholder:text-slate-400"
                       : "bg-white/80 border-black/10 text-slate-700 placeholder:text-slate-400",
-                    "focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60",
+                    "focus:ring-2 focus:ring-[#00B7AD]/30 focus:border-[#00B7AD]/60",
                   ].join(" ")}
                 />
                 <button
-                  onClick={sendMessage}
-                  disabled={!newMessage.trim() || isTyping}
+                  onClick={() => sendMessage()}
+                  disabled={(!newMessage.trim() && !selectedFile) || isTyping}
                   className={[
                     "w-10 h-10 rounded-full flex items-center justify-center text-white",
                     "bg-gradient-to-br from-[#00B7AD] to-[#09615d]",
