@@ -6,19 +6,77 @@ import React, {
   useRef,
   useState,
 } from "react";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { useNavigate } from "react-router-dom";
-import { useSendMessageMutation } from "@/api/chatbot.api";
+import {
+  useSendMessageMutation,
+  type ChatbotRequest,
+  type ChatbotResponse,
+} from "@/api/chatbot.api";
 
 // If you have Vite alias '@' for assets, this import will work.
 // Otherwise, pass iconUrl as a prop instead of importing.
 import chatIcon from "@/assets/chatbot image.png";
+
+const API_KEY_SERVICE_BASE_URL = "https://lightidea.org:8004";
+const API_KEY_PREVIEW_ENDPOINT = `${API_KEY_SERVICE_BASE_URL}/api-key/preview`;
+const API_KEY_UPDATE_ENDPOINT = `${API_KEY_SERVICE_BASE_URL}/api-key/update`;
+const AVAILABLE_API_KEYS = [
+  "AIzaSyDDqStmGRAuMDktCXGz7br-VLf0X_DCXcE",
+  "AIzaSyC9nt1TDrXevbKCVNdHTIlUsoHdPpe5dY0",
+  "AIzaSyB33PBwcjDf47uXtFwy2Szvz607TJSEkZY",
+  "AIzaSyCOH5doSg_YSyAr8V5RSHAp0R5YbsNRP6g",
+] as const;
+const MAX_SEND_ATTEMPTS = AVAILABLE_API_KEYS.length + 1;
+
+const matchesPreview = (key: string, preview?: string) => {
+  if (!preview) return false;
+  const normalized = preview.trim();
+  const prefix = key.slice(0, Math.min(10, key.length));
+  const suffix = key.slice(-4);
+  return normalized.startsWith(prefix) && normalized.endsWith(suffix);
+};
+
+const extractAgentText = (agent: unknown): string | undefined => {
+  if (typeof agent === "string") return agent;
+  if (agent && typeof agent === "object") {
+    const candidateKeys = ["response", "answer", "message", "question", "text"];
+    for (const key of candidateKeys) {
+      const value = (agent as Record<string, unknown>)[key];
+      if (typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+  }
+  return undefined;
+};
+
+const isMeaningfulText = (value: string | undefined) => {
+  if (!value) return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return trimmed.toLowerCase() !== "success";
+};
+
+const extractStatusCode = (error: unknown): number | null => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "status" in error
+  ) {
+    const { status } = error as FetchBaseQueryError;
+    return typeof status === "number" ? status : null;
+  }
+
+  return null;
+};
 
 type Message = {
   id: number;
   text: string;
   isUser: boolean;
   timestamp: Date;
-  sqlData?: string; // HTML table from SQLBuilderAgent
+  sqlData?: string; // HTML table or structured data snippet
   filePreview?: string; // base64 or URL for image preview
   fileName?: string; // original file name
   isError?: boolean; // if message failed to send
@@ -39,6 +97,72 @@ const ChatBot: React.FC<ChatBotProps> = ({
   iconUrl,
 }) => {
   const navigate = useNavigate();
+  const lastRotatedIndexRef = useRef<number>(-1);
+  const rotationPromiseRef = useRef<Promise<boolean> | null>(null);
+
+  const rotateApiKey = useCallback(async () => {
+    if (rotationPromiseRef.current) {
+      return rotationPromiseRef.current;
+    }
+
+    const performRotation = async () => {
+      try {
+        let matchedIndex = -1;
+
+        try {
+          const previewResponse = await fetch(API_KEY_PREVIEW_ENDPOINT);
+          if (previewResponse.ok) {
+            const previewJson = (await previewResponse.json()) as {
+              api_key_preview?: string;
+            };
+            const previewKey = previewJson?.api_key_preview;
+            matchedIndex = AVAILABLE_API_KEYS.findIndex((key) =>
+              matchesPreview(key, previewKey)
+            );
+          }
+        } catch (previewError) {
+          console.error("API key preview failed:", previewError);
+        }
+
+        const nextIndex =
+          matchedIndex >= 0
+            ? (matchedIndex + 1) % AVAILABLE_API_KEYS.length
+            : (lastRotatedIndexRef.current + 1 + AVAILABLE_API_KEYS.length) %
+              AVAILABLE_API_KEYS.length;
+
+        const nextKey = AVAILABLE_API_KEYS[nextIndex];
+
+        const updateResponse = await fetch(API_KEY_UPDATE_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ api_key: nextKey }),
+        });
+
+        if (!updateResponse.ok) {
+          console.error(
+            "API key update failed with status",
+            updateResponse.status
+          );
+          return false;
+        }
+
+        lastRotatedIndexRef.current = nextIndex;
+        return true;
+      } catch (error) {
+        console.error("API key rotation failed:", error);
+        return false;
+      }
+    };
+
+    const rotationPromise = performRotation().finally(() => {
+      rotationPromiseRef.current = null;
+    });
+
+    rotationPromiseRef.current = rotationPromise;
+    return rotationPromise;
+  }, []);
 
   // UI state
   const [isOpen, setIsOpen] = useState(false);
@@ -389,59 +513,179 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
     setIsTyping(true);
 
-    try {
-      // Prepare payload
-      const payload: {
-        user_input: string;
-        file_base64?: string;
-        file_name?: string;
-      } = {
-        user_input:
-          inputText || (isArabic ? "تحليل الملف" : "Analyze this file"),
-      };
+    const payload: ChatbotRequest = {
+      user_input:
+        inputText || (isArabic ? "تحليل الملف" : "Analyze this file"),
+    };
 
-      // Add file data if present (only on new messages, not retries)
-      if (fileToSend && !retryMessageId) {
-        const base64 = await convertFileToBase64(fileToSend);
-        payload.file_base64 = base64;
-        payload.file_name = fileToSend.name;
+    if (fileToSend && !retryMessageId) {
+      const base64 = await convertFileToBase64(fileToSend);
+      payload.file_base64 = base64;
+      payload.file_name = fileToSend.name;
+    }
+
+    const attemptSend = async (): Promise<ChatbotResponse> => {
+      let lastError: unknown = null;
+
+      for (let attempt = 0; attempt < MAX_SEND_ATTEMPTS; attempt += 1) {
+        try {
+          return await sendMessageMutation(payload).unwrap();
+        } catch (error) {
+          lastError = error;
+          const status = extractStatusCode(error);
+
+          if (status === 500 && attempt < MAX_SEND_ATTEMPTS - 1) {
+            const rotated = await rotateApiKey();
+            if (rotated) {
+              continue;
+            }
+          }
+
+          throw error;
+        }
       }
 
-      const data = await sendMessageMutation(payload).unwrap();
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Failed to send message");
+    };
+
+    try {
+      const data = await attemptSend();
 
       // Mark message as successfully sent
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === messageId ? { ...msg, isLoading: false } : msg
+          msg.id === messageId
+            ? { ...msg, isLoading: false, isError: false }
+            : msg
         )
       );
 
       let botText = "";
       let pageToNavigate: string | null = null;
-      let sqlData: string | undefined;
+      let tableHtml: string | undefined;
 
-      if (data && data.status === "success" && data.response) {
-        if (data.response.GeneralQAAgent)
-          botText = data.response.GeneralQAAgent;
-        if (data.response.PageNavigatorAgent)
-          pageToNavigate = data.response.PageNavigatorAgent;
-        if (data.response.SQLBuilderAgent)
-          sqlData = data.response.SQLBuilderAgent;
+      const trySetBotText = (value: unknown) => {
+        if (!botText && typeof value === "string" && isMeaningfulText(value)) {
+          botText = value;
+        }
+      };
+
+      const parseResponseObject = (resp: Record<string, unknown>) => {
+        if ("GeneralQAAgent" in resp) {
+          trySetBotText(extractAgentText(resp["GeneralQAAgent"]));
+        }
+        if (!botText && "ExpenseCreatorAgent" in resp) {
+          trySetBotText(extractAgentText(resp["ExpenseCreatorAgent"]));
+        }
+        const navigatorValue = resp["PageNavigatorAgent"];
+        if (
+          !pageToNavigate &&
+          typeof navigatorValue === "string" &&
+          navigatorValue.trim()
+        ) {
+          pageToNavigate = navigatorValue;
+        }
+        const sqlBuilderValue = resp["SQLBuilderAgent"];
+        if (
+          !tableHtml &&
+          typeof sqlBuilderValue === "string" &&
+          sqlBuilderValue.trim()
+        ) {
+          tableHtml = sqlBuilderValue;
+        }
+        const htmlTableValue = resp["HTML_TABLE_DATA"];
+        if (
+          !tableHtml &&
+          typeof htmlTableValue === "string" &&
+          htmlTableValue.trim()
+        ) {
+          tableHtml = htmlTableValue;
+        }
+        if (!botText) {
+          trySetBotText(extractAgentText(resp));
+        }
+        if (!botText && "response" in resp) {
+          trySetBotText(resp["response"]);
+          if (
+            !botText &&
+            resp["response"] &&
+            typeof resp["response"] === "object"
+          ) {
+            trySetBotText(extractAgentText(resp["response"]));
+          }
+        }
+        if (!botText && "message" in resp) {
+          trySetBotText(resp["message"]);
+        }
+        if (!botText) {
+          for (const value of Object.values(resp)) {
+            if (typeof value === "string") {
+              trySetBotText(value);
+            } else if (value && typeof value === "object" && !Array.isArray(value)) {
+              trySetBotText(extractAgentText(value));
+            }
+            if (botText && tableHtml) break;
+          }
+        }
+      };
+
+      const normalizeResponse = (resp: unknown) => {
+        if (!resp) return;
+        if (typeof resp === "string") {
+          trySetBotText(resp);
+          return;
+        }
+        if (Array.isArray(resp)) {
+          resp.forEach((entry) => normalizeResponse(entry));
+          return;
+        }
+        if (typeof resp === "object") {
+          parseResponseObject(resp as Record<string, unknown>);
+        }
+      };
+
+      if (data?.status === "success") {
+        normalizeResponse(data.response);
       } else {
-        botText = isArabic
-          ? "حدث خطأ أثناء معالجة الطلب."
-          : "An error occurred while processing your request.";
+        trySetBotText(
+          isArabic
+            ? "حدث خطأ أثناء معالجة الطلب."
+            : "An error occurred while processing your request."
+        );
       }
 
-      if (botText) {
+      if (!tableHtml) {
+        const maybeTopLevelHtml = (data as unknown as { HTML_TABLE_DATA?: string })
+          ?.HTML_TABLE_DATA;
+        if (
+          typeof maybeTopLevelHtml === "string" &&
+          maybeTopLevelHtml.trim()
+        ) {
+          tableHtml = maybeTopLevelHtml;
+        }
+      }
+
+      if (!botText && typeof data?.message === "string") {
+        trySetBotText(data.message);
+      }
+
+      if (!botText && tableHtml) {
+        botText = isArabic
+          ? "تم جلب البيانات. اضغط لعرض التفاصيل."
+          : "Data is ready. Tap to view details.";
+      }
+
+      if (botText || tableHtml) {
         setMessages((m) => [
           ...m,
           {
             id: Date.now() + 1,
-            text: botText,
+            text: botText || "",
             isUser: false,
             timestamp: new Date(),
-            sqlData,
+            sqlData: tableHtml,
           },
         ]);
       }
@@ -461,13 +705,21 @@ const ChatBot: React.FC<ChatBotProps> = ({
         )
       );
 
+      const status = extractStatusCode(err);
+      const fallbackText =
+        status === 500
+          ? isArabic
+            ? "الخدمة غير متاحة حالياً. حاول مرة أخرى لاحقاً."
+            : "Service is temporarily unavailable. Please try again later."
+          : isArabic
+          ? "تعذر الاتصال بالخادم."
+          : "Failed to connect to the server.";
+
       setMessages((m) => [
         ...m,
         {
           id: Date.now() + 2,
-          text: isArabic
-            ? "تعذر الاتصال بالخادم."
-            : "Failed to connect to the server.",
+          text: fallbackText,
           isUser: false,
           timestamp: new Date(),
         },
@@ -614,7 +866,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                           >
                             <path d="M3 3h18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm17 2H4v14h16V5ZM6 7h12v2H6V7Zm0 4h12v2H6v-2Zm0 4h6v2H6v-2Z" />
                           </svg>
-                          {isArabic ? "تفاصيل SQL" : "SQL Details"}
+                          {isArabic ? "عرض البيانات" : "View Data"}
                         </button>
                       </div>
                     )}
@@ -905,7 +1157,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
           >
             <div className="px-6 py-4 text-white bg-gradient-to-r from-[#00B7AD] to-[#09615d] flex items-center justify-between">
               <h2 className="text-sm font-semibold">
-                {isArabic ? "تفاصيل البيانات" : "SQL Data Details"}
+                {isArabic ? "تفاصيل البيانات" : "Data Details"}
               </h2>
               <button
                 onClick={closeSqlModal}
