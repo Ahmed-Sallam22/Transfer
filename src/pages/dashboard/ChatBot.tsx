@@ -29,6 +29,268 @@ const AVAILABLE_API_KEYS = [
 ] as const;
 const MAX_SEND_ATTEMPTS = AVAILABLE_API_KEYS.length + 1;
 
+type ParsedTable = {
+  headers: string[];
+  rows: string[][];
+  caption?: string | null;
+};
+
+const compactText = (value: string | null | undefined) =>
+  value ? value.replace(/\s+/g, " ").trim() : "";
+
+const parseHtmlTable = (html: string): ParsedTable | null => {
+  if (!html) return null;
+
+  let table: HTMLTableElement | null = null;
+
+  if (typeof window !== "undefined" && typeof window.DOMParser !== "undefined") {
+    try {
+      const parser = new window.DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      table = doc.querySelector("table");
+    } catch (error) {
+      console.error("Failed to parse HTML table via DOMParser:", error);
+    }
+  }
+
+  if (!table && typeof document !== "undefined") {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    table = template.content.querySelector("table");
+  }
+
+  if (!table) return null;
+
+  const caption = compactText(table.querySelector("caption")?.textContent) || null;
+
+  const meaningfulRows = Array.from(table.querySelectorAll("tr")).filter((row) =>
+    Array.from(row.children).some((cell) => compactText(cell.textContent).length > 0)
+  );
+
+  if (!meaningfulRows.length) return null;
+
+  let headerRow: Element | null =
+    table.querySelector("thead tr") || null;
+
+  if (!headerRow && meaningfulRows.length) {
+    const firstRow = meaningfulRows[0];
+    if (firstRow.querySelector("th")) {
+      headerRow = firstRow;
+    }
+  }
+
+  const headerCells = headerRow
+    ? Array.from(headerRow.querySelectorAll("th, td"))
+    : [];
+
+  let headers = headerCells.map((cell) => compactText(cell.textContent));
+  let dataRows = meaningfulRows.filter((row) => row !== headerRow);
+
+  if (!headers.length && meaningfulRows.length) {
+    const fallbackHeaderCells = Array.from(
+      meaningfulRows[0].querySelectorAll("td, th")
+    );
+    headers = fallbackHeaderCells.map((cell) => compactText(cell.textContent));
+    dataRows = meaningfulRows.slice(1);
+  }
+
+  const columnCount =
+    headers.length ||
+    dataRows.reduce(
+      (max, row) => Math.max(max, row.querySelectorAll("td, th").length),
+      0
+    );
+
+  if (!headers.length && columnCount > 0) {
+    headers = Array.from({ length: columnCount }, (_, idx) => `Column ${idx + 1}`);
+  }
+
+  const rows = dataRows
+    .map((row) =>
+      Array.from(row.querySelectorAll("td, th")).map((cell) =>
+        compactText(cell.textContent)
+      )
+    )
+    .filter((cells) => cells.length > 0);
+
+  if (!rows.length) return null;
+
+  return {
+    headers,
+    rows,
+    caption,
+  };
+};
+
+const isLikelyNumeric = (value: string) =>
+  /^-?\d+(?:[.,]\d+)?(?:%|\s*(?:USD|SAR|AED|EGP|QAR|KWD|OMR))?$/.test(
+    value.replace(/\s+/g, "")
+  );
+
+type AdvancedTableProps = {
+  table: ParsedTable;
+  isDarkMode: boolean;
+  isArabic: boolean;
+  onClick?: () => void;
+  size?: "compact" | "dialog";
+};
+
+const AdvancedTable: React.FC<AdvancedTableProps> = ({
+  table,
+  isDarkMode,
+  isArabic,
+  onClick,
+  size = "compact",
+}) => {
+  const maxColumns = Math.max(
+    table.headers.length,
+    ...table.rows.map((row) => row.length)
+  );
+
+  const headers = Array.from({ length: maxColumns || table.headers.length || 0 }, (_, idx) => {
+    const value = table.headers[idx] || "";
+    if (value) return value;
+    return isArabic ? `العمود ${idx + 1}` : `Column ${idx + 1}`;
+  });
+
+  const normalizedRows = table.rows.map((row) =>
+    Array.from({ length: headers.length }, (_, idx) => row[idx] ?? "")
+  );
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
+  const containerClasses = [
+    "group relative rounded-2xl border shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2",
+    isDarkMode
+      ? "border-slate-600 bg-slate-800/80 focus:ring-[#00B7AD]/50 focus:ring-offset-slate-900"
+      : "border-slate-200 bg-white focus:ring-[#00B7AD]/40 focus:ring-offset-white",
+    onClick ? "cursor-pointer hover:shadow-lg hover:border-[#00B7AD]/50" : "",
+  ].join(" ");
+
+  const headerClasses = [
+    "sticky top-0 z-[1]",
+    isDarkMode
+      ? "bg-slate-900/80 text-teal-200 border-b border-slate-700"
+      : "bg-gradient-to-r from-[#00B7AD] to-[#09615d] text-white border-b border-[#0e746f]",
+  ].join(" ");
+
+  const scrollAreaClasses =
+    size === "compact" ? "max-h-60" : "max-h-[65vh]";
+
+  return (
+    <div
+      className={containerClasses}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={handleKeyDown}
+      aria-label={
+        onClick
+          ? isArabic
+            ? "عرض الجدول بالتفاصيل الكاملة"
+            : "Open full table details"
+          : undefined
+      }
+      dir={isArabic ? "rtl" : "ltr"}
+    >
+      {table.caption && (
+        <div
+          className={[
+            "px-4 py-2 text-xs font-medium border-b",
+            isDarkMode
+              ? "border-slate-700 text-slate-200"
+              : "border-slate-200 text-slate-600",
+          ].join(" ")}
+        >
+          {table.caption}
+        </div>
+      )}
+      <div className={["overflow-auto rounded-2xl", scrollAreaClasses].join(" ")}>
+        <table className="min-w-full border-collapse text-[13px]">
+          <thead className={headerClasses}>
+            <tr>
+              {headers.map((cell, idx) => (
+                <th
+                  key={`header-${idx}`}
+                  className={[
+                    "px-4 py-3 text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap",
+                    isArabic ? "text-right" : "text-left",
+                    size === "dialog" ? "text-sm" : "",
+                  ].join(" ")}
+                >
+                  {cell || (isArabic ? `العمود ${idx + 1}` : `Column ${idx + 1}`)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {normalizedRows.map((row, rowIndex) => (
+              <tr
+                key={`row-${rowIndex}`}
+                className={[
+                  rowIndex % 2 === 0
+                    ? isDarkMode
+                      ? "bg-slate-800/60"
+                      : "bg-white"
+                    : isDarkMode
+                    ? "bg-slate-800/30"
+                    : "bg-slate-50/70",
+                  "transition hover:bg-[#00B7AD]/10",
+                ].join(" ")}
+              >
+                {row.map((value, colIndex) => {
+                  const numeric = isLikelyNumeric(value);
+                  const alignClass = numeric
+                    ? isArabic
+                      ? "text-left"
+                      : "text-right"
+                    : isArabic
+                    ? "text-right"
+                    : "text-left";
+                  return (
+                    <td
+                      key={`cell-${rowIndex}-${colIndex}`}
+                      className={[
+                        "px-4 py-2 text-[12px] sm:text-sm whitespace-nowrap border-t",
+                        isDarkMode
+                          ? "border-slate-700 text-slate-100"
+                          : "border-slate-200 text-slate-700",
+                        alignClass,
+                      ].join(" ")}
+                    >
+                      {value || "--"}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {onClick && (
+        <div
+          className={[
+            "pointer-events-none absolute",
+            isArabic ? "top-3 left-4" : "top-3 right-4",
+            "text-[11px] font-medium uppercase tracking-wide opacity-70 transition",
+            isDarkMode
+              ? "text-teal-200/70 group-hover:text-teal-200"
+              : "text-[#09615d]/70 group-hover:text-[#09615d]",
+          ].join(" ")}
+        >
+          {isArabic ? "اضغط للتكبير" : "Tap to expand"}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const matchesPreview = (key: string, preview?: string) => {
   if (!preview) return false;
   const normalized = preview.trim();
@@ -77,6 +339,7 @@ type Message = {
   isUser: boolean;
   timestamp: Date;
   sqlData?: string; // HTML table or structured data snippet
+  parsedTable?: ParsedTable; // Parsed representation for advanced rendering
   filePreview?: string; // base64 or URL for image preview
   fileName?: string; // original file name
   isError?: boolean; // if message failed to send
@@ -196,6 +459,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
   // SQL modal
   const [showSqlModal, setShowSqlModal] = useState(false);
   const [currentSqlData, setCurrentSqlData] = useState<string>("");
+  const [currentParsedTable, setCurrentParsedTable] = useState<ParsedTable | null>(null);
 
   // Input
   const [newMessage, setNewMessage] = useState("");
@@ -385,11 +649,13 @@ const ChatBot: React.FC<ChatBotProps> = ({
   // SQL modal helpers
   const openSqlModal = (html: string) => {
     setCurrentSqlData(html);
+    setCurrentParsedTable(parseHtmlTable(html));
     setShowSqlModal(true);
   };
   const closeSqlModal = () => {
     setShowSqlModal(false);
     setCurrentSqlData("");
+    setCurrentParsedTable(null);
   };
 
   // File handling functions
@@ -677,6 +943,8 @@ const ChatBot: React.FC<ChatBotProps> = ({
           : "Data is ready. Tap to view details.";
       }
 
+      const parsedTable = tableHtml ? parseHtmlTable(tableHtml) : null;
+
       if (botText || tableHtml) {
         setMessages((m) => [
           ...m,
@@ -686,6 +954,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
             isUser: false,
             timestamp: new Date(),
             sqlData: tableHtml,
+            parsedTable: parsedTable ?? undefined,
           },
         ]);
       }
@@ -854,20 +1123,26 @@ const ChatBot: React.FC<ChatBotProps> = ({
                   <div className="max-w-[70%] flex flex-col">
                     {!m.isUser && m.sqlData && (
                       <div className="mb-2">
-                        <button
-                          onClick={() => openSqlModal(m.sqlData!)}
-                          className="text-xs px-3 py-1.5 rounded-md shadow bg-gradient-to-r from-[#00B7AD] to-[#09615d] text-white hover:shadow-md transition inline-flex items-center gap-1"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M3 3h18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm17 2H4v14h16V5ZM6 7h12v2H6V7Zm0 4h12v2H6v-2Zm0 4h6v2H6v-2Z" />
-                          </svg>
-                          {isArabic ? "عرض البيانات" : "View Data"}
-                        </button>
+                        {m.parsedTable ? (
+                          <AdvancedTable
+                            table={m.parsedTable}
+                            isDarkMode={isDarkMode}
+                            isArabic={isArabic}
+                            onClick={() => openSqlModal(m.sqlData!)}
+                            size="compact"
+                          />
+                        ) : (
+                          <div
+                            className={[
+                              "text-xs rounded-xl overflow-x-auto shadow border cursor-pointer",
+                              isDarkMode
+                                ? "bg-slate-700/80 border-slate-600"
+                                : "bg-white border-black/10",
+                            ].join(" ")}
+                            onClick={() => openSqlModal(m.sqlData!)}
+                            dangerouslySetInnerHTML={{ __html: m.sqlData }}
+                          />
+                        )}
                       </div>
                     )}
 
@@ -1180,13 +1455,22 @@ const ChatBot: React.FC<ChatBotProps> = ({
                 isDarkMode ? "bg-slate-900/70" : "bg-slate-50/80",
               ].join(" ")}
             >
-              <div
-                className={[
-                  "rounded-lg overflow-x-auto shadow",
-                  isDarkMode ? "bg-slate-700/80" : "bg-white",
-                ].join(" ")}
-                dangerouslySetInnerHTML={{ __html: currentSqlData }}
-              />
+              {currentParsedTable ? (
+                <AdvancedTable
+                  table={currentParsedTable}
+                  isDarkMode={isDarkMode}
+                  isArabic={isArabic}
+                  size="dialog"
+                />
+              ) : (
+                <div
+                  className={[
+                    "rounded-lg overflow-x-auto shadow",
+                    isDarkMode ? "bg-slate-700/80" : "bg-white",
+                  ].join(" ")}
+                  dangerouslySetInnerHTML={{ __html: currentSqlData }}
+                />
+              )}
             </div>
             <div
               className={[
