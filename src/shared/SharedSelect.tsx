@@ -166,7 +166,7 @@ export function SharedSelect({
           onClick={handleToggle}
           disabled={disabled}
           className={cn(
-            "relative w-full px-3 py-4  text-left bg-white border border-[#E2E2E2] rounded-md  cursor-pointer",
+            "relative w-full px-3 py-4 text-left bg-white border border-[#E2E2E2] rounded-md cursor-pointer",
             "focus:outline-none focus:ring-2 focus:ring-[#00B7AD] focus:border-transparent",
             "disabled:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50",
             error ? "border-red-300" : "border-gray-300",
@@ -245,7 +245,7 @@ export function SharedSelect({
 
                     {value === option.value && (
                       <span className="absolute inset-y-0 right-0 flex items-center pr-3">
-                        <CheckIcon className="text-[#00B7AD" />
+                        <CheckIcon className="text-[#00B7AD]" />
                       </span>
                     )}
                   </button>

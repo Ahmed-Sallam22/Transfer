@@ -10,6 +10,115 @@ import {
   useGetInvoiceByIdQuery,
 } from "@/api/invoice.api";
 import { SharedModal } from "@/shared/SharedModal";
+import SharedSelect, { type SelectOption } from "@/shared/SharedSelect";
+
+const ACCOUNT_CODE_OPTIONS = [
+  {
+    code: "5000000",
+    label: "Expenses",
+  },
+  { code: "5010000", label: "Cost Of Sales" },
+  { code: "5010001", label: "Salaries Eng Staff" },
+  { code: "5010002", label: "Depreciation Charges To Cost Of Sales" },
+  { code: "5010003", label: "Inventory - NRV Adjustment to PL" },
+  { code: "5010004", label: "FM Service Charges" },
+  { code: "5010005", label: "Community Service Charges" },
+  { code: "5010006", label: "Chilled Water Consumption Charges" },
+  { code: "5010007", label: "Broker comission" },
+  { code: "5010008", label: "Development Fee" },
+  { code: "5010015", label: "Other Cost of Sales" },
+  { code: "5010016", label: "Other Cost of Sales  - RP" },
+  { code: "5040000", label: "General And Administrative Expenses" },
+  { code: "5040100", label: "G&A - Staff Costs" },
+  { code: "5040101", label: "Basic Salary" },
+  { code: "5040102", label: "Children Allowance" },
+  { code: "5040103", label: "Social Allowance" },
+  { code: "5040104", label: "Special Allowance" },
+  { code: "5040105", label: "Airfare Allowance" },
+  { code: "5040106", label: "Consolidated Allowance" },
+  { code: "5040107", label: "Overtime Expenses" },
+  { code: "5040108", label: "Education Assistance" },
+  { code: "5040109", label: "Life Insurance Expense" },
+  { code: "5040111", label: "Health Insurance Expense" },
+  { code: "5040112", label: "Leave Provision" },
+  { code: "5040113", label: "Expatriates EOSB" },
+  { code: "5040114", label: "UAE Nationals EOSB Non Pensionable" },
+  { code: "5040115", label: "Defined Benefit Contribution" },
+  { code: "5040116", label: "UAE Nationals Pension" },
+  { code: "5040117", label: "Employee Relocation Expenses" },
+  { code: "5040118", label: "Repatriation Expense" },
+  { code: "5040119", label: "Non UAE Employee Pension" },
+  { code: "5040121", label: "Special Needs Assistance" },
+  { code: "5040122", label: "Payroll Taxes Employer" },
+  { code: "5040123", label: "Workers Compensation Expense" },
+  { code: "5040124", label: "Visa Expenses" },
+  { code: "5040125", label: "Professional Membership Fees" },
+  { code: "5040126", label: "International Assignment Allowance" },
+  { code: "5040127", label: "Outward Secondee Compensation Recharges" },
+  { code: "5040128", label: "Inward Secondee Compensation Recharges" },
+  { code: "5040129", label: "Secondee Employee Tax Expense" },
+  { code: "5040131", label: "Long-Term Contractors" },
+  { code: "5040132", label: "Recruitment Expenses" },
+  { code: "5040133", label: "Training Expenses Fees" },
+  { code: "5040134", label: "Lump Sum Adjustments" },
+  { code: "5040135", label: "Ex Gratia Payment" },
+  { code: "5040136", label: "Discretionary Bonus" },
+  { code: "5040137", label: "Board And Committee Membership Fee" },
+  { code: "5040138", label: "Long-Term Incentive Plan Expense" },
+  { code: "5040141", label: "Special Compensation Payment" },
+  { code: "5040200", label: "G&A - Depreciation Of Property, Plant And Equipment" },
+  { code: "5040201", label: "Depreciation Expense Buildings" },
+  { code: "5040202", label: "Depreciation Expense Machinery And Equipment" },
+  { code: "5040203", label: "Depreciation Expense Transportation Equipment" },
+  { code: "5040204", label: "Depreciation Expense Furniture And Fixtures" },
+  { code: "5040205", label: "Depreciation Expense Office Equipment" },
+  { code: "5040206", label: "Depreciation Expense Computers And Software" },
+  { code: "5040207", label: "Depreciation Expense Leasehold Improvements" },
+  { code: "8888888", label: "Dummy Account" },
+] as const;
+
+const formatAccountDescription = (value: string | null | undefined) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const parenIndex = trimmed.indexOf("(");
+  return parenIndex > -1 ? trimmed.slice(0, parenIndex).trim() : trimmed;
+};
+
+type ExtractedInvoiceDistribution = {
+  DistributionCombination?: string;
+  DistributionLineType?: string;
+  DistributionAmount?: string | number;
+};
+
+type ExtractedInvoiceLine = {
+  LineNumber?: number;
+  LineAmount?: string | number;
+  invoiceDistributions?: ExtractedInvoiceDistribution[];
+};
+
+type ExtractedInvoiceData = {
+  InvoiceNumber?: string;
+  InvoiceDate?: string;
+  Supplier?: string;
+  SupplierSite?: string;
+  BusinessUnit?: string;
+  Description?: string;
+  InvoiceAmount?: number | string;
+  InvoiceCurrency?: string;
+  InvoiceGroup?: string;
+  AccountCode?: string;
+  AccountDescription?: string;
+  ["Account Description"]?: string;
+  invoiceLines?: ExtractedInvoiceLine[];
+};
+
+const ACCOUNT_CODE_SELECT_OPTIONS: SelectOption[] = ACCOUNT_CODE_OPTIONS.map(
+  (entry) => ({
+    value: entry.code,
+    label: `${entry.code} — ${entry.label}`,
+  })
+);
 
 export default function InvoiceReview() {
   const navigate = useNavigate();
@@ -68,6 +177,8 @@ export default function InvoiceReview() {
     invoiceAmount: 0,
     invoiceCurrency: "USD",
     invoiceGroup: "",
+    accountCode: "",
+    accountDescription: "",
     lineItems: [] as Array<{
       id: number;
       lineNumber: number;
@@ -81,24 +192,30 @@ export default function InvoiceReview() {
   // Update form when dataSource changes
   useEffect(() => {
     if (dataSource?.data) {
-      const data = dataSource.data;
-      console.log("data",data);
-      
-      const lineItems = (data.invoiceLines || []).map((line, idx: number) => ({
-        id: idx + 1,
-        lineNumber: line.LineNumber || idx + 1,
-        lineAmount: line.LineAmount || "0",
-        distributionCombination:
-          line.invoiceDistributions?.[0]?.DistributionCombination || "",
-        distributionLineType:
-          line.invoiceDistributions?.[0]?.DistributionLineType || "Item",
-        distributionAmount:
-          line.invoiceDistributions?.[0]?.DistributionAmount ||
-          line.LineAmount ||
-          "0",
-      }));
+      const data = dataSource.data as ExtractedInvoiceData;
 
-  
+      const rawAccountDescription =
+        data["Account Description"] ?? data.AccountDescription ?? "";
+      const formattedAccountDescription =
+        formatAccountDescription(rawAccountDescription);
+      const initialAccountCode = data.AccountCode ?? "";
+
+      const invoiceLines = data.invoiceLines ?? [];
+      const lineItems = invoiceLines.map((line: ExtractedInvoiceLine, idx: number) => {
+        const lineAmountValue = line.LineAmount ?? "0";
+        const firstDistribution = line.invoiceDistributions?.[0];
+
+        return {
+          id: idx + 1,
+          lineNumber: line.LineNumber ?? idx + 1,
+          lineAmount: String(lineAmountValue ?? "0"),
+          distributionCombination: firstDistribution?.DistributionCombination ?? "",
+          distributionLineType: firstDistribution?.DistributionLineType ?? "Item",
+          distributionAmount: String(
+            firstDistribution?.DistributionAmount ?? lineAmountValue ?? "0"
+          ),
+        };
+      });
 
       setForm({
         invoiceNo: data.InvoiceNumber || "",
@@ -107,9 +224,16 @@ export default function InvoiceReview() {
         supplierSite: data.SupplierSite || "",
         businessUnit: data.BusinessUnit || "",
         description: data.Description || "",
-        invoiceAmount: data?.InvoiceAmount || 0,
+        invoiceAmount: parseFloat(String(data?.InvoiceAmount ?? 0)) || 0,
         invoiceCurrency: data.InvoiceCurrency || "USD",
         invoiceGroup: data.InvoiceGroup || "",
+        accountCode: initialAccountCode,
+        accountDescription:
+          formattedAccountDescription ||
+          formatAccountDescription(
+            ACCOUNT_CODE_OPTIONS.find((opt) => opt.code === initialAccountCode)
+              ?.label
+          ),
         lineItems: lineItems,
       });
     }
@@ -180,6 +304,9 @@ export default function InvoiceReview() {
           SupplierSite: form.supplierSite,
           InvoiceGroup: form.invoiceGroup,
           Description: form.description,
+          AccountCode: form.accountCode,
+          AccountDescription: form.accountDescription,
+          "Account Description": form.accountDescription,
           invoiceDff: [
             {
               __FLEX_Context: "MIC_HQ",
@@ -554,6 +681,48 @@ export default function InvoiceReview() {
                 value={calc.subtotal.toFixed(2)}
                 className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700 font-medium cursor-not-allowed"
               />
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <p className="text-sm font-medium text-gray-800">
+              Code Combinations
+            </p>
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-600">Account Code</label>
+                <SharedSelect
+                  options={ACCOUNT_CODE_SELECT_OPTIONS}
+                  value={form.accountCode}
+                  onChange={(nextValue) => {
+                    const selectedCode = String(nextValue ?? "");
+                    const option = ACCOUNT_CODE_OPTIONS.find(
+                      (item) => item.code === selectedCode
+                    );
+                    setForm((prev) => ({
+                      ...prev,
+                      accountCode: selectedCode,
+                      accountDescription: formatAccountDescription(
+                        option?.label ?? ""
+                      ),
+                    }));
+                  }}
+                  placeholder="Select account code"
+                  disabled={!!apiInvoiceData}
+                  clearable
+                  searchable
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600">Account Description</label>
+                <input
+                  value={form.accountDescription}
+                  readOnly
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-4 text-sm text-gray-700"
+                  placeholder="Select an account code to view"
+                />
+              </div>
             </div>
           </div>
 
