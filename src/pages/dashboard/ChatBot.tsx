@@ -912,9 +912,11 @@ const ChatBot: React.FC<ChatBotProps> = ({
         }
       };
 
-      if (data?.status === "success") {
+      if (data && "response" in data) {
         normalizeResponse(data.response);
-      } else {
+      }
+
+      if (!botText && data?.status === "error") {
         trySetBotText(
           isArabic
             ? "حدث خطأ أثناء معالجة الطلب."
@@ -1048,7 +1050,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
             className={[
               "absolute bottom-20",
               isArabic ? "left-0" : "right-0",
-              "w-[380px] h-[500px]",
+              "w-[680px] h-[550px]",
               "rounded-2xl overflow-hidden",
               "shadow-2xl border",
               // Glassy + blue/white theme
@@ -1120,7 +1122,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
                     m.isUser ? "justify-end" : "justify-start",
                   ].join(" ")}
                 >
-                  <div className="max-w-[70%] flex flex-col">
+                  <div className="max-w-[100%] flex flex-col">
                     {!m.isUser && m.sqlData && (
                       <div className="mb-2">
                         {m.parsedTable ? (
