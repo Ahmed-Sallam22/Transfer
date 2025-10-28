@@ -28,6 +28,7 @@ const AVAILABLE_API_KEYS = [
   "AIzaSyCOH5doSg_YSyAr8V5RSHAp0R5YbsNRP6g",
 ] as const;
 const MAX_SEND_ATTEMPTS = AVAILABLE_API_KEYS.length + 1;
+const SMART_CHATBOT_ENDPOINT = "https://lightidea.org:9001/api/transfers/budget-qa/";
 
 type ParsedTable = {
   headers: string[];
@@ -431,6 +432,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [isSmartMode, setIsSmartMode] = useState(false);
 
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
@@ -505,6 +507,26 @@ const ChatBot: React.FC<ChatBotProps> = ({
       return nowOpen;
     });
   }, []);
+
+  const toggleSmartMode = useCallback(() => {
+    setIsSmartMode((prev) => !prev);
+  }, []);
+
+  const smartModeButtonLabel = isSmartMode
+    ? isArabic
+      ? "وضع ذكي"
+      : "Smart Mode"
+    : isArabic
+    ? "وضع أساسي"
+    : "Agent Mode";
+
+  const smartModeButtonHint = isSmartMode
+    ? isArabic
+      ? "التبديل إلى الوضع الأساسي"
+      : "Switch to standard assistant"
+    : isArabic
+    ? "التبديل إلى الوضع الذكي"
+    : "Switch to smart assistant";
 
   // Drag handlers
   const startDrag = (e: React.MouseEvent | React.TouchEvent) => {
@@ -791,6 +813,61 @@ const ChatBot: React.FC<ChatBotProps> = ({
     }
 
     const attemptSend = async (): Promise<ChatbotResponse> => {
+      if (isSmartMode) {
+        const smartRequestBody = {
+          question: payload.user_input,
+        };
+
+        const response = await fetch(SMART_CHATBOT_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(smartRequestBody),
+        });
+
+        const rawBody = await response.text();
+
+        if (!response.ok) {
+          let parsedError: unknown = rawBody;
+          if (rawBody) {
+            try {
+              parsedError = JSON.parse(rawBody);
+            } catch {
+              parsedError = { message: rawBody };
+            }
+          }
+
+          const error = new Error(
+            `Smart chatbot request failed with status ${response.status}`
+          ) as Error & { status?: number; data?: unknown };
+          error.status = response.status;
+          error.data = parsedError;
+          throw error;
+        }
+
+        if (!rawBody) {
+          return { status: "success" };
+        }
+
+        try {
+          const parsed = JSON.parse(rawBody);
+          if (parsed && typeof parsed === "object" && "status" in parsed) {
+            return parsed as ChatbotResponse;
+          }
+
+          return {
+            status: "success",
+            response: parsed as ChatbotResponse["response"],
+          };
+        } catch {
+          return {
+            status: "success",
+            response: rawBody,
+          };
+        }
+      }
+
       let lastError: unknown = null;
 
       for (let attempt = 0; attempt < MAX_SEND_ATTEMPTS; attempt += 1) {
@@ -1089,20 +1166,41 @@ const ChatBot: React.FC<ChatBotProps> = ({
                   </span>
                 </div>
               </div>
-              <button
-                onClick={toggleChat}
-                aria-label={isArabic ? "إغلاق الدردشة" : "Close Chat"}
-                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleSmartMode}
+                  aria-label={smartModeButtonHint}
+                  aria-pressed={isSmartMode}
+                  className={[
+                    "px-3 h-8 rounded-full border text-xs font-semibold transition bg-white text-[#09615d] border-white shadow-sm flex items-center gap-2",
+               
+                  ].join(" ")}
                 >
-                  <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" />
-                </svg>
-              </button>
+                  <span
+                    className={[
+                      "inline-block w-2 h-2 rounded-full bg-[#09615d]",
+                    
+                    ].join(" ")}
+                  />
+                  <span>{smartModeButtonLabel}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleChat}
+                  aria-label={isArabic ? "إغلاق الدردشة" : "Close Chat"}
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Messages */}

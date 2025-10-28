@@ -29,5 +29,13 @@
   "sendResetEmail": "إرسال رسالة إعادة التعيين",
   "backToSignIn": "العودة إلى تسجيل الدخول",
   "dashboard": "لوحة التحكم",
-  "welcomeMessage": "مرحباً بك في لوحة تحكم تنفيذ!"
+  "welcomeMessage": "مرحباً بك في لوحة تحكم تنفيذ!",
+  "greeting": {
+    "morning": "صباح الخير",
+    "evening": "مساء الخير"
+  },
+  "navbar": {
+    "search": "بحث",
+    "notifications": "الإشعارات"
+  }
 }

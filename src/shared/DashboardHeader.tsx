@@ -3,10 +3,12 @@
 import Navbar from "./Navbar";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/app/store";
+import { useTranslation } from "react-i18next";
 
 export default function DashboardHeader() {
   // Get user data from Redux store
   const user = useSelector((state: RootState) => state.auth.user);
+  const { t, i18n } = useTranslation();
 
   // Fallback user data from localStorage if Redux state is not available
   const getUserFromStorage = () => {
@@ -37,7 +39,8 @@ export default function DashboardHeader() {
     : "User";
 
   const today = new Date();
-  const formatted = today.toLocaleDateString("en-GB", {
+  const displayLocale = i18n.language === "ar" ? "ar-EG" : "en-GB";
+  const formatted = today.toLocaleDateString(displayLocale, {
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -46,7 +49,7 @@ export default function DashboardHeader() {
 
   const hours = new Date().getHours();
   const isMorning = hours < 12;
-  const greeting = isMorning ? "Good Morning" : "Good Evening";
+  const greeting = isMorning ? t("greeting.morning") : t("greeting.evening");
 
   return (
     <header className="flex items-start justify-between gap-4">
@@ -60,8 +63,6 @@ export default function DashboardHeader() {
 
       {/* Right: navbar capsule */}
       <Navbar
-        locale="EN"
-        onToggleLocale={(l) => console.log("switch to", l)}
         onSearchClick={() => console.log("search")}
         onBellClick={() => console.log("bell")}
       />

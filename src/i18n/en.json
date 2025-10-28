@@ -10,8 +10,7 @@
   "createAccount": "Create an account",
   "name": "Name",
   "terms": "I have read and agree to Terms of Service",
-    "EmailUpdate": "I agree to receive email updates",
-
+  "EmailUpdate": "I agree to receive email updates",
   "submit": "Submit",
   "success": "Success",
   "error": "Error",
@@ -31,5 +30,13 @@
   "sendResetEmail": "Start recovery",
   "backToSignIn": "Back to sign in",
   "dashboard": "Dashboard",
-  "welcomeMessage": "Welcome to Tanfeez Dashboard!"
+  "welcomeMessage": "Welcome to Tanfeez Dashboard!",
+  "greeting": {
+    "morning": "Good Morning",
+    "evening": "Good Evening"
+  },
+  "navbar": {
+    "search": "Search",
+    "notifications": "Notifications"
+  }
 }

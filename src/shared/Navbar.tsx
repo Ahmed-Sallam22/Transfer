@@ -1,28 +1,27 @@
 import ProfileDropdown from '@/components/ui/ProfileDropdown';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/app/store';
-import {
-  Search,
-  Bell
-} from 'lucide-react';
+import { Search, Bell } from 'lucide-react';
 import img from '../assets/Avatar/32px.png';
 import { useLogout } from '@/hooks/useLogout';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '@/hooks/useLocale';
 
 type NavbarProps = {
-  locale: 'EN' | 'AR';
-  onToggleLocale?: (next: 'EN' | 'AR') => void;
   onSearchClick?: () => void;
   onBellClick?: () => void;
 };
 
 export default function Navbar({
-  locale,
-  onToggleLocale,
   onSearchClick,
   onBellClick,
 }: NavbarProps) {
+  const { t } = useTranslation();
+  const { locale, setLocale } = useLocale();
+  console.log(locale);
+  
   // Get user data from Redux store (which is synced with localStorage)
- const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth.user);
   const userLevelNameFromState = useSelector(
     (state: RootState) => state.auth.user_level_name
   );
@@ -43,7 +42,7 @@ export default function Navbar({
   };
 
   const currentUser = user || getUserFromStorage();
-    const logout = useLogout();
+  const logout = useLogout();
   // Capitalize the first letter of each word in the username
   const capitalizeWords = (str: string) => {
     return str
@@ -73,7 +72,7 @@ export default function Navbar({
         <div className="flex items-center bg-gray-100 rounded-full p-1">
           <button
             type="button"
-            onClick={() => onToggleLocale?.('EN')}
+            onClick={() => setLocale('EN')}
             className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full transition ${
               locale === 'EN'
                 ? 'bg-white shadow  text-gray-900'
@@ -84,7 +83,7 @@ export default function Navbar({
           </button>
           <button
             type="button"
-            onClick={() => onToggleLocale?.('AR')}
+            onClick={() => setLocale('AR')}
             className={`px-2 sm:px-3 py-1 text-xs font-semibold rounded-full transition ${
               locale === 'AR'
                 ? 'bg-white shadow text-gray-900'
@@ -99,7 +98,7 @@ export default function Navbar({
       {/* Icon buttons */}
       <button
         type="button"
-        aria-label="Search"
+        aria-label={t('navbar.search')}
         onClick={onSearchClick}
         className="relative h-8 w-8 sm:h-9 sm:w-9 grid place-items-center rounded-full border border-gray-200 hover:bg-gray-50 flex-shrink-0"
       >
@@ -108,7 +107,7 @@ export default function Navbar({
 
       <button
         type="button"
-        aria-label="Notifications"
+        aria-label={t('navbar.notifications')}
         onClick={onBellClick}
         className="relative h-8 w-8 sm:h-9 sm:w-9 grid place-items-center rounded-full border border-gray-200 hover:bg-gray-50 flex-shrink-0"
       >
