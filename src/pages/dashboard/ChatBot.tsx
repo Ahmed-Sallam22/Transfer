@@ -1173,14 +1173,14 @@ const ChatBot: React.FC<ChatBotProps> = ({
                   aria-label={smartModeButtonHint}
                   aria-pressed={isSmartMode}
                   className={[
-                    "px-3 h-8 rounded-full border text-xs font-semibold transition bg-white text-[#09615d] border-white shadow-sm flex items-center gap-2",
-               
+                    "px-3 h-8 rounded-full border text-xs font-semibold transition flex items-center gap-2 bg-white/20 text-white border-white/30 hover:bg-white/30",
+                   
                   ].join(" ")}
                 >
                   <span
                     className={[
-                      "inline-block w-2 h-2 rounded-full bg-[#09615d]",
-                    
+                      "inline-block w-2 h-2 rounded-full",
+                      isSmartMode ? "bg-white/80" : "bg-white/80",
                     ].join(" ")}
                   />
                   <span>{smartModeButtonLabel}</span>
