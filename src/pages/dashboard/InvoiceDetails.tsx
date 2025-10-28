@@ -85,6 +85,47 @@ const formatAccountDescription = (value: string | null | undefined) => {
   return parenIndex > -1 ? trimmed.slice(0, parenIndex).trim() : trimmed;
 };
 
+const sanitizeAmountString = (
+  value: string | number | null | undefined
+): string => {
+  if (value === null || value === undefined) return "0";
+
+  const raw = typeof value === "number" ? value.toString() : value;
+
+  if (!raw) return "0";
+
+  const collapsed = raw.replace(/\s+/g, "");
+  const cleaned = collapsed.replace(/[^\d,.-]/g, "");
+
+  const hasDot = cleaned.includes(".");
+  const commaMatches = cleaned.match(/,/g);
+  const commaCount = commaMatches ? commaMatches.length : 0;
+
+  let normalized = cleaned;
+
+  if (commaCount > 0) {
+    if (!hasDot && commaCount === 1) {
+      normalized = cleaned.replace(",", ".");
+    } else {
+      normalized = cleaned.replace(/,/g, "");
+    }
+  }
+
+  if (!normalized || normalized === "." || normalized === "-" || normalized === "-.") {
+    return "0";
+  }
+
+  return normalized;
+};
+
+const parseAmountValue = (
+  value: string | number | null | undefined
+): number => {
+  const sanitized = sanitizeAmountString(value);
+  const parsed = Number.parseFloat(sanitized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 type ExtractedInvoiceDistribution = {
   DistributionCombination?: string;
   DistributionLineType?: string;
@@ -202,18 +243,21 @@ export default function InvoiceReview() {
 
       const invoiceLines = data.invoiceLines ?? [];
       const lineItems = invoiceLines.map((line: ExtractedInvoiceLine, idx: number) => {
-        const lineAmountValue = line.LineAmount ?? "0";
+        const lineAmountRaw = line.LineAmount ?? "0";
         const firstDistribution = line.invoiceDistributions?.[0];
+        const distributionAmountRaw =
+          firstDistribution?.DistributionAmount ?? lineAmountRaw ?? "0";
+
+        const lineAmount = sanitizeAmountString(lineAmountRaw);
+        const distributionAmount = sanitizeAmountString(distributionAmountRaw);
 
         return {
           id: idx + 1,
           lineNumber: line.LineNumber ?? idx + 1,
-          lineAmount: String(lineAmountValue ?? "0"),
+          lineAmount,
           distributionCombination: firstDistribution?.DistributionCombination ?? "",
           distributionLineType: firstDistribution?.DistributionLineType ?? "Item",
-          distributionAmount: String(
-            firstDistribution?.DistributionAmount ?? lineAmountValue ?? "0"
-          ),
+          distributionAmount,
         };
       });
 
@@ -224,7 +268,7 @@ export default function InvoiceReview() {
         supplierSite: data.SupplierSite || "",
         businessUnit: data.BusinessUnit || "",
         description: data.Description || "",
-        invoiceAmount: parseFloat(String(data?.InvoiceAmount ?? 0)) || 0,
+        invoiceAmount: parseAmountValue(data?.InvoiceAmount ?? 0),
         invoiceCurrency: data.InvoiceCurrency || "USD",
         invoiceGroup: data.InvoiceGroup || "",
         accountCode: initialAccountCode,
@@ -240,10 +284,9 @@ export default function InvoiceReview() {
   }, [dataSource]);
 
   const calc = useMemo(() => {
-    const subtotal = form.lineItems.reduce(
-      (s, li) => s + parseFloat(String(li.lineAmount) || "0"),
-      0
-    );
+    const subtotal = form.lineItems.reduce((total, li) => {
+      return total + parseAmountValue(li.lineAmount);
+    }, 0);
     return { subtotal };
   }, [form.lineItems]);
 
@@ -286,7 +329,7 @@ export default function InvoiceReview() {
     try {
       // Validate line items
       const hasAmount = form.lineItems.every(
-        (r) => parseFloat(String(r.lineAmount) || "0") > 0
+        (r) => parseAmountValue(r.lineAmount) > 0
       );
       if (!hasAmount) {
         return toast.error("Each line must have an amount greater than 0");
@@ -314,7 +357,7 @@ export default function InvoiceReview() {
           ],
           invoiceLines: form.lineItems.map((line) => ({
             LineNumber: line.lineNumber,
-            LineAmount: line.lineAmount,
+            LineAmount: sanitizeAmountString(line.lineAmount),
             invoiceLineDff: [
               {
                 __FLEX_Context: "MIC_HQ",
@@ -324,7 +367,7 @@ export default function InvoiceReview() {
               {
                 DistributionLineNumber: 1,
                 DistributionLineType: line.distributionLineType,
-                DistributionAmount: line.lineAmount,
+                DistributionAmount: sanitizeAmountString(line.distributionAmount || line.lineAmount),
                 DistributionCombination: line.distributionCombination,
               },
             ],
