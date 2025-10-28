@@ -348,7 +348,6 @@ export default function InvoiceReview() {
           InvoiceGroup: form.invoiceGroup,
           Description: form.description,
           AccountCode: form.accountCode,
-          AccountDescription: form.accountDescription,
           "Account Description": form.accountDescription,
           invoiceDff: [
             {
