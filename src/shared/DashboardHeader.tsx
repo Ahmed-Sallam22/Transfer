@@ -45,7 +45,7 @@ export default function DashboardHeader() {
     day: "2-digit",
     month: "long",
     year: "numeric",
-  }); // Thursday, 26 September 2025 (حسب اللغة)
+  }); 
 
   const hours = new Date().getHours();
   const isMorning = hours < 12;
