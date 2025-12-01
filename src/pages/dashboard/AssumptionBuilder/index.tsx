@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   addEdge,
   useNodesState,
@@ -19,6 +20,7 @@ const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
 
 export default function AssumptionBuilder() {
+  const location = useLocation();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -34,6 +36,22 @@ export default function AssumptionBuilder() {
     isDefault: true,
     conditions: [],
   });
+
+  // Load workflow data from navigation state if available
+  useEffect(() => {
+    if (location.state) {
+      const { name, executionPoint, description, isDefault } = location.state as WorkflowData;
+      if (name || executionPoint) {
+        setWorkflowData({
+          name: name || "",
+          executionPoint: executionPoint || "",
+          description: description || "",
+          isDefault: isDefault ?? true,
+          conditions: [],
+        });
+      }
+    }
+  }, [location.state]);
 
   // Stage properties (for selected node)
   const [stageData, setStageData] = useState<StageData>({
