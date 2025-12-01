@@ -21,6 +21,7 @@ import Users from "@/pages/dashboard/Users";
 import Reports from "@/pages/dashboard/Reports";
 import AddWorkFlow from "@/pages/dashboard/AddWorkFlow";
 import WorkFlow from "@/pages/dashboard/WorkFlow";
+import AssumptionBuilder from "@/pages/dashboard/AssumptionBuilder";
 // import Envelope from "@/pages/dashboard/Envelope";
 import Chat from "@/pages/dashboard/Chat";
 import DocumentIO from "@/pages/dashboard/DocumentIO";
@@ -286,6 +287,14 @@ export default function AppRoutes() {
             element={
               <RoleProtectedRoute allowedRoles={["superadmin"]}>
                 <AddWorkFlow />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="Assumption"
+            element={
+              <RoleProtectedRoute allowedRoles={["superadmin"]}>
+                <AssumptionBuilder />
               </RoleProtectedRoute>
             }
           />

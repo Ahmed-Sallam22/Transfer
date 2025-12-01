@@ -17,6 +17,7 @@
     "@reduxjs/toolkit": "^2.8.2",
     "@tailwindcss/vite": "^4.1.12",
     "@uiw/react-md-editor": "^4.0.8",
+    "@xyflow/react": "^12.9.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
